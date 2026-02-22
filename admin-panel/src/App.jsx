@@ -1,0 +1,88 @@
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
+import Dashboard from './pages/Dashboard';
+import ProductManager from './pages/ProductManager';
+import OrderManager from './pages/OrderManager';
+import CustomerManager from './pages/CustomerManager';
+import SliderManager from './pages/SliderManager';
+import StoreLayout from './pages/StoreLayout';
+import Settings from './pages/Settings';
+import Login from './pages/Login';
+
+function App() {
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem('ehub_token');
+  });
+
+  useEffect(() => {
+    // Apply dark mode class on mount based on saved preference
+    const layout = document.querySelector('.admin-layout');
+    if (layout) {
+      if (isDarkMode) {
+        layout.classList.add('dark-mode');
+      } else {
+        layout.classList.remove('dark-mode');
+      }
+    }
+  }, [isDarkMode]);
+
+  // Check auth status periodically
+  useEffect(() => {
+    const checkAuth = () => {
+        setIsAuthenticated(!!localStorage.getItem('ehub_token'));
+    };
+    window.addEventListener('storage', checkAuth);
+    const interval = setInterval(checkAuth, 2000);
+    return () => {
+        window.removeEventListener('storage', checkAuth);
+        clearInterval(interval);
+    };
+  }, []);
+
+  const ProtectedLayout = ({ children }) => {
+    if (!isAuthenticated) return <Navigate to="/login" />;
+    return (
+      <div className={`admin-layout ${isDarkMode ? 'dark-mode' : ''}`}>
+        <Sidebar />
+        <main className="admin-main">
+          {children}
+        </main>
+      </div>
+    );
+  };
+
+  return (
+    <Router>
+      <div className="mobile-restriction">
+        <div style={{ fontSize: '48px', marginBottom: '20px' }}>🖥️</div>
+        <h2>Desktop or Tablet Required</h2>
+        <p>The Admin Dashboard is optimized for larger screens only.</p>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '8px' }}>Please access this URL from a tablet (landscape), laptop, or desktop computer (min-width: 1024px).</p>
+      </div>
+      
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        
+        <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+        <Route path="/products" element={<ProtectedLayout><ProductManager /></ProtectedLayout>} />
+        <Route path="/orders" element={<ProtectedLayout><OrderManager /></ProtectedLayout>} />
+        <Route path="/customers" element={<ProtectedLayout><CustomerManager /></ProtectedLayout>} />
+        <Route path="/slider" element={<ProtectedLayout><SliderManager /></ProtectedLayout>} />
+        <Route path="/inventory" element={<ProtectedLayout><StoreLayout /></ProtectedLayout>} />
+        <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
+        
+        {/* Redirect unknown routes */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
+
