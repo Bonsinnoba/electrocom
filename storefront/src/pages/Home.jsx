@@ -30,15 +30,23 @@ export default function Home({ products, onProductClick, searchQuery, loading })
           </div>
         ) : (
           <div className="product-grid">
-            {filteredProducts.map(p => (
-              <ProductCard 
-                key={p.id}
-                name={p.name} 
-                price={p.price} 
-                image={p.image} 
-                rating={p.rating}
-                onClick={() => onProductClick(p)}
-              />
+            {filteredProducts.map((p, idx) => (
+              <div 
+                key={p.id} 
+                className="animate-slide-up" 
+                style={{ 
+                  animationDelay: `${idx * 0.05}s`,
+                  animationFillMode: 'both'
+                }}
+              >
+                <ProductCard 
+                  name={p.name} 
+                  price={p.price} 
+                  image={p.image} 
+                  rating={p.rating}
+                  onClick={() => onProductClick(p)}
+                />
+              </div>
             ))}
           </div>
         )}

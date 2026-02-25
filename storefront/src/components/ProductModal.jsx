@@ -18,6 +18,9 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
     }
   }, [product]);
 
+  const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   if (!isOpen || !product) return null;
 
   const inWishlist = isInWishlist(product.id);
@@ -29,9 +32,21 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
     .filter(p => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
+  const handleAddToCart = () => {
+    setIsAdding(true);
+    onAddToCart(product, quantity, selectedColor);
+    setTimeout(() => setIsAdding(false), 2000);
+  };
+
+  const handleAddToWishlist = () => {
+    setIsSaving(true);
+    onAddToWishlist(product);
+    setTimeout(() => setIsSaving(false), 1000);
+  };
+
   return (
     <div className={`modal-backdrop active`} onClick={onClose}>
-      <div className="product-modal modal glass animate-fade-in" onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
+      <div className="product-modal modal glass animate-scale-in" onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
         <button 
           className="btn-secondary close-button" 
           onClick={onClose} 
@@ -75,7 +90,8 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                   <img 
                     src={activeImage} 
                     alt={product.name} 
-                    className="stage-image"
+                    className="stage-image animate-fade-in"
+                    key={activeImage}
                   />
                 ) : (
                   <div className="image-placeholder"></div>
@@ -117,10 +133,9 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
               {/* Side-by-Side Primary Actions */}
               <div className="modal-primary-actions">
                 <button 
-                  className="btn-primary" 
-                  onClick={() => {
-                    onAddToCart(product, quantity, selectedColor);
-                  }}
+                  className={`btn-primary ${isAdding ? 'animate-pulse-success' : ''}`}
+                  onClick={handleAddToCart}
+                  disabled={isAdding}
                   style={{ 
                     flex: 1.5, 
                     padding: '14px 10px', 
@@ -131,16 +146,18 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                     gap: '8px',
                     fontSize: '14px',
                     fontWeight: 700,
-                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)',
-                    whiteSpace: 'nowrap'
+                    boxShadow: isAdding ? '0 4px 20px rgba(16, 185, 129, 0.4)' : '0 4px 12px rgba(59, 130, 246, 0.2)',
+                    background: isAdding ? 'var(--success)' : 'var(--primary-blue)',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                   }}
                 >
-                  <ShoppingCart size={18} />
-                  Add to Cart
+                  <ShoppingCart size={18} className={isAdding ? 'animate-scale-in' : ''} />
+                  {isAdding ? 'Added!' : 'Add to Cart'}
                 </button>
                 <button 
-                  className={`btn-outline ${inWishlist ? 'active' : ''}`}
-                  onClick={() => onAddToWishlist(product)}
+                  className={`btn-outline ${inWishlist ? 'active' : ''} ${isSaving ? 'animate-scale-in' : ''}`}
+                  onClick={handleAddToWishlist}
                   style={{
                     flex: 1,
                     padding: '14px 10px',
@@ -155,11 +172,12 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                     fontSize: '14px',
                     fontWeight: 600,
                     border: '1px solid',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.3s ease'
                   }}
                 >
-                  <Heart size={18} fill={inWishlist ? "var(--danger)" : "none"} />
-                  {inWishlist ? 'Saved' : 'Save'}
+                  <Heart size={18} fill={inWishlist ? "var(--danger)" : "none"} className={isSaving ? 'animate-scale-in' : ''} />
+                  {isSaving ? (inWishlist ? 'Saved!' : 'Removed!') : (inWishlist ? 'Favorite' : 'Save')}
                 </button>
               </div>
             </div>

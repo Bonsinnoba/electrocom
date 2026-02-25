@@ -9,22 +9,12 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 header('Expires: 0');
 
-// Authenticate Admin
+// Authenticate and Require Roles
 try {
-    $userId = authenticate();
+    $userId = requireRole(['admin', 'marketing'], $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-    exit;
-}
-
-$stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
-$stmt->execute([$userId]);
-$user = $stmt->fetch();
-
-if (!$user || $user['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized: Admin access required']);
     exit;
 }
 

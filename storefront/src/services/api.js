@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://essentialshub.local/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://essentialshub.local/api';
 
 /**
  * Helper to get authentication headers
@@ -38,6 +38,15 @@ export const registerUser = async (userData) => {
         localStorage.setItem('ehub_token', result.data.token);
     }
     return result;
+};
+
+export const verifyUser = async (userId, code) => {
+    const response = await fetch(`${API_BASE_URL}/verify.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, code }),
+    });
+    return await response.json();
 };
 
 export const loginUser = async (credentials) => {

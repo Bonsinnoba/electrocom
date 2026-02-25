@@ -178,6 +178,91 @@
     }
 }
 
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse-success {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+}
+
+.animate-pulse-success {
+    animation: pulse-success 1.5s infinite;
+}
+
+/* Enhanced Tactile Buttons */
+.btn-primary,
+.btn-secondary,
+.btn-add-cart,
+button.btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-primary:active,
+.btn-secondary:active,
+.btn-add-cart:active,
+button.btn:active {
+    transform: scale(0.95);
+    filter: brightness(0.9);
+}
+
+/* Elevated Hover for Cards */
+.product-card,
+.card.glass {
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease !important;
+}
+
+.product-card:hover,
+.card.glass:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    border-color: var(--primary-blue);
+    z-index: 10;
+}
+
+.dark-mode .product-card:hover {
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.08);
+}
+
 /* Ensure icons inside buttons inherit the correct color in dark mode */
 .dark-mode button svg,
 .dark-mode .btn svg,
@@ -1594,20 +1679,26 @@ label {
     transform: scale(0.95);
 }
 
-.btn-login {
+button.btn-login {
     background: var(--primary-blue);
     color: white;
-    padding: 8px 24px;
-    border-radius: 20px;
+    padding: 0 16px;
+    height: 36px;
+    border-radius: 100px;
     border: none;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s ease;
+    transition: all 0.2s ease;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.btn-login:hover {
-    transform: scale(1.05);
+button.btn-login:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-primary {
@@ -2277,9 +2368,13 @@ label {
     }
 
     .btn-login {
-        padding: 6px 12px;
+        height: 32px;
+        padding: 0 12px;
         font-size: 13px;
         flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .sidebar-icon {

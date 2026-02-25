@@ -5,37 +5,46 @@ require 'security.php';
 
 header('Content-Type: application/json');
 
-// Authenticate Admin
+// Authenticate User
 try {
     $userId = authenticate();
+    $role = getUserRole($userId, $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
-$stmt->execute([$userId]);
-$user = $stmt->fetch();
-
-if (!$user || $user['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized: Admin access required']);
-    exit;
-}
-
 $method = $_SERVER['REQUEST_METHOD'];
+
+// Granular Role Access
+if ($method === 'GET') {
+    // Basic audit: Admins, Branch Admins, Accountants
+    if (!in_array($role, ['super', 'admin', 'branch_admin', 'accountant'])) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Forbidden: View access required']);
+        exit;
+    }
+} elseif ($method === 'POST') {
+    // Moderation: Admins and Branch Admins only
+    if (!in_array($role, ['super', 'admin', 'branch_admin'])) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Forbidden: Moderation permissions required']);
+        exit;
+    }
+}
 
 if ($method === 'GET') {
     try {
-        // Fetch all users with basic order summary
-        // Note: For now, we'll just count total orders per user
+        // Fetch all users with basic order summary and branch name
         $stmt = $pdo->query("
             SELECT 
                 u.*, 
+                sb.name as branch_name,
                 (SELECT COUNT(*) FROM orders WHERE user_id = u.id) as orders_count,
                 (SELECT SUM(total_amount) FROM orders WHERE user_id = u.id) as total_spent
             FROM users u 
+            LEFT JOIN store_branches sb ON u.branch_id = sb.id
             ORDER BY u.created_at DESC
         ");
         $users = $stmt->fetchAll();
@@ -61,6 +70,9 @@ if ($method === 'GET') {
         try {
             $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
             $stmt->execute([$id]);
+
+            logger('warn', 'STAFF', "User ID: {$id} was permanently deleted by User ID: {$userId}");
+
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {
             http_response_code(500);
@@ -80,12 +92,15 @@ if ($method === 'GET') {
             $newStatus = ($currentStatus === 'Suspended') ? 'Active' : 'Suspended';
             $stmt = $pdo->prepare("UPDATE users SET status = ? WHERE id = ?");
             $stmt->execute([$newStatus, $id]);
+
+            logger('info', 'STAFF', "User ID: {$id} status updated to {$newStatus} by User ID: {$userId}");
+
             echo json_encode(['success' => true, 'status' => $newStatus]);
         } catch (PDOException $e) {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
-    } elseif ($action === 'toggle_role') {
+    } elseif ($action === 'set_role') {
         $id = $decoded['id'] ?? null;
         $role = $decoded['role'] ?? 'customer';
 
@@ -96,10 +111,33 @@ if ($method === 'GET') {
         }
 
         try {
-            $newRole = ($role === 'admin') ? 'customer' : 'admin';
             $stmt = $pdo->prepare("UPDATE users SET role = ? WHERE id = ?");
-            $stmt->execute([$newRole, $id]);
-            echo json_encode(['success' => true, 'role' => $newRole]);
+            $stmt->execute([$role, $id]);
+
+            logger('info', 'STAFF', "User ID: {$id} role updated to " . strtoupper($role) . " by User ID: {$userId}");
+
+            echo json_encode(['success' => true, 'role' => $role]);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    } elseif ($action === 'set_branch') {
+        $id = $decoded['id'] ?? null;
+        $branch_id = $decoded['branch_id'] ?? null;
+
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'User ID is required']);
+            exit;
+        }
+
+        try {
+            $stmt = $pdo->prepare("UPDATE users SET branch_id = ? WHERE id = ?");
+            $stmt->execute([$branch_id, $id]);
+
+            logger('info', 'STAFF', "User ID: {$id} assigned to Branch ID: {$branch_id} by User ID: {$userId}");
+
+            echo json_encode(['success' => true]);
         } catch (PDOException $e) {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);

@@ -5,22 +5,12 @@ require_once 'security.php';
 
 header('Content-Type: application/json');
 
-// Authenticate Admin
+// Authenticate and Require Roles
 try {
-    $userId = authenticate();
+    $userId = requireRole(['admin', 'branch_admin', 'marketing'], $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized: Authentication failed']);
-    exit;
-}
-
-$stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
-$stmt->execute([$userId]);
-$user = $stmt->fetch();
-
-if (!$user || $user['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized: Admin access required']);
     exit;
 }
 
@@ -39,6 +29,7 @@ try {
         included JSON,
         directions TEXT,
         product_code VARCHAR(100),
+        location VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
 
@@ -57,6 +48,9 @@ try {
     }
     if (!in_array('product_code', $columns)) {
         $pdo->exec("ALTER TABLE products ADD COLUMN product_code VARCHAR(100) AFTER directions");
+    }
+    if (!in_array('location', $columns)) {
+        $pdo->exec("ALTER TABLE products ADD COLUMN location VARCHAR(255) AFTER product_code");
     }
 
     // Performance Indexing
@@ -152,6 +146,7 @@ if ($method === 'POST') {
         $included = $decoded['included'] ?? '[]';
         $directions = $decoded['directions'] ?? '';
         $product_code = sanitizeInput($decoded['product_code'] ?? '');
+        $location = sanitizeInput($decoded['location'] ?? '');
         $gallery_input = $decoded['gallery'] ?? [];
 
         $image_url = saveBase64File($image_data, ['image/jpeg', 'image/png', 'image/webp']);
@@ -172,9 +167,11 @@ if ($method === 'POST') {
         }
 
         try {
-            $stmt = $pdo->prepare("INSERT INTO products (name, category, price, stock_quantity, rating, description, image_url, gallery, colors, specs, included, directions, product_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$name, $category, $price, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code]);
+            $stmt = $pdo->prepare("INSERT INTO products (name, category, price, stock_quantity, rating, description, image_url, gallery, colors, specs, included, directions, product_code, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$name, $category, $price, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location]);
             $productId = $pdo->lastInsertId();
+
+            logger('info', 'PRODUCTS', "New product created: {$name} (ID: {$productId}) by User ID: {$userId}");
 
             echo json_encode(['success' => true, 'id' => $productId, 'image_url' => $image_url]);
         } catch (PDOException $e) {
@@ -196,6 +193,7 @@ if ($method === 'POST') {
         $included = $decoded['included'] ?? '[]';
         $directions = $decoded['directions'] ?? '';
         $product_code = sanitizeInput($decoded['product_code'] ?? '');
+        $location = sanitizeInput($decoded['location'] ?? '');
         $gallery_input = $decoded['gallery'] ?? [];
 
         $image_url = saveBase64File($image_data, ['image/jpeg', 'image/png', 'image/webp']);
@@ -216,8 +214,10 @@ if ($method === 'POST') {
         }
 
         try {
-            $stmt = $pdo->prepare("UPDATE products SET name = ?, category = ?, price = ?, stock_quantity = ?, rating = ?, description = ?, image_url = ?, gallery = ?, colors = ?, specs = ?, included = ?, directions = ?, product_code = ? WHERE id = ?");
-            $stmt->execute([$name, $category, $price, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $id]);
+            $stmt = $pdo->prepare("UPDATE products SET name = ?, category = ?, price = ?, stock_quantity = ?, rating = ?, description = ?, image_url = ?, gallery = ?, colors = ?, specs = ?, included = ?, directions = ?, product_code = ?, location = ? WHERE id = ?");
+            $stmt->execute([$name, $category, $price, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location, $id]);
+
+            logger('info', 'PRODUCTS', "Product updated (ID: {$id}) by User ID: {$userId}");
 
             echo json_encode(['success' => true, 'image_url' => $image_url]);
         } catch (PDOException $e) {
@@ -237,6 +237,8 @@ if ($method === 'POST') {
         try {
             $stmt = $pdo->prepare("DELETE FROM products WHERE id = ?");
             $stmt->execute([$id]);
+
+            logger('warn', 'PRODUCTS', "Product deleted (ID: {$id}) by User ID: {$userId}");
 
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {

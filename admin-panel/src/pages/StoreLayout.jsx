@@ -45,9 +45,26 @@ export default function StoreLayout() {
     address: ''
   });
 
+  const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
+  const isAccountant = user.role === 'accountant';
+  const isMarketing = user.role === 'marketing';
+
   useEffect(() => {
-    loadAllData();
+    if (!isAccountant && !isMarketing) {
+      loadAllData();
+    }
   }, []);
+
+  if (isAccountant || isMarketing) {
+    return (
+      <div style={{ padding: '80px 20px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Access Denied</h1>
+        <p style={{ color: 'var(--text-muted)' }}>
+          {isAccountant ? 'Accounting' : 'Marketing'} roles do not have permission to manage physical warehouse inventory and layouts.
+        </p>
+      </div>
+    );
+  }
 
   const loadAllData = async () => {
     setLoading(true);

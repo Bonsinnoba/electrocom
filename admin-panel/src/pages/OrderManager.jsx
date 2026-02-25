@@ -6,10 +6,25 @@ export default function OrderManager() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  
+  const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
+  const isAccountant = user.role === 'accountant';
+  const isMarketing = user.role === 'marketing';
 
   useEffect(() => {
-    loadOrders();
+    if (!isMarketing) {
+      loadOrders();
+    }
   }, []);
+
+  if (isMarketing) {
+    return (
+      <div style={{ padding: '80px 20px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Access Denied</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Marketing roles do not have permission to view or manage customer orders.</p>
+      </div>
+    );
+  }
 
   const loadOrders = async () => {
     setLoading(true);
@@ -80,8 +95,17 @@ export default function OrderManager() {
             </tr>
           </thead>
           <tbody>
-            {orders.map((o) => (
-              <tr key={o.id} style={{ borderBottom: '1px solid var(--border-light)', fontSize: '14px' }}>
+            {orders.map((o, idx) => (
+              <tr 
+                key={o.id} 
+                className="animate-fade-in"
+                style={{ 
+                  borderBottom: '1px solid var(--border-light)', 
+                  fontSize: '14px',
+                  animationDelay: `${idx * 0.05}s`,
+                  animationFillMode: 'both'
+                }}
+              >
                 <td style={{ padding: '16px 24px', fontWeight: 700, color: 'var(--accent-blue)' }}>{o.id}</td>
                 <td style={{ padding: '16px 24px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -133,7 +157,7 @@ export default function OrderManager() {
           display: 'flex',
           flexDirection: 'column',
           borderLeft: '1px solid var(--border-light)'
-        }} className="glass">
+        }} className="glass animate-slide-in">
           <header style={{ padding: '24px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Order Details</h2>
@@ -167,7 +191,22 @@ export default function OrderManager() {
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '10px', background: 'var(--bg-surface-secondary)' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '14px' }}>{item.name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Qty: {item.qty}</div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Qty: {item.qty}</span>
+                        {item.location && (
+                          <span style={{ 
+                            fontSize: '10px', 
+                            fontWeight: 700, 
+                            color: 'var(--primary-blue)', 
+                            background: 'rgba(59, 130, 246, 0.1)', 
+                            padding: '2px 6px', 
+                            borderRadius: '4px',
+                            textTransform: 'uppercase'
+                          }}>
+                            Shelf: {item.location}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div style={{ fontWeight: 800 }}>${(item.price * item.qty).toFixed(2)}</div>
                   </div>
@@ -186,17 +225,37 @@ export default function OrderManager() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <button 
                   onClick={() => handleUpdateStatus(selectedOrder.id, 'Shipped')}
-                  disabled={selectedOrder.status === 'Shipped'}
+                  disabled={selectedOrder.status === 'Shipped' || isAccountant}
                   className="btn" 
-                  style={{ background: 'var(--info-bg)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+                  style={{ 
+                    background: 'var(--info-bg)', 
+                    color: 'var(--accent-blue)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    justifyContent: 'center',
+                    opacity: isAccountant ? 0.6 : 1,
+                    cursor: isAccountant ? 'not-allowed' : 'pointer'
+                  }}
+                  title={isAccountant ? "Accounting role cannot update order status" : ""}
                 >
                   <Truck size={14} /> Mark Shipped
                 </button>
                 <button 
                   onClick={() => handleUpdateStatus(selectedOrder.id, 'Delivered')}
-                  disabled={selectedOrder.status === 'Delivered'}
+                  disabled={selectedOrder.status === 'Delivered' || isAccountant}
                   className="btn" 
-                  style={{ background: 'var(--success-bg)', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+                  style={{ 
+                    background: 'var(--success-bg)', 
+                    color: 'var(--success)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    justifyContent: 'center',
+                    opacity: isAccountant ? 0.6 : 1,
+                    cursor: isAccountant ? 'not-allowed' : 'pointer'
+                  }}
+                  title={isAccountant ? "Accounting role cannot update order status" : ""}
                 >
                   <CheckCircle size={14} /> Mark Delivered
                 </button>

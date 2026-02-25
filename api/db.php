@@ -13,13 +13,20 @@ $charset = 'utf8mb4';
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false, // Important for security against certain injection types
+    PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+
+    // Global Security Middleware
+    if (file_exists('security.php')) {
+        require_once 'security.php';
+        checkRateLimit($pdo);
+        checkMaintenanceMode($pdo);
+    }
 } catch (\PDOException $e) {
     // SECURITY: Don't expose database credentials/paths in production
     // Instead, log the error and show a generic message

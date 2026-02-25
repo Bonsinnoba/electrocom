@@ -154,6 +154,25 @@ export default function Profile() {
               <Star size={14} fill="var(--warning)" color="var(--warning)" />
               <span>{user.levelName} Level {user.level}</span>
             </div>
+
+            {user.role !== 'customer' && (
+              <div style={{ 
+                marginTop: '12px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                padding: '6px 12px', 
+                borderRadius: '20px', 
+                background: 'rgba(59, 130, 246, 0.1)', 
+                color: 'var(--primary-blue)',
+                fontSize: '12px',
+                fontWeight: 800,
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                textTransform: 'uppercase'
+              }}>
+                <ShieldCheck size={14} /> {user.role.replace('_', ' ')} Account
+              </div>
+            )}
             
             <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-light)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ textAlign: 'center' }}>

@@ -12,9 +12,12 @@
 
 require 'cors_middleware.php';
 require 'db.php';
+require 'security.php';
 header('Content-Type: application/json');
 
 try {
+    $userId = requireRole('super', $pdo);
+
     // ── Revenue & Orders ─────────────────────────────────────────────────────
     $revenueRow = $pdo->query("
         SELECT
@@ -49,7 +52,6 @@ try {
         LIMIT 5
     ")->fetchAll();
 
-    // ── Ensure store_branches exists & is seeded ──────────────────────────────
     $pdo->exec("CREATE TABLE IF NOT EXISTS store_branches (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -59,30 +61,6 @@ try {
         lng DECIMAL(10,6) DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
-
-    // Add lat/lng columns if missing (migration safe)
-    try {
-        $pdo->exec("ALTER TABLE store_branches ADD COLUMN lat DECIMAL(10,6) DEFAULT NULL");
-    } catch (Exception $e) {
-    }
-    try {
-        $pdo->exec("ALTER TABLE store_branches ADD COLUMN lng DECIMAL(10,6) DEFAULT NULL");
-    } catch (Exception $e) {
-    }
-
-    $branchCount = $pdo->query("SELECT COUNT(*) FROM store_branches")->fetchColumn();
-    if ($branchCount == 0) {
-        $pdo->exec("INSERT INTO store_branches (name, branch_code, address, lat, lng) VALUES
-            ('Accra Headquarters', 'ACC-01', 'Spintex Road, Accra, Ghana',    5.6547,  -0.1711),
-            ('Kumasi Distribution','KMS-01', 'Adum, Kumasi, Ghana',            6.6885,  -1.6244),
-            ('Wa Regional Office', 'WA-01',  'Main Market, Wa, Upper West',   10.0601, -2.5099)
-        ");
-    } else {
-        // Back-fill missing coordinates
-        $pdo->exec("UPDATE store_branches SET lat=5.6547,  lng=-0.1711 WHERE branch_code='ACC-01' AND lat IS NULL");
-        $pdo->exec("UPDATE store_branches SET lat=6.6885,  lng=-1.6244 WHERE branch_code='KMS-01' AND lat IS NULL");
-        $pdo->exec("UPDATE store_branches SET lat=10.0601, lng=-2.5099 WHERE branch_code='WA-01'  AND lat IS NULL");
-    }
 
     $branches = $pdo->query("SELECT * FROM store_branches ORDER BY name ASC")->fetchAll();
 

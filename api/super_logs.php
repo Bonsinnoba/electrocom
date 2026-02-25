@@ -11,11 +11,16 @@
 
 require 'cors_middleware.php';
 require 'db.php';
+require 'security.php';
 header('Content-Type: application/json');
 
-// ── Simple token guard (accepts any stored super_token for now) ───────────────
-$token = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-// You can add real JWT verification here when ready.
+try {
+    $userId = requireRole('super', $pdo);
+} catch (Exception $e) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    exit;
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 $logFile = __DIR__ . '/logs/app.log';

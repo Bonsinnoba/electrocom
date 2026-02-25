@@ -33,15 +33,32 @@ export default function ProductManager() {
     colors: '', specs: '', included: '', directions: '', status: 'In Stock',
     rating: 5,
     product_code: '',
+    location: '',
     gallery: ['', '', '', '']
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
 
+  const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
+  const isAccountant = user.role === 'accountant';
+  const isMarketing = user.role === 'marketing';
+
   useEffect(() => {
-    loadProducts();
+    if (!isAccountant) {
+      loadProducts();
+    }
   }, []);
+
+  if (isAccountant) {
+    return (
+      <div style={{ padding: '80px 20px', textAlign: 'center' }}>
+        <ShieldAlert size={64} color="var(--danger)" style={{ marginBottom: '24px' }} />
+        <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Access Denied</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Accounting roles do not have permission to manage store products. Please use the Finance Dashboard.</p>
+      </div>
+    );
+  }
 
   const formatURL = (url) => {
     if (!url) return '';
@@ -88,6 +105,7 @@ export default function ProductManager() {
         status: (product.stock <= 0) ? 'Out of Stock' : (product.stock < 10 ? 'Low Stock' : 'In Stock'),
         rating: product.rating || 5,
         product_code: product.product_code || '',
+        location: product.location || '',
         gallery: galleryData
       });
     } else {
@@ -97,6 +115,7 @@ export default function ProductManager() {
         colors: '', specs: '', included: '', directions: '', status: 'In Stock',
         rating: 5,
         product_code: '',
+        location: '',
         gallery: ['', '', '', '']
       });
     }
@@ -159,8 +178,11 @@ export default function ProductManager() {
     setEditingProduct(null);
   };
 
+  const [saving, setSaving] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
     
     // Prepare data for API (convert strings back to JSON where necessary)
     const apiData = {
@@ -182,6 +204,8 @@ export default function ProductManager() {
     } catch (error) {
       console.error("Save error:", error);
       alert('Failed to save product');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -351,13 +375,23 @@ export default function ProductManager() {
                 <th style={{ padding: '16px 24px' }}>Category</th>
                 <th style={{ padding: '16px 24px' }}>Price</th>
                 <th style={{ padding: '16px 24px' }}>Stock</th>
+                <th style={{ padding: '16px 24px' }}>Location</th>
                 <th style={{ padding: '16px 24px' }}>Status</th>
                 <th style={{ padding: '16px 24px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((p) => (
-                <tr key={p.id} style={{ borderBottom: '1px solid var(--border-light)', fontSize: '14px' }}>
+              {filteredProducts.map((p, idx) => (
+                <tr 
+                  key={p.id} 
+                  className="animate-fade-in"
+                  style={{ 
+                    borderBottom: '1px solid var(--border-light)', 
+                    fontSize: '14px',
+                    animationDelay: `${idx * 0.05}s`,
+                    animationFillMode: 'both'
+                  }}
+                >
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'var(--bg-surface-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -369,13 +403,32 @@ export default function ProductManager() {
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontWeight: 600 }}>{p.name}</span>
-                        {p.product_code && <span style={{ fontSize: '11px', color: 'var(--primary-blue)', fontWeight: 700 }}>{p.product_code}</span>}
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '2px' }}>
+                          {p.product_code && <span style={{ fontSize: '11px', color: 'var(--primary-blue)', fontWeight: 700 }}>{p.product_code}</span>}
+                        </div>
                       </div>
                     </div>
                   </td>
                   <td style={{ padding: '16px 24px', color: 'var(--text-muted)' }}>{p.category}</td>
                   <td style={{ padding: '16px 24px', fontWeight: 700 }}>${p.price}</td>
                   <td style={{ padding: '16px 24px' }}>{p.stock}</td>
+                  <td style={{ padding: '16px 24px' }}>
+                    {p.location ? (
+                      <span style={{ 
+                        fontSize: '12px', 
+                        fontWeight: 700, 
+                        color: 'var(--accent-blue)',
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        textTransform: 'uppercase'
+                      }}>
+                        {p.location}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
+                    )}
+                  </td>
                   <td style={{ padding: '16px 24px' }}>
                   <span style={{ 
                     padding: '4px 10px', 
@@ -395,7 +448,9 @@ export default function ProductManager() {
                 <td style={{ padding: '16px 24px' }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button className="btn" onClick={() => handleOpenModal(p)} title="Edit Product" style={{ padding: '8px', color: 'var(--primary-blue)', background: 'var(--info-bg)', borderRadius: '8px' }}><Edit2 size={16} /></button>
-                    <button className="btn" onClick={() => handleDelete(p.id)} title="Delete Product" style={{ padding: '8px', color: 'var(--danger)', background: 'var(--danger-bg)', borderRadius: '8px' }}><Trash2 size={16} /></button>
+                    {!isMarketing && (
+                      <button className="btn" onClick={() => handleDelete(p.id)} title="Delete Product" style={{ padding: '8px', color: 'var(--danger)', background: 'var(--danger-bg)', borderRadius: '8px' }}><Trash2 size={16} /></button>
+                    )}
                   </div>
                 </td>
                 </tr>
@@ -435,7 +490,7 @@ export default function ProductManager() {
             </button>
             <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 800 }}>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Product Name</label>
                     <input 
@@ -448,13 +503,23 @@ export default function ProductManager() {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Component Code</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Code</label>
                     <input 
                       type="text" 
                       value={formData.product_code}
                       onChange={(e) => setFormData({ ...formData, product_code: e.target.value })}
                       style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none' }}
                       placeholder="e.g. NE555"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Location (Shelf)</label>
+                    <input 
+                      type="text" 
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none' }}
+                      placeholder="e.g. A1-S4"
                     />
                   </div>
                 </div>
@@ -763,8 +828,18 @@ export default function ProductManager() {
               </div>
               
               <div style={{ marginTop: '12px' }}>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px' }}>
-                  <Save size={20} /> {editingProduct ? 'Update Product' : 'Create Product'}
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={saving}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px' }}
+                >
+                  {saving ? (
+                    <Loader className="animate-spin" size={20} />
+                  ) : (
+                    <Save size={20} />
+                  )}
+                  {saving ? 'Saving...' : (editingProduct ? 'Update Product' : 'Create Product')}
                 </button>
               </div>
             </form>

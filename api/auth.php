@@ -3,6 +3,7 @@
 // backend/products.php
 require 'cors_middleware.php';
 require 'db.php';
+require 'security.php';
 
 header('Content-Type: application/json');
 
@@ -58,7 +59,7 @@ if ($method === 'POST') {
         }
 
         // Create new user
-        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $hash = hashPassword($password);
         $stmt = $pdo->prepare("INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)");
 
         try {
@@ -91,7 +92,7 @@ if ($method === 'POST') {
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($user && password_verify($password, $user['password_hash'])) {
+        if ($user && verifyPassword($password, $user['password_hash'])) {
             // Remove password hash from response
             unset($user['password_hash']);
 

@@ -12,6 +12,11 @@ export default function Settings() {
   const [stockAlerts, setStockAlerts] = useState(true);
   const [saveStatus, setSaveStatus] = useState('');
 
+  const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
+  const isAccountant = user.role === 'accountant';
+  const isMarketing = user.role === 'marketing';
+  const isRestricted = isAccountant || isMarketing;
+
   const handleSave = () => {
     // Simulate save operation
     setSaveStatus('saving');
@@ -38,33 +43,70 @@ export default function Settings() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       <header>
         <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Settings</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Manage your store and admin configuration.</p>
+        <p style={{ color: 'var(--text-muted)' }}>{isRestricted ? "Manage your personal preferences." : "Manage your store and admin configuration."}</p>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-        <section className="card glass">
+        <section className="card glass" style={{ opacity: isRestricted ? 0.7 : 1 }}>
           <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <User size={20} color="var(--primary-blue)" /> Store Profile
+            <User size={20} color="var(--primary-blue)" /> {isRestricted ? 'My Profile' : 'Store Profile'}
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Store Name</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>{isRestricted ? 'Name' : 'Store Name'}</label>
               <input 
                 type="text" 
-                value={storeName}
-                onChange={(e) => setStoreName(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none' }} 
+                value={isRestricted ? user.name : storeName}
+                readOnly={isRestricted}
+                onChange={(e) => !isRestricted && setStoreName(e.target.value)}
+                style={{ 
+                  width: '100%', 
+                  padding: '10px 14px', 
+                  borderRadius: '8px', 
+                  border: '1px solid var(--border-light)', 
+                  background: isAccountant ? 'transparent' : 'var(--bg-surface-secondary)', 
+                  color: isAccountant ? 'var(--text-muted)' : 'var(--text-main)', 
+                  background: isRestricted ? 'transparent' : 'var(--bg-surface-secondary)', 
+                  color: isRestricted ? 'var(--text-muted)' : 'var(--text-main)', 
+                  outline: 'none',
+                  cursor: isRestricted ? 'not-allowed' : 'text'
+                }} 
               />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Contact Email</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>{isRestricted ? 'Email Address' : 'Contact Email'}</label>
               <input 
                 type="email" 
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none' }} 
+                value={isRestricted ? user.email : contactEmail}
+                readOnly={isRestricted}
+                onChange={(e) => !isRestricted && setContactEmail(e.target.value)}
+                style={{ 
+                  width: '100%', 
+                  padding: '10px 14px', 
+                  borderRadius: '8px', 
+                  border: '1px solid var(--border-light)', 
+                  background: isRestricted ? 'transparent' : 'var(--bg-surface-secondary)', 
+                  color: isRestricted ? 'var(--text-muted)' : 'var(--text-main)', 
+                  outline: 'none',
+                  cursor: isRestricted ? 'not-allowed' : 'text'
+                }} 
               />
             </div>
+            {isRestricted && (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '12px' }}>
+                * Store-wide details are managed by the Super User and hidden for your role.
+              </p>
+            )}
+            {!isRestricted && (
+              <button 
+                className={`btn btn-primary ${saveStatus === 'saved' ? 'btn-success' : ''}`}
+                onClick={handleSave}
+                disabled={saveStatus === 'saving'}
+                style={{ marginTop: '10px', width: 'fit-content' }}
+              >
+                {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save Profile'}
+              </button>
+            )}
           </div>
         </section>
 

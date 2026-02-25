@@ -95,8 +95,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $orderStatus = 'processing';
+        logger('ok', 'PAYMENTS', "Paystack payment verified for GH\xc2\xa2 {$totalAmount} (Ref: {$paymentReference})");
     } else {
         $orderStatus = 'pending';
+        if ($paymentMethod === 'Wallet') {
+            logger('info', 'PAYMENTS', "Wallet payment initiated for GH\xc2\xa2 {$totalAmount} by User ID: {$userId}");
+        }
     }
 
     $pdo->beginTransaction();
@@ -119,6 +123,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $pdo->commit();
+
+        logger('ok', 'ORDERS', "New order created: ORD-{$orderId} (Amt: GH\xc2\xa2 {$totalAmount}) by User ID: {$userId}");
+
         echo json_encode(['success' => true, 'order_id' => $orderId]);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {

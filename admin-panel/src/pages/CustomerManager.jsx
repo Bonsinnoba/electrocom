@@ -26,10 +26,25 @@ export default function CustomerManager() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+  
+  const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
+  const isAccountant = user.role === 'accountant';
+  const isMarketing = user.role === 'marketing';
 
   useEffect(() => {
-    loadCustomers();
+    if (!isMarketing) {
+      loadCustomers();
+    }
   }, []);
+
+  if (isMarketing) {
+    return (
+      <div style={{ padding: '80px 20px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Access Denied</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Marketing roles do not have permission to view the global customer database for privacy reasons.</p>
+      </div>
+    );
+  }
 
   const loadCustomers = async () => {
     setLoading(true);
@@ -40,7 +55,7 @@ export default function CustomerManager() {
             ...c,
             orders: parseInt(c.orders_count || 0),
             totalSpent: parseFloat(c.total_spent || 0),
-            status: c.status || (c.role === 'admin' ? 'VIP' : 'Active'), 
+            status: c.status || 'Active', 
             lat: 5.6037, // Default to Accra, Ghana for marker
             lng: -0.1870,
             location: c.address || 'Accra, Ghana'
@@ -324,9 +339,17 @@ export default function CustomerManager() {
                       {/* Suspend / Activate — allowed for admins */}
                       <button
                         className="btn"
-                        onClick={() => handleToggleSuspension(c)}
-                        title={c.status === 'Suspended' ? 'Activate Account' : 'Suspend Account'}
-                        style={{ padding: '8px', color: c.status === 'Suspended' ? 'var(--success)' : 'var(--warning)', background: c.status === 'Suspended' ? 'rgba(34,197,94,0.05)' : 'rgba(245,158,11,0.05)', borderRadius: '8px' }}
+                        onClick={() => !isAccountant && handleToggleSuspension(c)}
+                        disabled={isAccountant}
+                        title={isAccountant ? "Accountants cannot moderate users" : (c.status === 'Suspended' ? 'Activate Account' : 'Suspend Account')}
+                        style={{ 
+                          padding: '8px', 
+                          color: c.status === 'Suspended' ? 'var(--success)' : 'var(--warning)', 
+                          background: c.status === 'Suspended' ? 'rgba(34,197,94,0.05)' : 'rgba(245,158,11,0.05)', 
+                          borderRadius: '8px',
+                          opacity: isAccountant ? 0.6 : 1,
+                          cursor: isAccountant ? 'not-allowed' : 'pointer'
+                        }}
                       >
                         {c.status === 'Suspended' ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
                       </button>

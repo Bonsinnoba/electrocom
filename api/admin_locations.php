@@ -5,22 +5,12 @@ require_once 'security.php';
 
 header('Content-Type: application/json');
 
-// Authenticate Admin
+// Authenticate and Require Roles
 try {
-    $userId = authenticate();
+    $userId = requireRole(['admin', 'branch_admin'], $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized: Authentication failed']);
-    exit;
-}
-
-$stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
-$stmt->execute([$userId]);
-$user = $stmt->fetch();
-
-if (!$user || $user['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized: Admin access required']);
     exit;
 }
 
@@ -103,7 +93,7 @@ if ($method === 'GET') {
             exit;
         }
 
-        $stmt = $pdo->prepare("SELECT name, password_hash FROM users WHERE id = ? AND role = 'admin'");
+        $stmt = $pdo->prepare("SELECT name, password_hash FROM users WHERE id = ? AND role != 'customer'");
         $stmt->execute([$userId]);
         $admin = $stmt->fetch();
 

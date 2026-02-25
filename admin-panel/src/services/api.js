@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://essentialshub.local/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://essentialshub.local/api';
 
 /**
  * Helper to get authentication headers
@@ -128,17 +128,32 @@ export const deleteCustomer = async (id) => {
 
 };
 
-export const toggleUserRole = async (id, currentRole) => {
+export const setUserRole = async (id, role) => {
     try {
         const response = await fetch(`${API_BASE_URL}/admin_customers.php`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'toggle_role', id, role: currentRole }),
+            body: JSON.stringify({ action: 'set_role', id, role }),
         });
 
         return await response.json();
     } catch (error) {
-        console.error('Error toggling user role:', error);
+        console.error('Error setting user role:', error);
+        throw error;
+    }
+};
+
+export const setUserBranch = async (id, branch_id) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_customers.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'set_branch', id, branch_id }),
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error setting user branch:', error);
         throw error;
     }
 };
@@ -316,6 +331,164 @@ export const createBranch = async (branchData) => {
         return await response.json();
     } catch (error) {
         console.error('Error creating branch:', error);
+        throw error;
+    }
+};
+// ─── Super User Endpoints ─────────────────────────────────────────────────────
+
+export const fetchSuperDashboard = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_dashboard.php`, {
+            headers: getAuthHeaders()
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching super dashboard:', error);
+        throw error;
+    }
+};
+
+export const fetchLogs = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_logs.php`, {
+            headers: getAuthHeaders()
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching logs:', error);
+        throw error;
+    }
+};
+
+export const clearLogs = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_logs.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'clear' }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error clearing logs:', error);
+        throw error;
+    }
+};
+
+export const fetchSuperSettings = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_settings.php`, {
+            headers: getAuthHeaders()
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching super settings:', error);
+        throw error;
+    }
+};
+
+export const saveSuperSettings = async (payload) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_settings.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error saving super settings:', error);
+        throw error;
+    }
+};
+
+export const fetchTrafficStats = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_traffic.php?action=stats`, {
+            headers: getAuthHeaders()
+        });
+        const result = await response.json();
+        return result.success ? result.data : null;
+    } catch (error) {
+        console.error('Error fetching traffic stats:', error);
+        throw error;
+    }
+};
+
+export const addRestriction = async (restrictionData) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_traffic.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'add_restriction', ...restrictionData }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error adding restriction:', error);
+        throw error;
+    }
+};
+
+export const removeRestriction = async (id) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_traffic.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'remove_restriction', id }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error removing restriction:', error);
+        throw error;
+    }
+};
+
+export const wipeDemoData = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/cleanup_demo.php`, {
+            headers: getAuthHeaders()
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error wiping demo data:', error);
+        throw error;
+    }
+};
+
+export const fetchBackups = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_backup.php?action=list`, {
+            headers: getAuthHeaders()
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching backups:', error);
+        throw error;
+    }
+};
+
+export const createBackup = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_backup.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'create' }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error creating backup:', error);
+        throw error;
+    }
+};
+
+export const deleteBackup = async (filename) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_backup.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'delete', file: filename }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting backup:', error);
         throw error;
     }
 };

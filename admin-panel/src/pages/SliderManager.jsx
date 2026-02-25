@@ -27,9 +27,24 @@ export default function SliderManager() {
     setLoading(false);
   };
 
+  const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
+  const isAccountant = user.role === 'accountant';
+
   useEffect(() => {
-    loadSlides();
+    if (!isAccountant) {
+      loadSlides();
+    }
   }, []);
+
+  if (isAccountant) {
+    return (
+      <div style={{ padding: '80px 20px', textAlign: 'center' }}>
+        <Plus size={64} color="var(--danger)" style={{ marginBottom: '24px', transform: 'rotate(45deg)' }} />
+        <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Access Denied</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Accounting roles do not have permission to manage store media and sliders.</p>
+      </div>
+    );
+  }
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];

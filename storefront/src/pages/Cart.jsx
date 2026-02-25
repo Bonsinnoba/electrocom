@@ -65,7 +65,14 @@ export default function Cart() {
           <div className="cart-items-section">
             <div className="cart-items-wrapper">
               {cartItems.map((item, index) => (
-                <div key={`${item.id}-${item.selectedColor}-${index}`} className="cart-item-card">
+                <div 
+                  key={`${item.id}-${item.selectedColor}-${index}`} 
+                  className="cart-item-card animate-slide-up"
+                  style={{ 
+                    animationDelay: `${index * 0.05}s`,
+                    animationFillMode: 'both'
+                  }}
+                >
                   <div className="cart-item-image-wrapper">
                     <img src={item.image} alt={item.name} className="cart-item-image" />
                   </div>
@@ -88,14 +95,14 @@ export default function Cart() {
                       <div className="cart-qty-control">
                         <button 
                           onClick={() => updateQuantity(item.id, item.selectedColor, -1)}
-                          className="btn-qty"
+                          className="btn-qty btn"
                         >
                           <Minus size={16} />
                         </button>
                         <span className="qty-display">{item.quantity}</span>
                         <button 
                           onClick={() => updateQuantity(item.id, item.selectedColor, 1)}
-                          className="btn-qty"
+                          className="btn-qty btn"
                         >
                           <Plus size={16} />
                         </button>
@@ -109,7 +116,7 @@ export default function Cart() {
           </div>
           
           <div className="cart-summary-section">
-            <div className="cart-summary-card">
+            <div className="cart-summary-card animate-fade-in" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
               <h3 className="cart-summary-title">Order Summary</h3>
               
               <div className="summary-rows">
@@ -135,7 +142,7 @@ export default function Cart() {
               </div>
 
               <Link to="/checkout" style={{ textDecoration: 'none' }}>
-                <button className="btn-primary btn-checkout-summary">
+                <button className="btn-primary btn-checkout-summary btn">
                   Proceed to Checkout
                 </button>
               </Link>
@@ -164,7 +171,7 @@ export default function Cart() {
             zIndex: 3000,
             padding: '20px'
         }}>
-            <div className="card glass animate-fade-in" style={{
+            <div className="card glass animate-scale-in" style={{
                 maxWidth: '450px',
                 width: '100%',
                 padding: '32px',

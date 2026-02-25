@@ -15,6 +15,8 @@
     --radius-md: 16px;
     --radius-sm: 8px;
     --sidebar-width: 260px;
+    --primary-gold: #fbbf24;
+    --accent-gold: #f59e0b;
 
     /* Semantic Status Backgrounds (Light Mode) */
     --success-bg: rgba(34, 197, 94, 0.1);
@@ -272,10 +274,7 @@ body {
 }
 
 /* Helper Classes */
-.animate-fade-in {
-    animation: fadeIn 0.4s ease-out;
-}
-
+/* Real-time Animations & Micro-interactions */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -286,6 +285,107 @@ body {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse-subtle {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(var(--primary-blue-rgb), 0.4);
+    }
+
+    70% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 10px rgba(var(--primary-blue-rgb), 0);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(var(--primary-blue-rgb), 0);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-slide-in {
+    animation: slideInRight 0.4s ease-out;
+}
+
+/* Enhanced Button Feedback */
+.btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:active {
+    transform: scale(0.96) !important;
+}
+
+.btn-primary:active {
+    background: var(--accent-blue);
+    filter: brightness(0.9);
+}
+
+/* Card Hover Effects */
+.card.glass {
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card.glass:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark-mode .card.glass:hover {
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* Loading Shimmer Effect */
+.shimmer {
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.05) 8%, rgba(255, 255, 255, 0.12) 18%, rgba(255, 255, 255, 0.05) 33%);
+    background-size: 1000px 100%;
+    animation: shimmer 2s linear infinite;
 }
 
 .page-header {

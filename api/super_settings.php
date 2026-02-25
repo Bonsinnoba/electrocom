@@ -10,7 +10,18 @@
  */
 
 require 'cors_middleware.php';
+require 'db.php';
+require 'security.php';
 header('Content-Type: application/json');
+
+// Authenticate and Require Super Role
+try {
+    $userId = requireRole('super', $pdo);
+} catch (Exception $e) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    exit;
+}
 
 $settingsFile = __DIR__ . '/data/super_settings.json';
 

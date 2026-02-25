@@ -77,7 +77,7 @@ export default function Navbar({
 
   return (
     <nav className="top-nav">
-      <div className="sidebar-icon" id="toggle-menu" style={{ margin: 0 }} onClick={onMenuClick}>
+      <div className="sidebar-icon btn" id="toggle-menu" style={{ margin: 0 }} onClick={onMenuClick}>
         <Menu size={20} />
       </div>
       
@@ -174,19 +174,19 @@ export default function Navbar({
       <div className="nav-actions">
         {/* Mobile Search Toggle */}
         <div 
-          className="sidebar-icon mobile-nav-icon" 
+          className="sidebar-icon mobile-nav-icon btn" 
           onClick={() => setIsSearchOpen(!isSearchOpen)}
         >
           <Search size={20} />
         </div>
         
         {/* Mobile Map Toggle */}
-        <div className="sidebar-icon" onClick={onMapClick}>
+        <div className="sidebar-icon btn" onClick={onMapClick}>
           <Map size={20} />
         </div>
         
         {/* Mobile Notifications Toggle */}
-        <Link to="/notifications" className="sidebar-icon" style={{ position: 'relative' }}>
+        <Link to="/notifications" className="sidebar-icon btn" style={{ position: 'relative' }}>
           <Bell size={20} />
           {user && unreadCount > 0 && (
             <span key={unreadCount} className="badge-premium badge-notif">
@@ -196,7 +196,7 @@ export default function Navbar({
         </Link>
         
         {/* Mobile Cart Link */}
-        <Link to="/cart" className="sidebar-icon" style={{ position: 'relative' }}>
+        <Link to="/cart" className="sidebar-icon btn" style={{ position: 'relative' }}>
           <ShoppingCart size={20} />
           {cartCount > 0 && (
             <span key={cartCount} className="badge-premium badge-cart">
@@ -205,14 +205,14 @@ export default function Navbar({
           )}
         </Link>
 
-        <div className="sidebar-icon" id="theme-toggle" onClick={onThemeToggle}>
+        <div className="sidebar-icon btn" id="theme-toggle" onClick={onThemeToggle}>
           {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
         </div>
         
         {user ? (
           <Link 
             to="/profile" 
-            className="profile-nav-link" 
+            className="profile-nav-link btn" 
             style={{ 
               background: 'var(--primary-blue)', 
               color: 'white', 
@@ -257,7 +257,7 @@ export default function Navbar({
             </span>
           </Link>
         ) : (
-          <button className="btn-login" id="btn-login" onClick={onLoginClick}>Login</button>
+          <button className="btn-login btn" id="btn-login" onClick={onLoginClick}>Login</button>
         )}
       </div>
     </nav>

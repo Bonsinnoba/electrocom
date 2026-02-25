@@ -18,7 +18,7 @@ try {
         $stmt->execute([$email]);
         echo " Role updated to admin.";
     } else {
-        $hash = password_hash($password, PASSWORD_ARGON2ID);
+        $hash = hashPassword($password);
         $stmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)");
         $stmt->execute([$name, $email, $hash, $role]);
         echo "Admin user created successfully.\n";

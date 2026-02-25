@@ -22,12 +22,18 @@ export default function Login() {
             localStorage.setItem('ehub_token', result.data.token);
             localStorage.setItem('ehub_user', JSON.stringify(result.data.user));
             
-            if (result.data.user.role !== 'admin') {
-                setError('Access denied: You must be an administrator.');
+            const allowedRoles = ['admin', 'super', 'branch_admin', 'accountant', 'marketing'];
+            
+            if (!allowedRoles.includes(result.data.user.role)) {
+                setError('Access denied: Unauthorized role.');
                 localStorage.removeItem('ehub_token');
                 localStorage.removeItem('ehub_user');
             } else {
-                navigate('/');
+                if (result.data.user.role === 'super') {
+                    navigate('/super/dashboard');
+                } else {
+                    navigate('/');
+                }
             }
         } else {
             setError(result.message || 'Invalid email or password');

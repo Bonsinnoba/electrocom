@@ -40,9 +40,9 @@ if (!isValidEmail($email)) {
     exit;
 }
 
-if (strlen($password) < 6) {
+if (strlen($password) < 8) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Password must be at least 6 characters.']);
+    echo json_encode(['success' => false, 'message' => 'Security Rule: Password must be at least 8 characters long for your protection.']);
     exit;
 }
 
@@ -59,9 +59,18 @@ try {
     // Hash password and insert user
     $hashedPassword = hashPassword($password);
     $avatarText = strtoupper(substr($name, 0, 2));
+    $verificationCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+    $verificationMethod = sanitizeInput($data['verification_method'] ?? 'email');
 
-    $stmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, phone, avatar_text) VALUES (?, ?, ?, ?, ?)");
-    $stmt->execute([$name, $email, $hashedPassword, $phone, $avatarText]);
+    $stmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, phone, avatar_text, verification_code, verification_method, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, 0)");
+    $stmt->execute([$name, $email, $hashedPassword, $phone, $avatarText, $verificationCode, $verificationMethod]);
+
+    // Dispatch verification code
+    if ($verificationMethod === 'sms') {
+        logger('info', 'SMS_SERVICE', "Sending verification code {$verificationCode} to {$phone}");
+    } else {
+        logger('info', 'EMAIL_SERVICE', "Sending verification code {$verificationCode} to {$email}");
+    }
 
     $userId = $pdo->lastInsertId();
     $token = generateToken($userId);

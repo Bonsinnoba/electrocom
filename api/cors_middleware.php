@@ -1,4 +1,5 @@
 <?php
+require_once 'traffic_monitor.php';
 // backend/cors_middleware.php
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");

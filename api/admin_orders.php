@@ -5,26 +5,34 @@ require 'security.php';
 
 header('Content-Type: application/json');
 
-// Authenticate Admin
+// Authenticate User
 try {
     $userId = authenticate();
+    $role = getUserRole($userId, $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
-$stmt->execute([$userId]);
-$user = $stmt->fetch();
-
-if (!$user || $user['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized: Admin access required']);
-    exit;
-}
-
 $method = $_SERVER['REQUEST_METHOD'];
+
+// Granular Role Access
+if ($method === 'GET') {
+    // Audit access: Admins, Branch Admins, Accountants
+    if (!in_array($role, ['super', 'admin', 'branch_admin', 'accountant'])) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Forbidden: View access required']);
+        exit;
+    }
+} elseif ($method === 'POST') {
+    // Fulfillment access: Admins and Branch Admins only
+    if (!in_array($role, ['super', 'admin', 'branch_admin'])) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Forbidden: Fulfillment permissions required']);
+        exit;
+    }
+}
 
 if ($method === 'GET') {
     try {
@@ -47,7 +55,7 @@ if ($method === 'GET') {
         // Fetch items for each order
         foreach ($orders as &$order) {
             $itemStmt = $pdo->prepare("
-                SELECT p.name, oi.quantity as qty, oi.price_at_purchase as price
+                SELECT p.name, p.location, oi.quantity as qty, oi.price_at_purchase as price
                 FROM order_items oi
                 JOIN products p ON oi.product_id = p.id
                 WHERE oi.order_id = ?
@@ -82,6 +90,9 @@ if ($method === 'GET') {
         try {
             $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
             $stmt->execute([$status, $id]);
+
+            logger('info', 'ORDERS', "Order {$idStr} status updated to " . strtoupper($status) . " by User ID: {$userId}");
+
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {
             http_response_code(500);

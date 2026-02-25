@@ -3,7 +3,7 @@
 // All requests automatically attach the super_token for authentication.
 // ──────────────────────────────────────────────────────────────────────────────
 
-const BASE_URL = 'http://localhost/EssentialsHub-project/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost/EssentialsHub-project/api';
 
 /**
  * Core fetch wrapper — injects auth headers and normalises responses.
