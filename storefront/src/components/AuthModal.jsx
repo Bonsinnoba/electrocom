@@ -78,10 +78,6 @@ export default function AuthModal({ isOpen, onClose, loginMessage }) {
           onClose(response.data.user);
           setFormData({ name: '', email: '', phone: '', country: 'Ghana', password: '', confirmPassword: '', verification_method: 'email' });
         }
-      } else if (response.needs_verification) {
-          setTempUser(response.user);
-          setVerificationStep(true);
-          setFormData(prev => ({ ...prev, verification_method: response.user.verification_method }));
       } else {
           setError(response.message || "Authentication failed. Please check your credentials.");
       }

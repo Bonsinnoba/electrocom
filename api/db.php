@@ -44,14 +44,16 @@ try {
 /**
  * Helper function to handle JSON responses consistently
  */
-function sendResponse($success, $message, $data = null, $code = 200)
-{
-    header('Content-Type: application/json');
-    http_response_code($code);
-    echo json_encode([
-        'success' => $success,
-        'message' => $message,
-        'data' => $data
-    ]);
-    exit;
+if (!function_exists('sendResponse')) {
+    function sendResponse($success, $message, $data = null, $code = 200)
+    {
+        header('Content-Type: application/json');
+        http_response_code($code);
+        echo json_encode([
+            'success' => $success,
+            'message' => $message,
+            'data' => $data
+        ]);
+        exit;
+    }
 }

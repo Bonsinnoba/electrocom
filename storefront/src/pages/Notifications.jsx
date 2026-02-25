@@ -6,9 +6,9 @@ import { formatRelativeTime } from '../utils/dateFormatter';
 
 const NotificationIcon = ({ type }) => {
   switch (type) {
-    case 'order': return <div style={{ color: 'var(--primary-blue)' }}><Bell size={20} /></div>;
-    case 'security': return <div style={{ color: 'var(--danger)' }}><ShieldCheck size={20} /></div>;
-    case 'offer': return <div style={{ color: 'var(--warning)' }}><Mail size={20} /></div>;
+    case 'info': return <div style={{ color: 'var(--primary-blue)' }}><Bell size={20} /></div>;
+    case 'error': return <div style={{ color: 'var(--danger)' }}><ShieldCheck size={20} /></div>;
+    case 'success': return <div style={{ color: 'var(--success)', filter: 'brightness(1.5)' }}><CheckCircle size={20} /></div>;
     default: return <div style={{ color: 'var(--primary-blue)' }}><Bell size={20} /></div>;
   }
 };
@@ -19,9 +19,9 @@ export default function Notifications({ searchQuery }) {
 
   const filters = [
     { id: 'all', label: 'All', icon: <Bell size={14} /> },
-    { id: 'order', label: 'Orders', icon: <Bell size={14} /> },
-    { id: 'security', label: 'Security', icon: <ShieldCheck size={14} /> },
-    { id: 'offer', label: 'Offers', icon: <Mail size={14} /> },
+    { id: 'info', label: 'Updates', icon: <Bell size={14} /> },
+    { id: 'success', label: 'Success', icon: <CheckCircle size={14} /> },
+    { id: 'error', label: 'Alerts', icon: <ShieldCheck size={14} /> },
   ];
 
   const filteredNotifications = notifications.filter(n => {
@@ -38,14 +38,14 @@ export default function Notifications({ searchQuery }) {
       display: 'flex', 
       gap: '20px', 
       padding: '24px', 
-      borderLeft: notif.read ? '1px solid var(--glass-border)' : '4px solid var(--primary-blue)',
+      borderLeft: notif.read ? '1px solid var(--glass-border)' : `4px solid ${notif.type === 'error' ? 'var(--danger)' : notif.type === 'success' ? 'var(--success)' : 'var(--primary-blue)'}`,
       alignItems: 'start',
       transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
       cursor: 'default',
       position: 'relative'
     }}>
       <div style={{ 
-        background: notif.read ? 'var(--bg-surface-secondary)' : 'var(--info-bg)', 
+        background: notif.read ? 'var(--bg-surface-secondary)' : (notif.type === 'error' ? 'var(--danger-bg)' : notif.type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'var(--info-bg)'), 
         padding: '12px', 
         borderRadius: '14px', 
         display: 'flex', 

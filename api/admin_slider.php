@@ -49,11 +49,12 @@ try {
 /**
  * Helper to save base64 image string as a file
  */
-function saveBase64Image($base64String)
-{
-    if (!$base64String || strpos($base64String, 'data:image') === false) {
-        return $base64String;
-    }
+if (!function_exists('saveBase64Image')) {
+    function saveBase64Image($base64String)
+    {
+        if (!$base64String || strpos($base64String, 'data:image') === false) {
+            return $base64String;
+        }
 
     $dir = 'uploads/slider/';
     if (!file_exists($dir)) {
@@ -78,6 +79,7 @@ function saveBase64Image($base64String)
     }
 
     return $base64String;
+}
 }
 
 $method = $_SERVER['REQUEST_METHOD'];

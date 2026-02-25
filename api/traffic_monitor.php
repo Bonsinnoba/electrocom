@@ -58,7 +58,7 @@ function monitorTraffic()
     $stmt->execute([$ip]);
     $requestCount = $stmt->fetchColumn();
 
-    $limit = 100; // 100 requests per minute
+    $limit = ($ip === '127.0.0.1' || $ip === '::1') ? 500 : 100; // 500/min for local dev, 100 for public
     if ($requestCount > $limit) {
         $stmt = $pdo->prepare("INSERT IGNORE INTO access_restrictions (type, value, reason) VALUES ('ip', ?, ?)");
         $stmt->execute([$ip, "Auto-Ban: Persistent rate limit exceeded ($requestCount requests in 1 min)"]);

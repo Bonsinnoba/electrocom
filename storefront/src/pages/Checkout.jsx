@@ -20,20 +20,66 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    address: '',
+    name: user?.name && user.name !== 'Guest User' ? user.name : '',
+    email: user?.email || '',
+    address: user?.address || '',
     city: '',
+    region: '',
     zip: '',
     cardNumber: '',
     expiry: '',
     cvv: '',
-    momoNumber: '',
+    momoNumber: user?.phone || '',
     momoProvider: 'MTN'
   });
 
+  // GHANA_REGIONS Moved up to use in shipping calculation
+  const GHANA_REGIONS = [
+    { code: 'GA-', city: 'Accra', label: 'Greater Accra (GA)', distanceToBranch: 0 },
+    { code: 'AK-', city: 'Kumasi', label: 'Ashanti (AK)', distanceToBranch: 0 },
+    { code: 'CR-', city: 'Cape Coast', label: 'Central (CR)', distanceToBranch: 150 },
+    { code: 'WR-', city: 'Takoradi', label: 'Western (WR)', distanceToBranch: 225 },
+    { code: 'ER-', city: 'Koforidua', label: 'Eastern (ER)', distanceToBranch: 85 },
+    { code: 'VR-', city: 'Ho', label: 'Volta (VR)', distanceToBranch: 165 },
+    { code: 'NR-', city: 'Tamale', label: 'Northern (NR)', distanceToBranch: 300 },
+    { code: 'UE-', city: 'Bolgatanga', label: 'Upper East (UE)', distanceToBranch: 320 },
+    { code: 'UW-', city: 'Wa', label: 'Upper West (UW)', distanceToBranch: 0 },
+    { code: 'BA-', city: 'Sunyani', label: 'Brong Ahafo (BA)', distanceToBranch: 130 },
+    { code: 'WN-', city: 'Sefwi Wiawso', label: 'Western North (WN)', distanceToBranch: 250 },
+    { code: 'AH-', city: 'Goaso', label: 'Ahafo (AH)', distanceToBranch: 140 },
+    { code: 'BE-', city: 'Techiman', label: 'Bono East (BE)', distanceToBranch: 125 },
+    { code: 'OR-', city: 'Dambai', label: 'Oti (OR)', distanceToBranch: 300 },
+    { code: 'NE-', city: 'Nalerigu', label: 'North East (NE)', distanceToBranch: 350 },
+    { code: 'SR-', city: 'Damongo', label: 'Savannah (SR)', distanceToBranch: 150 },
+  ];
+
+  const calculateShipping = () => {
+    // Orders exceeding 1000 threshold get free shipping
+    if (subtotal > 1000) return 0;
+    
+    // Base fee Calculation prioritizes explicit Region selection
+    if (formData.region) {
+       const exactRegion = GHANA_REGIONS.find(r => r.code === formData.region);
+       if (exactRegion) {
+         return 20 + (exactRegion.distanceToBranch * 0.5);
+       }
+    }
+
+    // Check for ZIP input as fallback
+    if (formData.zip) {
+       const uZip = formData.zip.toUpperCase();
+       const exactRegion = GHANA_REGIONS.find(r => uZip.startsWith(r.code));
+       if (exactRegion) {
+         return 20 + (exactRegion.distanceToBranch * 0.5); // 20 base + 0.5/km
+       }
+    }
+    // Default base delivery fee if zip/region is missing
+    return 20; 
+  };
+
+  const shippingFee = calculateShipping();
   const tax = subtotal * 0.1;
-  const total = subtotal + tax;
+  const total = subtotal + tax + shippingFee;
 
   // Paystack Configuration
   const config = {
@@ -58,7 +104,7 @@ export default function Checkout() {
                 quantity: item.quantity,
                 price: parseFloat(item.price)
             })),
-            shipping_address: `${formData.address}, ${formData.city} ${formData.zip}`,
+            shipping_address: `${formData.address}, ${formData.city}, ${GHANA_REGIONS.find(r => r.code === formData.region)?.label || ''} ${formData.zip}`,
             payment_method: `${paymentMethod === 'momo' ? 'Mobile Money' : 'Card'}`,
             payment_reference: reference.reference // Secure reference
         };
@@ -85,25 +131,6 @@ export default function Checkout() {
       addNotification('Payment cancelled', 'info');
   };
 
-  const GHANA_REGIONS = [
-    { code: 'GA-', city: 'Accra', label: 'Greater Accra (GA)' },
-    { code: 'AK-', city: 'Kumasi', label: 'Ashanti (AK)' },
-    { code: 'CR-', city: 'Cape Coast', label: 'Central (CR)' },
-    { code: 'WR-', city: 'Takoradi', label: 'Western (WR)' },
-    { code: 'ER-', city: 'Koforidua', label: 'Eastern (ER)' },
-    { code: 'VR-', city: 'Ho', label: 'Volta (VR)' },
-    { code: 'NR-', city: 'Tamale', label: 'Northern (NR)' },
-    { code: 'UE-', city: 'Bolgatanga', label: 'Upper East (UE)' },
-    { code: 'UW-', city: 'Wa', label: 'Upper West (UW)' },
-    { code: 'BA-', city: 'Sunyani', label: 'Brong Ahafo (BA)' },
-    { code: 'WN-', city: 'Sefwi Wiawso', label: 'Western North (WN)' },
-    { code: 'AH-', city: 'Goaso', label: 'Ahafo (AH)' },
-    { code: 'BE-', city: 'Techiman', label: 'Bono East (BE)' },
-    { code: 'OR-', city: 'Dambai', label: 'Oti (OR)' },
-    { code: 'NE-', city: 'Nalerigu', label: 'North East (NE)' },
-    { code: 'SR-', city: 'Damongo', label: 'Savannah (SR)' },
-  ];
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -115,8 +142,9 @@ export default function Checkout() {
         setFormData(prev => ({
             ...prev,
             zip: uppercaseValue, // Force uppercase for digital address
-            // Only auto-fill city if it's currently empty or previously auto-filled (simple check: if empty)
-            city: (regionMatch && !prev.city) ? regionMatch.city : prev.city
+            // Only auto-fill city/region if they are currently empty
+            city: (regionMatch && !prev.city) ? regionMatch.city : prev.city,
+            region: (regionMatch && !prev.region) ? regionMatch.code : prev.region
         }));
     } else {
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -147,9 +175,10 @@ export default function Checkout() {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Full name is required';
     if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Valid email is required';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.zip.trim()) newErrors.zip = 'ZIP code is required';
+    if (!formData.address.trim()) newErrors.address = 'Address or Landmark is required';
+    if (!formData.city.trim()) newErrors.city = 'City/Town is required';
+    if (!formData.region) newErrors.region = 'Region is required';
+    if (!formData.zip.trim()) newErrors.zip = 'Digital Address (GPS) is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -217,6 +246,15 @@ export default function Checkout() {
           {step === 1 && (
             <div className="animate-fade-in">
               <h3 style={{ marginBottom: '24px', fontSize: '20px' }}>Shipping Information</h3>
+              {user?.address && (
+                <div style={{ marginBottom: '20px', padding: '16px', background: 'var(--info-bg)', borderRadius: '12px', fontSize: '14px', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                  <MapPin size={20} />
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: '4px' }}>Using Saved Location</strong>
+                    <span style={{ opacity: 0.9 }}>We've pre-filled your shipping details from your profile. You can edit them below or enter a new location for this specific order.</span>
+                  </div>
+                </div>
+              )}
               <div style={{ display: 'grid', gap: '20px' }}>
                 <div className="form-group">
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Full Name</label>
@@ -229,40 +267,62 @@ export default function Checkout() {
                   {errors.email && <span className="form-error">{errors.email}</span>}
                 </div>
                 <div className="form-group">
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Street Address</label>
-                  <input type="text" name="address" value={formData.address} onChange={handleChange} className={`input-premium ${errors.address ? 'error' : ''}`} placeholder="123 Main Street" />
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Street Address / Landmark</label>
+                  <input type="text" name="address" value={formData.address} onChange={handleChange} className={`input-premium ${errors.address ? 'error' : ''}`} placeholder="e.g. 123 Main St OR Near the Shell Fuel Station" />
                   {errors.address && <span className="form-error">{errors.address}</span>}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                   <div className="form-group">
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>City</label>
-                    <input type="text" name="city" value={formData.city} onChange={handleChange} className={`input-premium ${errors.city ? 'error' : ''}`} placeholder="Accra" />
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Town / City</label>
+                    <input type="text" name="city" value={formData.city} onChange={handleChange} className={`input-premium ${errors.city ? 'error' : ''}`} placeholder="e.g. Accra" />
                     {errors.city && <span className="form-error">{errors.city}</span>}
                   </div>
                   <div className="form-group">
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Zip / Digital Address (GPS)</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Region</label>
+                    <select 
+                      name="region" 
+                      value={formData.region} 
+                      onChange={handleChange} 
+                      className={`input-premium ${errors.region ? 'error' : ''}`}
+                      style={{ appearance: 'auto' }}
+                    >
+                      <option value="">Select Region</option>
+                      {GHANA_REGIONS.map(r => (
+                        <option key={r.code} value={r.code}>{r.label}</option>
+                      ))}
+                    </select>
+                    {errors.region && <span className="form-error">{errors.region}</span>}
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <div className="form-group">
+                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Country</label>
+                      <input type="text" value="Ghana" disabled className="input-premium" style={{ opacity: 0.7, cursor: 'not-allowed', background: 'var(--bg-main)' }} />
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>* Shipping only available in Ghana</div>
+                  </div>
+                  <div className="form-group">
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Ghana Post GPS / ZIP</label>
                     <input 
                       type="text" 
                       name="zip" 
                       value={formData.zip} 
                       onChange={handleChange} 
                       className={`input-premium ${errors.zip ? 'error' : ''}`} 
-                      placeholder="GA-123-4567" 
-                      list="ghana-zip-codes"
+                      placeholder="e.g. GA-123-4567" 
                     />
-                    <datalist id="ghana-zip-codes">
-                      {GHANA_REGIONS.map(r => (
-                        <option key={r.code} value={r.code}>{r.label}</option>
-                      ))}
-                    </datalist>
                     {errors.zip && <span className="form-error">{errors.zip}</span>}
+                    <div style={{ marginTop: '6px' }}>
+                      <a 
+                        href="https://ghanapostgps.com/" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        style={{ fontSize: '12px', color: 'var(--primary-blue)', textDecoration: 'underline' }}
+                      >
+                        Don't know your digital address? Find it here.
+                      </a>
+                    </div>
                   </div>
-                </div>
-
-                <div className="form-group">
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Country</label>
-                    <input type="text" value="Ghana" disabled className="input-premium" style={{ opacity: 0.7, cursor: 'not-allowed', background: 'var(--bg-main)' }} />
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>* Shipping currently available only in Ghana</div>
                 </div>
 
               </div>
@@ -301,55 +361,6 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <div 
-                  onClick={() => setPaymentMethod('paypal')}
-                  style={{ 
-                    padding: '20px', 
-                    borderRadius: '16px', 
-                    background: paymentMethod === 'paypal' ? 'var(--bg-surface)' : 'var(--bg-main)', 
-                    border: paymentMethod === 'paypal' ? '2px solid var(--primary-blue)' : '1px solid var(--border-light)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                     <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal" style={{ height: '18px' }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700 }}>PayPal</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>You will be redirected to PayPal to complete your purchase</div>
-                  </div>
-                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {paymentMethod === 'paypal' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary-blue)' }}></div>}
-                  </div>
-                </div>
-
-                <div 
-                  onClick={() => setPaymentMethod('apple')}
-                  style={{ 
-                    padding: '20px', 
-                    borderRadius: '16px', 
-                    background: paymentMethod === 'apple' ? 'var(--bg-surface)' : 'var(--bg-main)', 
-                    border: paymentMethod === 'apple' ? '2px solid var(--primary-blue)' : '1px solid var(--border-light)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}></div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700 }}>Apple Pay</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Fast and secure checkout with Apple Pay</div>
-                  </div>
-                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {paymentMethod === 'apple' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--primary-blue)' }}></div>}
-                  </div>
-                </div>
 
                 <div 
                   onClick={() => setPaymentMethod('momo')}
@@ -483,7 +494,9 @@ export default function Checkout() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Shipping</span>
-                <span style={{ color: '#22c55e', fontWeight: 700 }}>Free</span>
+                <span style={{ color: shippingFee === 0 ? '#22c55e' : 'var(--text-main)', fontWeight: shippingFee === 0 ? 700 : 500 }}>
+                   {shippingFee === 0 ? 'Free' : `$${shippingFee.toFixed(2)}`}
+                </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 800, marginTop: '12px' }}>
                 <span>Total</span>

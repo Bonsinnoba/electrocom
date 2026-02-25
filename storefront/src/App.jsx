@@ -32,6 +32,9 @@ import Checkout from './pages/Checkout';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import CookiePolicy from './pages/CookiePolicy';
+import ShippingInfo from './pages/ShippingInfo';
+import Returns from './pages/Returns';
+import FAQ from './pages/FAQ';
 import { fetchOrders, fetchProducts, checkUserStatus } from './services/api';
 import { useUser } from './context/UserContext';
 import { formatRelativeTime, formatDate } from './utils/dateFormatter';
@@ -87,7 +90,7 @@ function AppContent() {
       console.log('App: Fetching products...');
       const data = await fetchProducts();
       if (data && Array.isArray(data)) {
-          const API_BASE = 'http://essentialshub.local/api/';
+          const API_BASE = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL + '/' : 'http://localhost:8000/';
           
           const formatURL = (url) => {
               if (!url) return null;
@@ -278,6 +281,9 @@ function AppContent() {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />
+            <Route path="/shipping-info" element={<ShippingInfo />} />
+            <Route path="/returns" element={<Returns />} />
+            <Route path="/faq" element={<FAQ />} />
           </Routes>
         </main>
 

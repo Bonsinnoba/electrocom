@@ -4,7 +4,7 @@ import {
   Clock, AlertTriangle, Server, Wifi, WifiOff, Plus,
   MoreVertical, TrendingUp, Zap
 } from 'lucide-react';
-import { fetchCustomers as getUsers } from '../../services/api';
+import { getUsers, getBranches, addBranch } from '../../services/api';
 
 // ── Simulated branch node data (extend with real DB when branch table exists) ─
 const BRANCH_NODES = [
@@ -35,25 +35,55 @@ function LoadBar({ value, max = 100 }) {
 }
 
 export default function BranchManagement() {
-  const [branches, setBranches] = useState(BRANCH_NODES);
+  const [branches, setBranches] = useState([]);
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState(null);
+  
+  // Add Branch Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({ name: '', branch_code: '', region: '', status: 'Standby', lat: '', lon: '', address: '' });
 
   const load = async () => {
     try {
-      const res = await getUsers();
-      const allUsers = res.data || [];
+      const [usersRes, branchesRes] = await Promise.all([
+        getUsers().catch(() => ({ data: [] })),
+        getBranches().catch(() => ({ data: BRANCH_NODES }))
+      ]);
+      const allUsers = usersRes.data || [];
       setAdmins(allUsers.filter(u => u.role === 'admin'));
+      
+      const realBranches = branchesRes.data || [];
+      setBranches(realBranches.length > 0 ? realBranches : BRANCH_NODES);
     } catch {
-      // Use mock data if API unavailable
+      setBranches(BRANCH_NODES);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await addBranch(formData);
+      if (res.success) {
+        setShowAddModal(false);
+        setFormData({ name: '', branch_code: '', region: '', status: 'Standby', lat: '', lon: '', address: '' });
+        await load();
+      } else {
+        alert(res.message || 'Failed to add branch.');
+      }
+    } catch (err) {
+      alert('Error adding branch.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -79,14 +109,24 @@ export default function BranchManagement() {
             Real-time status of all registered EssentialsHub branch nodes.
           </p>
         </div>
-        <button
-          onClick={handleRefresh}
-          className="btn-primary"
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px' }}
-        >
-          <RefreshCw size={16} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
-          {refreshing ? 'Syncing…' : 'Refresh Nodes'}
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px', background: 'var(--primary-gold)', color: '#000' }}
+          >
+            <Plus size={16} />
+            Add Branch
+          </button>
+          <button
+            onClick={handleRefresh}
+            className="btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '13px' }}
+          >
+            <RefreshCw size={16} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+            {refreshing ? 'Syncing…' : 'Refresh'}
+          </button>
+        </div>
       </header>
 
       {/* Summary Strip */}
@@ -187,6 +227,65 @@ export default function BranchManagement() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Add Branch Modal */}
+      {showAddModal && (
+        <div className="modal-backdrop active" onClick={() => setShowAddModal(false)} style={{ zIndex: 100 }}>
+          <div className="modal glass animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '90%' }}>
+            <h2 style={{ marginBottom: '20px', fontSize: '24px', fontWeight: 800 }}>Add New Branch</h2>
+            <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group" style={{ textAlign: 'left' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>Branch Name</label>
+                  <input className="input-premium" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Accra Central" style={{ width: '100%' }} />
+                </div>
+                <div className="form-group" style={{ textAlign: 'left' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>Node Code (Optional)</label>
+                  <input className="input-premium" value={formData.branch_code} onChange={e => setFormData({...formData, branch_code: e.target.value})} placeholder="e.g. ACC-01" style={{ width: '100%' }} />
+                </div>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group" style={{ textAlign: 'left' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>Region</label>
+                  <input className="input-premium" required value={formData.region} onChange={e => setFormData({...formData, region: e.target.value})} placeholder="e.g. Greater Accra" style={{ width: '100%' }} />
+                </div>
+                <div className="form-group" style={{ textAlign: 'left' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>Initial Status</label>
+                  <select className="input-premium" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} style={{ width: '100%', padding: '12px 16px', background: 'var(--bg-surface)' }}>
+                    <option value="Standby">Standby</option>
+                    <option value="Online">Online</option>
+                    <option value="Offline">Offline</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group" style={{ textAlign: 'left' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>Latitude (Optional)</label>
+                  <input className="input-premium" value={formData.lat} onChange={e => setFormData({...formData, lat: e.target.value})} placeholder="e.g. 5.6037° N" style={{ width: '100%' }} />
+                </div>
+                <div className="form-group" style={{ textAlign: 'left' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>Longitude (Optional)</label>
+                  <input className="input-premium" value={formData.lon} onChange={e => setFormData({...formData, lon: e.target.value})} placeholder="e.g. 0.1870° W" style={{ width: '100%' }} />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ textAlign: 'left' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>Physical Address</label>
+                <textarea className="input-premium" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="Floor 1, Example Plaza, High Street..." rows={2} style={{ width: '100%', resize: 'none' }} />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
+                <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)} disabled={submitting}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={submitting}>
+                  {submitting ? 'Adding...' : 'Save Branch'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

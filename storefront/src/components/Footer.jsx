@@ -43,9 +43,9 @@ export default function Footer() {
             <h4 className="footer-heading">Customer Service</h4>
             <ul className="footer-links">
               <li><Link to="/support">Support</Link></li>
-              <li><a href="#">Shipping Info</a></li>
-              <li><a href="#">Returns</a></li>
-              <li><a href="#">FAQ</a></li>
+              <li><Link to="/shipping-info">Shipping Info</Link></li>
+              <li><Link to="/returns">Returns</Link></li>
+              <li><Link to="/faq">FAQ</Link></li>
             </ul>
           </div>
 

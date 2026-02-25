@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, X, Upload, Save, CheckCircle, Image as ImageIcon, Loader, Star } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, X, Upload, Save, CheckCircle, Image as ImageIcon, Loader, Star, Download, UploadCloud } from 'lucide-react';
+import Papa from 'papaparse';
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../services/api';
 
 const colorsToString = (colors) => Array.isArray(colors) ? colors.join(', ') : '';
@@ -39,6 +40,8 @@ export default function ProductManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = React.useRef(null);
 
   const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
   const isAccountant = user.role === 'accountant';
@@ -182,6 +185,12 @@ export default function ProductManager() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.location || formData.location.trim() === '') {
+        const confirmSave = window.confirm("Location is missing. Are you sure you want to save without a location?");
+        if (!confirmSave) return;
+    }
+
     setSaving(true);
     
     // Prepare data for API (convert strings back to JSON where necessary)
@@ -229,6 +238,104 @@ export default function ProductManager() {
     return matchesSearch && matchesFilter;
   });
 
+  const handleExportCSV = () => {
+    const dataToExport = filteredProducts.map(p => ({
+      ID: p.id,
+      Name: p.name,
+      Code: p.product_code || '',
+      Category: p.category,
+      Price: p.price,
+      Stock: p.stock,
+      Location: p.location || '',
+      Status: p.status,
+      Rating: p.rating || 5,
+      Description: p.description || '',
+      Colors: colorsToString(p.colors),
+      Included: includedToString(p.included)
+    }));
+    
+    const csv = Papa.unparse(dataToExport);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('url');
+    const url = URL.createObjectURL(blob);
+    
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportCSVClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleImportCSV = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const rows = results.data;
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const row of rows) {
+             const apiData = {
+                name: row.Name || 'Unnamed Product',
+                product_code: row.Code || '',
+                category: row.Category || 'Passives',
+                price: row.Price || 0,
+                stock: row.Stock || 0,
+                location: row.Location || '',
+                rating: row.Rating || 5,
+                description: row.Description || '',
+                image: '',
+                colors: JSON.stringify(stringToColors(row.Colors || '')),
+                specs: JSON.stringify({}),
+                included: JSON.stringify(stringToIncluded(row.Included || '')),
+                directions: '',
+                gallery: []
+            };
+
+            try {
+              if (row.ID) {
+                  await updateProduct(row.ID, apiData);
+              } else {
+                  await createProduct(apiData);
+              }
+              successCount++;
+            } catch (err) {
+              console.error("Failed to import row:", row, err);
+              errorCount++;
+            }
+          }
+          
+          alert(`Import complete. Successfully imported: ${successCount}. Errors: ${errorCount}.`);
+          loadProducts();
+        } catch (error) {
+           console.error("CSV Import error:", error);
+           alert("Failed to process CSV file.");
+        } finally {
+           setIsImporting(false);
+           // Reset file input
+           if (fileInputRef.current) {
+             fileInputRef.current.value = '';
+           }
+        }
+      },
+      error: (error) => {
+        console.error("CSV Parse error:", error);
+        alert("Error parsing CSV file.");
+        setIsImporting(false);
+      }
+    });
+  };
+
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', gap: '16px' }}>
@@ -245,9 +352,24 @@ export default function ProductManager() {
           <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Products</h1>
           <p style={{ color: 'var(--text-muted)' }}>Manage your catalog and inventory.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => handleOpenModal()} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={20} /> Add Product
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface-secondary)', border: '1px solid var(--border-light)' }}>
+            <Download size={18} /> Export CSV
+          </button>
+          <input 
+            type="file" 
+            accept=".csv" 
+            ref={fileInputRef} 
+            onChange={handleImportCSV} 
+            style={{ display: 'none' }} 
+          />
+          <button className="btn" onClick={handleImportCSVClick} disabled={isImporting} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface-secondary)', border: '1px solid var(--border-light)' }}>
+            {isImporting ? <Loader className="animate-spin" size={18} /> : <UploadCloud size={18} />} Import CSV
+          </button>
+          <button className="btn btn-primary" onClick={() => handleOpenModal()} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={20} /> Add Product
+          </button>
+        </div>
       </header>
 
       <div className="card glass" style={{ padding: '0', overflow: 'hidden' }}>

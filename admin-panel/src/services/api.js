@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://essentialshub.local/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 /**
  * Helper to get authentication headers
@@ -489,6 +489,32 @@ export const deleteBackup = async (filename) => {
         return await response.json();
     } catch (error) {
         console.error('Error deleting backup:', error);
+        throw error;
+    }
+};
+
+export const getBranches = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_branches.php`, {
+            headers: getAuthHeaders()
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching branches:', error);
+        throw error;
+    }
+};
+
+export const addBranch = async (branchData) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_branches.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(branchData),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error adding branch:', error);
         throw error;
     }
 };
