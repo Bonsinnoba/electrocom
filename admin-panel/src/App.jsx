@@ -19,7 +19,7 @@ import TrafficControl from './pages/super-user/TrafficControl';
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
-    return saved !== null ? JSON.parse(saved) : true;
+    return saved !== null ? JSON.parse(saved) : false;
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -27,16 +27,32 @@ function App() {
   });
 
   useEffect(() => {
-    // Apply dark mode class on mount based on saved preference
-    const layout = document.querySelector('.admin-layout');
-    if (layout) {
-      if (isDarkMode) {
-        layout.classList.add('dark-mode');
-      } else {
-        layout.classList.remove('dark-mode');
-      }
+    // Apply dark mode class to body based on saved preference
+    if (isDarkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
     }
   }, [isDarkMode]);
+
+  // Sync theme state with localStorage for multi-tab/same-tab updates
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('darkMode');
+      if (saved !== null) {
+        setIsDarkMode(JSON.parse(saved));
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    // Also listen for custom events if we dispatch them
+    window.addEventListener('themeChange', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('themeChange', handleStorageChange);
+    };
+  }, []);
 
   // Check auth status periodically
   useEffect(() => {
@@ -61,7 +77,7 @@ function App() {
     }
 
     return (
-      <div className={`admin-layout ${isDarkMode ? 'dark-mode' : ''}`}>
+      <div className="admin-layout">
         <Sidebar />
         <main className="admin-main">
           {children}

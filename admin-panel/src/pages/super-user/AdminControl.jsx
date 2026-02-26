@@ -129,14 +129,14 @@ export default function AdminControl() {
             placeholder="Search name or email…"
             style={{
               width: '100%', padding: '11px 14px 11px 40px', borderRadius: '10px', background: 'var(--bg-surface)',
-              border: '1px solid var(--border-light)', color: '#fff', fontSize: '14px', outline: 'none'
+              border: '1px solid var(--border-light)', color: 'var(--text-main)', fontSize: '14px', outline: 'none'
             }}
           />
         </div>
         <select
           value={roleFilter}
           onChange={e => setRoleFilter(e.target.value)}
-          style={{ padding: '11px 16px', borderRadius: '10px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}
+          style={{ padding: '11px 16px', borderRadius: '10px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', color: 'var(--text-main)', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}
         >
           <option value="all">All Roles</option>
           <option value="super">Super Admins</option>
@@ -202,7 +202,7 @@ export default function AdminControl() {
                           }}
                         >
                           {Object.keys(ROLE_STYLE).map(r => (
-                            <option key={r} value={r} style={{ background: '#0f172a', color: '#fff' }}>{ROLE_STYLE[r].label}</option>
+                            <option key={r} value={r} style={{ background: 'var(--bg-surface)', color: 'var(--text-main)' }}>{ROLE_STYLE[r].label}</option>
                           ))}
                         </select>
                       </td>
@@ -213,13 +213,13 @@ export default function AdminControl() {
                               onChange={(e) => withBusy(user.id, () => updateBranch(user.id, e.target.value))}
                               disabled={isBusy}
                               style={{ 
-                                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-light)', color: '#fff',
+                                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-light)', color: 'var(--text-main)',
                                 padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', outline: 'none'
                               }}
                             >
                               <option value="">Select Branch</option>
                               {branches.map(b => (
-                                <option key={b.id} value={b.id} style={{ background: '#0f172a', color: '#fff' }}>{b.name}</option>
+                                <option key={b.id} value={b.id} style={{ background: 'var(--bg-surface)', color: 'var(--text-main)' }}>{b.name}</option>
                               ))}
                             </select>
                         ) : (
@@ -268,7 +268,7 @@ export default function AdminControl() {
               Are you sure you want to permanently delete <strong>{confirm.user.name}</strong>? This cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <button onClick={() => setConfirm(null)} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-light)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setConfirm(null)} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-light)', color: 'var(--text-main)', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleConfirm} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontWeight: 700, cursor: 'pointer' }}>Delete User</button>
             </div>
           </div>

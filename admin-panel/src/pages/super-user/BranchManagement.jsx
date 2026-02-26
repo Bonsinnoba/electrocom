@@ -4,7 +4,7 @@ import {
   Clock, AlertTriangle, Server, Wifi, WifiOff, Plus,
   MoreVertical, TrendingUp, Zap
 } from 'lucide-react';
-import { getUsers, getBranches, addBranch } from '../../services/api';
+import { fetchCustomers, getBranches, addBranch } from '../../services/api';
 
 // ── Simulated branch node data (extend with real DB when branch table exists) ─
 const BRANCH_NODES = [
@@ -49,7 +49,7 @@ export default function BranchManagement() {
   const load = async () => {
     try {
       const [usersRes, branchesRes] = await Promise.all([
-        getUsers().catch(() => ({ data: [] })),
+        fetchCustomers().catch(() => ({ data: [] })),
         getBranches().catch(() => ({ data: BRANCH_NODES }))
       ]);
       const allUsers = usersRes.data || [];

@@ -159,7 +159,7 @@ export default function SystemLogs() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button onClick={downloadLogs} style={{ padding: '10px 16px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-light)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
+          <button onClick={downloadLogs} style={{ padding: '10px 16px', borderRadius: '10px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', color: 'var(--text-main)', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
             <Download size={15} /> Export Logs
           </button>
           <button onClick={clearAll} style={{ padding: '10px 16px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
@@ -217,10 +217,10 @@ export default function SystemLogs() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Filter logs…"
-                style={{ width: '100%', padding: '10px 14px 10px 38px', borderRadius: '10px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', color: '#fff', fontSize: '13px', outline: 'none' }}
+                style={{ width: '100%', padding: '10px 14px 10px 38px', borderRadius: '10px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', color: 'var(--text-main)', fontSize: '13px', outline: 'none' }}
               />
             </div>
-            <select value={levelFilter} onChange={e => setLevel(e.target.value)} style={{ padding: '10px 14px', borderRadius: '10px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+            <select value={levelFilter} onChange={e => setLevel(e.target.value)} style={{ padding: '10px 14px', borderRadius: '10px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', color: 'var(--text-main)', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
               <option value="all">All Levels</option>
               <option value="error">Errors</option>
               <option value="warn">Warnings</option>

@@ -6,7 +6,7 @@ export default function Settings() {
   const [contactEmail, setContactEmail] = useState('admin@essentialshub.com');
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
-    return saved !== null ? JSON.parse(saved) : true;
+    return saved !== null ? JSON.parse(saved) : false;
   });
   const [orderAlerts, setOrderAlerts] = useState(true);
   const [stockAlerts, setStockAlerts] = useState(true);
@@ -31,12 +31,8 @@ export default function Settings() {
     setDarkMode(newDarkMode);
     localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
     
-    // Apply dark mode to the document
-    if (newDarkMode) {
-      document.querySelector('.admin-layout')?.classList.add('dark-mode');
-    } else {
-      document.querySelector('.admin-layout')?.classList.remove('dark-mode');
-    }
+    // Notify other components (like App.jsx) about the change immediately
+    window.dispatchEvent(new Event('themeChange'));
   };
 
   return (
@@ -64,8 +60,6 @@ export default function Settings() {
                   padding: '10px 14px', 
                   borderRadius: '8px', 
                   border: '1px solid var(--border-light)', 
-                  background: isAccountant ? 'transparent' : 'var(--bg-surface-secondary)', 
-                  color: isAccountant ? 'var(--text-muted)' : 'var(--text-main)', 
                   background: isRestricted ? 'transparent' : 'var(--bg-surface-secondary)', 
                   color: isRestricted ? 'var(--text-muted)' : 'var(--text-main)', 
                   outline: 'none',
@@ -169,7 +163,7 @@ export default function Settings() {
               </div>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
                 Password resets, two-factor authentication, and account security policies
-                are managed exclusively in the <strong style={{ color: '#fff' }}>Super User Panel</strong>.
+                are managed exclusively in the <strong style={{ color: 'var(--text-main)' }}>Super User Panel</strong>.
                 Contact your Super User if you need to change security settings.
               </p>
             </div>

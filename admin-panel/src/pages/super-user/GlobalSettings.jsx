@@ -59,8 +59,8 @@ function Field({ label, description, children }) {
 
 const inputStyle = {
   width: '100%', maxWidth: '360px', padding: '10px 14px', borderRadius: '10px',
-  background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-light)',
-  color: '#fff', fontSize: '14px', fontWeight: 600, outline: 'none'
+  background: 'var(--bg-surface-secondary)', border: '1px solid var(--border-light)',
+  color: 'var(--text-main)', fontSize: '14px', fontWeight: 600, outline: 'none'
 };
 
 const selectStyle = {
@@ -145,7 +145,7 @@ export default function GlobalSettings() {
               display: 'flex', alignItems: 'center', gap: '7px',
               padding: '10px 18px', borderRadius: '10px 10px 0 0', border: 'none',
               background: tab === t.id ? 'var(--bg-surface)' : 'transparent',
-              color: tab === t.id ? '#fff' : 'var(--text-muted)',
+              color: tab === t.id ? 'var(--text-main)' : 'var(--text-muted)',
               fontWeight: 700, fontSize: '13px', cursor: 'pointer',
               borderBottom: tab === t.id ? '2px solid var(--primary-gold)' : '2px solid transparent',
               transition: 'all 0.2s'

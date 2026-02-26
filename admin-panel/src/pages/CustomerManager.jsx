@@ -131,7 +131,7 @@ export default function CustomerManager() {
         <Lock size={15} color="#fbbf24" style={{ flexShrink: 0 }} />
         <span>
           <strong style={{ color: '#fbbf24' }}>Role changes & account deletions</strong> are restricted to the
-          <strong style={{ color: '#fff' }}> Super User Panel</strong>. Admins may only view and suspend/activate accounts.
+          <strong style={{ color: 'var(--text-main)' }}> Super User Panel</strong>. Admins may only view and suspend/activate accounts.
         </span>
       </div>
 

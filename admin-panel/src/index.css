@@ -26,6 +26,20 @@
     --purple-bg: rgba(139, 92, 246, 0.1);
 }
 
+/* Global text colors */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+label,
+th,
+td,
+strong {
+    color: var(--text-main);
+}
+
 .dark-mode {
     --bg-main: #020617;
     /* Deep Slate 950 */
@@ -54,34 +68,9 @@
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
 }
 
-/* Explicit text overrides for dark mode consistency */
-.dark-mode h1,
-.dark-mode h2,
-.dark-mode h3,
-.dark-mode h4,
-.dark-mode h5,
-.dark-mode h6,
-.dark-mode label,
-.dark-mode th,
-.dark-mode strong {
-    color: #ffffff !important;
-}
-
-.dark-mode p,
-.dark-mode span:not(.badge-premium):not(.badge-notif):not(.badge-cart):not([style*="color"]):not([class*="badge"]),
-.dark-mode td,
-.dark-mode div:not([style*="background"]):not([class*="card"]):not([class*="glass"]):not([class*="badge"]) {
-    color: var(--text-main);
-}
-
-.dark-mode .card,
-.dark-mode .glass {
-    color: #ffffff;
-}
-
 .dark-mode select option {
     background-color: var(--bg-surface);
-    color: #ffffff;
+    color: var(--text-main);
 }
 
 * {
