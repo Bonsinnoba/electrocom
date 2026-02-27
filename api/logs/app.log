@@ -13,3 +13,27 @@
 2026-02-25 17:15:23 [OK] [AUTH] User admin@essentialshub.com logged in successfully as SUPER
 2026-02-25 17:15:30 [OK] [AUTH] User admin@essentialshub.com logged in successfully as SUPER
 2026-02-25 17:19:47 [INFO] [PRODUCTS] New product created: testpr (ID: 22) by User ID: 5
+2026-02-26 04:05:07 [OK] [AUTH] User admin@essentialshub.com logged in successfully as SUPER
+2026-02-26 04:05:42 [OK] [AUTH] User admin@essentialshub.com logged in successfully as SUPER
+2026-02-26 04:09:04 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as CUSTOMER
+2026-02-26 23:31:00 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as CUSTOMER
+2026-02-27 01:11:46 [OK] [AUTH] User admin@essentialshub.com logged in successfully as SUPER
+2026-02-27 01:11:51 [OK] [AUTH] User admin@essentialshub.com logged in successfully as SUPER
+2026-02-27 03:18:35 [INFO] [PRODUCTS] Product updated (ID: 21) by User ID: 5
+2026-02-27 03:18:35 [INFO] [PRODUCTS] Product updated (ID: 20) by User ID: 5
+2026-02-27 03:18:35 [INFO] [PRODUCTS] Product updated (ID: 19) by User ID: 5
+2026-02-27 03:18:35 [INFO] [PRODUCTS] Product updated (ID: 18) by User ID: 5
+2026-02-27 03:18:35 [INFO] [PRODUCTS] Product updated (ID: 9) by User ID: 5
+2026-02-27 03:18:35 [INFO] [PRODUCTS] Product updated (ID: 10) by User ID: 5
+2026-02-27 03:18:35 [INFO] [PRODUCTS] Product updated (ID: 11) by User ID: 5
+2026-02-27 03:18:36 [INFO] [PRODUCTS] Product updated (ID: 7) by User ID: 5
+2026-02-27 03:18:36 [INFO] [PRODUCTS] Product updated (ID: 6) by User ID: 5
+2026-02-27 03:19:09 [WARN] [PRODUCTS] Product deleted (ID: 21) by User ID: 5
+2026-02-27 03:19:14 [WARN] [PRODUCTS] Product deleted (ID: 20) by User ID: 5
+2026-02-27 03:19:25 [WARN] [PRODUCTS] Product deleted (ID: 11) by User ID: 5
+2026-02-27 03:19:29 [WARN] [PRODUCTS] Product deleted (ID: 6) by User ID: 5
+2026-02-27 03:19:34 [WARN] [PRODUCTS] Product deleted (ID: 7) by User ID: 5
+2026-02-27 03:19:38 [WARN] [PRODUCTS] Product deleted (ID: 10) by User ID: 5
+2026-02-27 03:19:43 [WARN] [PRODUCTS] Product deleted (ID: 9) by User ID: 5
+2026-02-27 03:19:47 [WARN] [PRODUCTS] Product deleted (ID: 18) by User ID: 5
+2026-02-27 03:24:24 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as CUSTOMER

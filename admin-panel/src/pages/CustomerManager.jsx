@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, ShieldAlert, ShieldCheck, Edit2, Filter, List, Map as MapIcon, Lock } from 'lucide-react';
+import { Search, X, ShieldAlert, ShieldCheck, Edit2, Filter, List, Map as MapIcon, Lock, Eye } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -14,7 +14,7 @@ if (typeof L !== 'undefined' && L.Icon && L.Icon.Default) {
     });
 }
 
-import { fetchCustomers, toggleUserStatus } from '../services/api';
+import { fetchCustomers, toggleUserStatus, approveVerification, rejectVerification } from '../services/api';
 
 export default function CustomerManager() {
   const [customers, setCustomers] = useState([]);
@@ -26,6 +26,7 @@ export default function CustomerManager() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+  const [verifyingCustomer, setVerifyingCustomer] = useState(null); // for preview modal
   
   const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
   const isAccountant = user.role === 'accountant';
@@ -103,6 +104,31 @@ export default function CustomerManager() {
     } catch (error) {
         alert("Failed to update user status");
     }
+  };
+
+  const handleApproveVerification = async (customer) => {
+    if (!window.confirm(`Approve ID verification for ${customer.name}?`)) return;
+    try {
+      await approveVerification(customer.id);
+      loadCustomers();
+    } catch (err) {
+      alert('Could not approve verification');
+    }
+  };
+
+  const handleRejectVerification = async (customer) => {
+    const reason = prompt('Reason for rejection (optional):');
+    if (reason === null) return;
+    try {
+      await rejectVerification(customer.id, reason);
+      loadCustomers();
+    } catch (err) {
+      alert('Could not reject verification');
+    }
+  };
+
+  const handleShowID = (customer) => {
+    setVerifyingCustomer(customer);
   };
 
   // Filter customers by search query
@@ -299,7 +325,8 @@ export default function CustomerManager() {
                 <th style={{ padding: '16px 24px' }}>Orders</th>
                 <th style={{ padding: '16px 24px' }}>Total Spent</th>
                 <th style={{ padding: '16px 24px' }}>Status</th>
-                <th style={{ padding: '16px 24px' }}>Actions</th>
+                <th style={{ padding: '16px 24px' }}>Verification</th>
+              <th style={{ padding: '16px 24px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -333,6 +360,23 @@ export default function CustomerManager() {
                     }}>
                       {c.status}
                     </span>
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                    {c.id_number ? (
+                      c.id_verified ? (
+                        <span style={{ color: 'var(--success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <ShieldCheck size={14} /> Verified
+                        </span>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <button className="btn" onClick={() => handleApproveVerification(c)} style={{ padding: '6px 10px', fontSize: '12px' }}>Approve</button>
+                          <button className="btn-secondary" onClick={() => handleRejectVerification(c)} style={{ padding: '6px 10px', fontSize: '12px' }}>Reject</button>
+                          <button onClick={() => handleShowID(c)} style={{ background:'transparent',border:'none',cursor:'pointer' }} title="View ID"><Eye size={16} /></button>
+                        </div>
+                      )
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>–</span>
+                    )}
                   </td>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -476,6 +520,37 @@ export default function CustomerManager() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {verifyingCustomer && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1010,
+          padding: '24px'
+        }}>
+          <div className="card glass" style={{ width: '100%', maxWidth: '500px', position: 'relative', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <button onClick={() => setVerifyingCustomer(null)} style={{ position: 'absolute', right: '20px', top: '20px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <X size={24} />
+            </button>
+            <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 800 }}>Ghana Card Preview</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <p><strong>Name:</strong> {verifyingCustomer.name}</p>
+              <p><strong>ID #:</strong> {verifyingCustomer.id_number}</p>
+              {verifyingCustomer.id_photo && (
+                <img src={verifyingCustomer.id_photo} alt="Card" style={{ width: '100%', borderRadius: '12px' }} />
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -71,6 +71,34 @@ if (!function_exists('isValidEmail')) {
     }
 }
 
+// Simple data encryption/decryption using AES-256-CBC and an env key
+if (!function_exists('encryptData')) {
+    function encryptData($plaintext)
+    {
+        $config = require '.env.php';
+        $key = $config['DATA_ENCRYPTION_KEY'] ?? '';
+        if (!$key) return $plaintext;
+        $iv = openssl_random_pseudo_bytes(16);
+        $ciphertext = openssl_encrypt($plaintext, 'AES-256-CBC', substr(hash('sha256', $key, true), 0, 32), OPENSSL_RAW_DATA, $iv);
+        return base64_encode($iv . $ciphertext);
+    }
+}
+
+if (!function_exists('decryptData')) {
+    function decryptData($ciphertext)
+    {
+        $config = require '.env.php';
+        $key = $config['DATA_ENCRYPTION_KEY'] ?? '';
+        if (!$key) return $ciphertext;
+        $data = base64_decode($ciphertext);
+        if ($data === false || strlen($data) < 16) return '';
+        $iv = substr($data, 0, 16);
+        $raw = substr($data, 16);
+        $plaintext = openssl_decrypt($raw, 'AES-256-CBC', substr(hash('sha256', $key, true), 0, 32), OPENSSL_RAW_DATA, $iv);
+        return $plaintext === false ? '' : $plaintext;
+    }
+}
+
 /**
  * Generate a simple secure token for authentication (Basic implementation)
  * In production, consider using a proper JWT library.

@@ -11,4 +11,25 @@ return [
     'DB_NAME' => 'local',
     'PAYSTACK_SECRET' => 'sk_test_ReplaceWithYourSecretKeyHere',
     'PASSWORD_PEPPER' => 'ehub_v3_super_secret_pepper_2024_@#!', // Change this to a random string
+    'DATA_ENCRYPTION_KEY' => 'replace_with_32+_char_random_key', // used to encrypt Ghana card photos
+    'GOV_API_URL' => 'https://example.gov/verify', // endpoint for Ghana card validation
+    'GOV_API_KEY' => 'your-government-api-key',
+    // --- social login credentials ---
+    'GOOGLE_CLIENT_ID' => '',
+    'GOOGLE_CLIENT_SECRET' => '',
+    'GOOGLE_REDIRECT' => 'http://localhost/social_auth.php?provider=google',
+
+    'FACEBOOK_CLIENT_ID' => '',
+    'FACEBOOK_CLIENT_SECRET' => '',
+    'FACEBOOK_REDIRECT' => 'http://localhost/social_auth.php?provider=facebook',
+
+    'GITHUB_CLIENT_ID' => '',
+    'GITHUB_CLIENT_SECRET' => '',
+    'GITHUB_REDIRECT' => 'http://localhost/social_auth.php?provider=github',
+
+    'LINKEDIN_CLIENT_ID' => '',
+    'LINKEDIN_CLIENT_SECRET' => '',
+    'LINKEDIN_REDIRECT' => 'http://localhost/social_auth.php?provider=linkedin',
+    // URL of your frontend application where users should land after social login
+    'FRONTEND_URL' => 'http://localhost:3000',
 ];

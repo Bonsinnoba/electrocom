@@ -54,7 +54,13 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [authInitialMode, setAuthInitialMode] = useState('signin');
   const [loginMessage, setLoginMessage] = useState('');
+
+  const openAuth = (mode = 'signin') => {
+    setAuthInitialMode(mode);
+    setIsLoginOpen(true);
+  };
   const [redirectPath, setRedirectPath] = useState(null);
   const [activeDrawer, setActiveDrawer] = useState(null); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -209,7 +215,7 @@ function AppContent() {
        setLoginMessage('Please login to access this page');
        
        navigate('/');
-       setIsLoginOpen(true);
+       openAuth('signin');
        addNotification('Please login to access this page', 'info');
     }
   }, [location.pathname, user, navigate]);
@@ -217,7 +223,7 @@ function AppContent() {
   const handleAddToCart = (product, qty, color) => {
     if (!user) {
         setLoginMessage('Please login to add items to cart');
-        setIsLoginOpen(true);
+        openAuth('signin');
         addNotification('Please login to add items to cart', 'info');
         return;
     }
@@ -228,7 +234,7 @@ function AppContent() {
   const handleAddToWishlist = (product) => {
     if (!user) {
         setLoginMessage('Please login to manage your wishlist');
-        setIsLoginOpen(true);
+        openAuth('signin');
         addNotification('Please login to use wishlist', 'info');
         return;
     }
@@ -252,7 +258,7 @@ function AppContent() {
       
       <div className="main-wrapper">
         <Navbar 
-          onLoginClick={() => setIsLoginOpen(true)} 
+          onLoginClick={() => openAuth('signin')} 
           onMapClick={() => setActiveDrawer('map')}
           onMenuClick={toggleSidebar}
           onThemeToggle={toggleDarkMode}
@@ -302,6 +308,7 @@ function AppContent() {
 
       <AuthModal 
         isOpen={isLoginOpen} 
+        initialMode={authInitialMode}
         onClose={() => {
             setIsLoginOpen(false);
             setLoginMessage('');
@@ -311,7 +318,6 @@ function AppContent() {
                 setRedirectPath(null);
             }
         }} 
-        loginMessage={loginMessage}
       />
 
       <Drawer 

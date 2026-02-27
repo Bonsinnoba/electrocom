@@ -15,6 +15,12 @@ CREATE TABLE IF NOT EXISTS users (
     level_name VARCHAR(50) DEFAULT 'Starter',
     avatar_text VARCHAR(10) DEFAULT 'U',
     profile_image LONGTEXT, -- To store Base64 images for now
+    id_number VARCHAR(50) DEFAULT NULL,
+    id_photo LONGTEXT DEFAULT NULL, -- Base64 scan of the Ghana card
+    id_verified TINYINT(1) DEFAULT 0,
+    id_verified_at DATETIME DEFAULT NULL,
+    id_verification_reason VARCHAR(255) DEFAULT NULL,
+    id_verifier_id INT DEFAULT NULL,
     wallet_balance DECIMAL(10, 2) DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

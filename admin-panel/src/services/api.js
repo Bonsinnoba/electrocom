@@ -128,6 +128,49 @@ export const deleteCustomer = async (id) => {
 
 };
 
+// --- Verification API ---
+
+export const fetchVerificationRequests = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/verify_id.php?_t=${Date.now()}`, {
+            headers: getAuthHeaders()
+        });
+        const result = await response.json();
+        return result.success ? result.data : [];
+    } catch (error) {
+        console.error('Error fetching verification requests:', error);
+        return [];
+    }
+};
+
+export const approveVerification = async (userId, reason = '') => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/verify_id.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'approve', user_id: userId, reason })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error approving verification:', error);
+        throw error;
+    }
+};
+
+export const rejectVerification = async (userId, reason = '') => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/verify_id.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'reject', user_id: userId, reason })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error rejecting verification:', error);
+        throw error;
+    }
+};
+
 export const setUserRole = async (id, role) => {
     try {
         const response = await fetch(`${API_BASE_URL}/admin_customers.php`, {
