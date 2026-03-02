@@ -17,9 +17,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// ── Custom gold branch marker ─────────────────────────────────────────────────
-function createBranchIcon(status = 'Online') {
-  const colour = status === 'Online' ? '#22c55e' : status === 'Standby' ? '#f59e0b' : '#ef4444';
+// ── Custom markers ────────────────────────────────────────────────────────────
+function createNodeIcon(type = 'warehouse', status = 'Online') {
+  const isHQ = type === 'headquarters';
+  const color = status === 'Online' ? '#22c55e' : status === 'Standby' ? '#f59e0b' : '#ef4444';
+  const bg = isHQ ? 'linear-gradient(135deg,#6366f1,#3b82f6)' : 'linear-gradient(135deg,#fbbf24,#f59e0b)';
+  const icon = isHQ ? '🌐' : '🏢';
+  
   return L.divIcon({
     className: '',
     iconSize:  [36, 36],
@@ -28,12 +32,12 @@ function createBranchIcon(status = 'Online') {
     html: `
       <div style="
         width:36px;height:36px;border-radius:50%;
-        background:linear-gradient(135deg,#fbbf24,#f59e0b);
-        border:3px solid ${colour};
-        box-shadow:0 0 12px rgba(251,191,36,0.6), 0 0 0 4px rgba(251,191,36,0.15);
+        background:${bg};
+        border:3px solid ${color};
+        box-shadow:0 0 12px rgba(59,130,246,0.6), 0 0 0 4px rgba(59,130,246,0.15);
         display:flex;align-items:center;justify-content:center;
         font-size:16px;
-      ">🏢</div>`,
+      ">${icon}</div>`,
   });
 }
 
@@ -48,11 +52,11 @@ function Skeleton({ h = 24, w = '60%' }) {
   return <div style={{ height: h, width: w, borderRadius: 8, background: 'rgba(255,255,255,0.07)', animation: 'shimmer 1.4s infinite' }} />;
 }
 
-// ── Fixed branch nodes with GPS coords used as fallback ──────────────────────
-const BRANCH_DEFAULTS = {
-  'ACC-01': { lat: 5.6547,  lng: -0.1711, status: 'Online',  load: 82 },
-  'KMS-01': { lat: 6.6885,  lng: -1.6244, status: 'Online',  load: 45 },
-  'WA-01':  { lat: 10.0601, lng: -2.5099, status: 'Standby', load: 12 },
+// Fallback coordinates for known branches if not in DB
+const BRANCH_COORDS = {
+  'ACC-01': { lat: 5.6547,  lng: -0.1711 },
+  'KMS-01': { lat: 6.6885,  lng: -1.6244 },
+  'WA-01':  { lat: 10.0601, lng: -2.5099 },
 };
 
 export default function Dashboard() {
@@ -79,17 +83,11 @@ export default function Dashboard() {
   // Merge API branch data with default GPS coords as fallback
   const branches = (data?.branches || []).map(b => ({
     ...b,
-    lat:    parseFloat(b.lat)  || BRANCH_DEFAULTS[b.branch_code]?.lat || 7.9465,
-    lng:    parseFloat(b.lng)  || BRANCH_DEFAULTS[b.branch_code]?.lng || -1.0232,
-    status: BRANCH_DEFAULTS[b.branch_code]?.status || 'Online',
-    load:   BRANCH_DEFAULTS[b.branch_code]?.load   || 50,
+    lat:    parseFloat(b.lat)  || BRANCH_COORDS[b.branch_code]?.lat || 7.9465,
+    lng:    parseFloat(b.lng)  || BRANCH_COORDS[b.branch_code]?.lng || -1.0232,
+    status: b.status || 'Online',
+    load:   parseInt(b.load_level) || 0,
   }));
-
-  if (!loading && branches.length === 0) {
-    Object.entries(BRANCH_DEFAULTS).forEach(([code, v]) => {
-      branches.push({ branch_code: code, name: code, ...v });
-    });
-  }
 
   const stats = loading ? [] : [
     { label: 'Total Revenue',   value: fmt(data?.total_revenue  || 0), change: `${data?.total_orders || 0} orders`,  icon: <TrendingUp size={20} />, color: 'var(--primary-gold)' },
@@ -199,21 +197,24 @@ export default function Dashboard() {
                       weight: 1.5,
                     }}
                   />
-                  <Marker
-                    position={[branch.lat, branch.lng]}
-                    icon={createBranchIcon(branch.status)}
-                  >
-                    <Popup>
-                      <div style={{ fontFamily:'Outfit, sans-serif', minWidth:'190px', background:'#0f172a', color:'#fff', borderRadius:'10px', padding:'14px', border:'1px solid rgba(251,191,36,0.3)' }}>
-                        <div style={{ fontWeight:900, fontSize:'15px', marginBottom:'4px', color:'#fbbf24' }}>{branch.name}</div>
-                        <div style={{ fontSize:'12px', color:'#94a3b8', marginBottom:'10px' }}>{branch.address || branch.branch_code}</div>
-                        <div style={{ display:'flex', alignItems:'center', gap:'6px', fontSize:'12px', fontWeight:800 }}>
-                          <div style={{ width:'8px', height:'8px', borderRadius:'50%', background: branch.status==='Online' ? '#22c55e' : '#f59e0b' }} />
-                          {branch.status} · {branch.load}% Load
+                    <Marker
+                      position={[branch.lat, branch.lng]}
+                      icon={createNodeIcon(branch.type, branch.status)}
+                    >
+                      <Popup>
+                        <div style={{ fontFamily:'Outfit, sans-serif', minWidth:'190px', background:'#0f172a', color:'#fff', borderRadius:'10px', padding:'14px', border:'1px solid rgba(251,191,36,0.3)' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                            <div style={{ fontWeight:900, fontSize:'15px', color:'#fbbf24' }}>{branch.name}</div>
+                            {branch.type === 'headquarters' && <span style={{ fontSize:'10px', background:'#3b82f6', padding:'2px 6px', borderRadius:'4px', fontWeight:900 }}>HQ</span>}
+                          </div>
+                          <div style={{ fontSize:'12px', color:'#94a3b8', marginBottom:'10px' }}>{branch.address || branch.branch_code}</div>
+                          <div style={{ display:'flex', alignItems:'center', gap:'6px', fontSize:'12px', fontWeight:800 }}>
+                            <div style={{ width:'8px', height:'8px', borderRadius:'50%', background: branch.status==='Online' ? '#22c55e' : '#f59e0b' }} />
+                            {branch.status} · {branch.load}% {branch.type === 'headquarters' ? 'System Load' : 'Dispatch Load'}
+                          </div>
                         </div>
-                      </div>
-                    </Popup>
-                  </Marker>
+                      </Popup>
+                    </Marker>
                 </React.Fragment>
               ))}
             </MapContainer>
@@ -240,9 +241,9 @@ export default function Dashboard() {
                 return (
                   <div key={b.id || i} style={{ padding:'16px', background:'rgba(0,0,0,0.15)', borderRadius:'12px', border:'1px solid var(--border-light)' }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px' }}>
-                      <div>
+                      <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
                         <div style={{ fontWeight:800, fontSize:'14px' }}>{b.name}</div>
-                        <div style={{ fontSize:'11px', color:'var(--primary-gold)', fontWeight:700, marginTop:'2px' }}>{b.branch_code}</div>
+                        {b.type === 'headquarters' && <span style={{ fontSize:'9px', background:'#3b82f6', padding:'1px 5px', borderRadius:'3px', fontWeight:900, color:'#fff' }}>CENTRAL HUB</span>}
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'4px 10px', borderRadius:'20px', background:`rgba(${statusCol==='#22c55e'?'34,197,94':statusCol==='#f59e0b'?'245,158,11':'239,68,68'},0.12)`, border:`1px solid ${statusCol}44` }}>
                         <div style={{ width:'7px', height:'7px', borderRadius:'50%', background:statusCol, animation: b.status==='Online'?'pulseGreen 2s infinite':'none' }} />

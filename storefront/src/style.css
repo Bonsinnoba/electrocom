@@ -315,8 +315,6 @@ body {
 body {
     font-family: 'Inter', sans-serif;
     font-size: var(--font-size-base);
-    background: var(--bg-main);
-    color: var(--text-main);
     min-height: 100vh;
     display: flex;
     overflow-x: hidden;

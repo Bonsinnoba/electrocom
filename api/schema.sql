@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_method VARCHAR(50),
     payment_reference VARCHAR(100), -- Paystack/Stripe reference
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 

@@ -35,6 +35,12 @@ try {
     if (!in_array('region', $cols)) {
         $pdo->exec("ALTER TABLE store_branches ADD COLUMN region VARCHAR(100) AFTER address");
     }
+    if (!in_array('status', $cols)) {
+        $pdo->exec("ALTER TABLE store_branches ADD COLUMN status ENUM('Online','Standby','Offline') DEFAULT 'Online'");
+    }
+    if (!in_array('load_level', $cols)) {
+        $pdo->exec("ALTER TABLE store_branches ADD COLUMN load_level INT DEFAULT 50");
+    }
 
     // Seed Accra as headquarters if table is empty
     $count = $pdo->query("SELECT COUNT(*) FROM store_branches")->fetchColumn();

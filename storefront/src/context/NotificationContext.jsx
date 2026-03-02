@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useUser } from './UserContext';
+import { secureStorage } from '../utils/secureStorage';
 
 const NotificationContext = createContext();
 
@@ -11,15 +13,15 @@ export const useNotifications = () => {
 };
 
 export const NotificationProvider = ({ children }) => {
+  const { user } = useUser();
+
   const [notifications, setNotifications] = useState(() => {
-    const saved = localStorage.getItem('ehub_notifications');
-    // Default mock notifications if none saved
-    return saved ? JSON.parse(saved) : [];
+    return secureStorage.getItem('notifications', user?.id) || [];
   });
 
   useEffect(() => {
-    localStorage.setItem('ehub_notifications', JSON.stringify(notifications));
-  }, [notifications]);
+    secureStorage.setItem('notifications', notifications, user?.id);
+  }, [notifications, user?.id]);
 
   const addNotification = (text, type = 'info') => {
     setNotifications(prev => {

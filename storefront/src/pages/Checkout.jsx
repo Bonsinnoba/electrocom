@@ -4,7 +4,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { useWallet } from '../context/WalletContext';
 import { useUser } from '../context/UserContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { CreditCard, Truck, ShieldCheck, ArrowLeft, ChevronRight, CheckCircle, Smartphone, Wallet as WalletIcon } from 'lucide-react';
+import { CreditCard, Truck, ShieldCheck, ArrowLeft, ChevronRight, CheckCircle, Smartphone, MapPin, Wallet as WalletIcon } from 'lucide-react';
 import { createOrder } from '../services/api';
 
 import { usePaystackPayment } from 'react-paystack';

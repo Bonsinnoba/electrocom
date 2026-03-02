@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { logoutUser } from '../services/api';
+import { secureStorage } from '../utils/secureStorage';
 
 const UserContext = createContext();
 
@@ -12,15 +14,14 @@ export const useUser = () => {
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('ehub_user');
-    return saved ? JSON.parse(saved) : null;
+    return secureStorage.getItem('user', 'shared'); // Meta info can be shared across sessions
   });
 
   useEffect(() => {
     if (user) {
-        localStorage.setItem('ehub_user', JSON.stringify(user));
+        secureStorage.setItem('user', user, 'shared');
     } else {
-        localStorage.removeItem('ehub_user');
+        secureStorage.removeItem('user', 'shared');
     }
   }, [user]);
 
@@ -28,10 +29,9 @@ export const UserProvider = ({ children }) => {
     setUser(prev => ({ ...prev, ...newData }));
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
-    localStorage.removeItem('ehub_user');
-    localStorage.removeItem('ehub_token');
+    await logoutUser();
   };
 
   const resetUser = () => {

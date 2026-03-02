@@ -4,6 +4,7 @@ import { formatDateTime } from '../utils/dateFormatter';
 import { useUser } from '../context/UserContext';
 import { fetchOrders } from '../services/api';
 import { useSettings } from '../context/SettingsContext';
+import OrderTrackingModal from '../components/OrderTrackingModal';
 
 const StatusIcon = ({ status }) => {
   switch(status?.toLowerCase()) {
@@ -54,6 +55,13 @@ export default function Orders({ searchQuery }) {
   const { formatPrice } = useSettings();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [trackingOrderId, setTrackingOrderId] = useState(null);
+  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+
+  const openTracking = (id) => {
+    setTrackingOrderId(id);
+    setIsTrackingOpen(true);
+  };
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -125,17 +133,21 @@ export default function Orders({ searchQuery }) {
       
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', minWidth: '150px' }}>
         <StatusBadge status={order.status} />
-        <button className="btn-secondary" style={{ 
-          fontSize: '13px', 
-          fontWeight: 700,
-          padding: '10px 20px', 
-          borderRadius: '12px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '8px',
-          width: '100%',
-          justifyContent: 'center'
-        }}>
+        <button 
+          onClick={() => openTracking(order.id)}
+          className="btn-secondary" 
+          style={{ 
+            fontSize: '13px', 
+            fontWeight: 700,
+            padding: '10px 20px', 
+            borderRadius: '12px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px',
+            width: '100%',
+            justifyContent: 'center'
+          }}
+        >
           Track Order <ExternalLink size={14} />
         </button>
       </div>
@@ -208,6 +220,12 @@ export default function Orders({ searchQuery }) {
           )}
         </div>
       </div>
+
+      <OrderTrackingModal 
+        isOpen={isTrackingOpen}
+        orderId={trackingOrderId}
+        onClose={() => setIsTrackingOpen(false)}
+      />
 
       <style dangerouslySetInnerHTML={{ __html: `
         @media (min-width: 1024px) {

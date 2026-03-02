@@ -65,10 +65,21 @@ function AppContent() {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
     const checkMaintenance = async () => {
       try {
-        const res = await fetch(`${API_BASE}/get_products.php?limit=1`);
+        const token = localStorage.getItem('ehub_token');
+        const res = await fetch(`${API_BASE}/get_products.php?limit=1`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
         if (res.status === 503) {
           const data = await res.json();
-          setIsMaintenanceMode(data.maintenance === true);
+          // Even if 503, Super Admins should bypass
+          if (data.maintenance === true) {
+            const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
+            if (user.role === 'super') {
+              setIsMaintenanceMode(false);
+            } else {
+              setIsMaintenanceMode(true);
+            }
+          }
         } else {
           setIsMaintenanceMode(false);
         }
@@ -219,8 +230,11 @@ function AppContent() {
         interval = setInterval(async () => {
             const result = await checkUserStatus();
             if (result.maintenance) {
-                setIsMaintenanceMode(true);
-                return;
+                const currentUser = JSON.parse(localStorage.getItem('ehub_user') || '{}');
+                if (currentUser.role !== 'super') {
+                    setIsMaintenanceMode(true);
+                    return;
+                }
             }
             if (result.unauthorized) {
                 logout();
@@ -448,20 +462,31 @@ function AppContent() {
   );
 }
 
+const AppProviders = ({ children }) => {
+  const { user } = useUser();
+  // Using user?.id as a key ensures that all nested providers (Notifications, Cart, etc.) 
+  // fully remount and reset their internal states when the user changes or logs out.
+  return (
+    <NotificationProvider key={`notif-${user?.id || 'guest'}`}>
+      <SettingsProvider>
+        <WishlistProvider key={`wish-${user?.id || 'guest'}`}>
+          <CartProvider key={`cart-${user?.id || 'guest'}`}>
+            <WalletProvider key={`wallet-${user?.id || 'guest'}`}>
+              {children}
+            </WalletProvider>
+          </CartProvider>
+        </WishlistProvider>
+      </SettingsProvider>
+    </NotificationProvider>
+  );
+};
+
 export default function App() {
   return (
     <UserProvider>
-      <NotificationProvider>
-        <SettingsProvider>
-          <WishlistProvider>
-            <CartProvider>
-              <WalletProvider>
-                <AppContent />
-              </WalletProvider>
-            </CartProvider>
-          </WishlistProvider>
-        </SettingsProvider>
-      </NotificationProvider>
+      <AppProviders>
+        <AppContent />
+      </AppProviders>
     </UserProvider>
   );
 }

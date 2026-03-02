@@ -1,0 +1,8 @@
+-- SQL to create the api_rate_limits table
+CREATE TABLE IF NOT EXISTS api_rate_limits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip_address VARCHAR(45) NOT NULL UNIQUE,
+    request_count INT DEFAULT 0,
+    last_request TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
