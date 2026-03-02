@@ -25,26 +25,12 @@ try {
 $method = $_SERVER['REQUEST_METHOD'];
 $logFile = __DIR__ . '/logs/app.log';
 
-// Ensure log directory exists
+// Ensure log directory and file exist
 if (!is_dir(__DIR__ . '/logs')) {
     mkdir(__DIR__ . '/logs', 0755, true);
 }
-
-// ── Seed a few demo entries if log is empty ───────────────────────────────────
-if (!file_exists($logFile) || filesize($logFile) === 0) {
-    $demo = [
-        "[info]  [CORE]     Global database backup completed (3.2 GB)",
-        "[warn]  [ACC-01]   Disk usage at 87%. Cleanup recommended.",
-        "[error] [KMS-01]   Brute-force login attempt — IP 196.4.12.88 blocked.",
-        "[ok]    [PAYMENTS] Paystack webhook verified — GH\xc2\xa2 450.00 settled.",
-        "[info]  [AUTH]     Super User panel session started.",
-    ];
-    $ts = time();
-    $lines = '';
-    foreach ($demo as $i => $msg) {
-        $lines .= date('Y-m-d H:i:s', $ts - ($i * 300)) . ' ' . $msg . PHP_EOL;
-    }
-    file_put_contents($logFile, $lines);
+if (!file_exists($logFile)) {
+    file_put_contents($logFile, '');
 }
 
 if ($method === 'GET') {
@@ -53,15 +39,28 @@ if ($method === 'GET') {
         $lines = array_reverse(array_slice($raw, -200));
         $parsed = [];
         foreach ($lines as $i => $line) {
+            // Clean non-UTF8 characters if any
+            $line = mb_convert_encoding($line, 'UTF-8', 'UTF-8');
+
             // Parse: "YYYY-MM-DD HH:MM:SS [level] [SOURCE] message"
-            preg_match('/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+\[(\w+)\]\s+\[([^\]]+)\]\s+(.+)$/', $line, $m);
-            $parsed[] = [
-                'id'     => $i + 1,
-                'ts'     => $m[1] ?? date('Y-m-d H:i:s'),
-                'level'  => strtolower($m[2] ?? 'info'),
-                'source' => $m[3] ?? 'SYSTEM',
-                'msg'    => $m[4] ?? $line,
-            ];
+            if (preg_match('/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+\[(\w+)\]\s+\[([^\]]+)\]\s+(.+)$/', $line, $m)) {
+                $parsed[] = [
+                    'id'     => $i + 1,
+                    'ts'     => $m[1],
+                    'level'  => strtolower($m[2]),
+                    'source' => $m[3],
+                    'msg'    => $m[4],
+                ];
+            } else {
+                // Fallback for lines that don't match the pattern exactly
+                $parsed[] = [
+                    'id'     => $i + 1,
+                    'ts'     => date('Y-m-d H:i:s'),
+                    'level'  => 'info',
+                    'source' => 'SYSTEM',
+                    'msg'    => $line,
+                ];
+            }
         }
         echo json_encode(['success' => true, 'data' => $parsed]);
     } catch (Exception $e) {

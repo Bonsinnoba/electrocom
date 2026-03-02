@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'security.php';
+requireRole('super', $pdo);
 // Test deleting product with ID 3 (NextGen Gaming Mouse)
 $id = 3;
 try {

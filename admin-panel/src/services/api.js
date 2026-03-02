@@ -1,6 +1,27 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 /**
+ * Helper to decode HTML entities like &gt; to >
+ */
+const decodeHtml = (html) => {
+    if (!html) return html;
+    const txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
+};
+
+/**
+ * Helper to ensure image URLs are absolute
+ */
+const formatImageUrl = (url) => {
+    if (!url) return url;
+    // Fix hardcoded dev URLs from DB
+    url = url.replace('http://essentialshub.local/api/', '');
+    if (url.startsWith('http')) return url;
+    return `${API_BASE_URL}/${url.startsWith('/') ? url.slice(1) : url}`;
+};
+
+/**
  * Helper to get authentication headers
  */
 const getAuthHeaders = () => {
@@ -26,7 +47,18 @@ export const fetchProducts = async () => {
     try {
         const response = await fetch(`${API_BASE_URL}/get_products.php?_t=${Date.now()}`);
         const result = await response.json();
-        return result.success ? result.data : [];
+        const data = result.success ? result.data : [];
+        return data.map(product => ({
+            ...product,
+            name: decodeHtml(product.name),
+            description: decodeHtml(product.description),
+            category: decodeHtml(product.category),
+            image_url: formatImageUrl(product.image_url),
+            directions: formatImageUrl(product.directions), // Handles PDF uploads
+            gallery: Array.isArray(product.gallery)
+                ? product.gallery.map(formatImageUrl)
+                : []
+        }));
     } catch (error) {
         console.error('Error fetching products:', error);
         return [];
@@ -100,8 +132,13 @@ export const fetchCustomers = async () => {
         });
 
         const result = await response.json();
+        const data = result.success ? result.data : [];
 
-        return result.success ? result.data : [];
+        return data.map(customer => ({
+            ...customer,
+            name: decodeHtml(customer.name),
+            email: decodeHtml(customer.email)
+        }));
     } catch (error) {
         console.error('Error fetching customers:', error);
         return [];
@@ -250,7 +287,14 @@ export const fetchSlides = async () => {
     try {
         const response = await fetch(`${API_BASE_URL}/get_slider.php`);
         const result = await response.json();
-        return result.success ? result.data : [];
+        const slides = result.success ? result.data : [];
+        return slides.map(slide => ({
+            ...slide,
+            title: decodeHtml(slide.title),
+            subtitle: decodeHtml(slide.subtitle),
+            button_text: decodeHtml(slide.button_text),
+            image_url: formatImageUrl(slide.image_url)
+        }));
     } catch (error) {
         console.error('Error fetching slides:', error);
         return [];
@@ -266,7 +310,14 @@ export const fetchAdminSlides = async () => {
 
         const result = await response.json();
 
-        return result.success ? result.data : [];
+        const slides = result.success ? result.data : [];
+        return slides.map(slide => ({
+            ...slide,
+            title: decodeHtml(slide.title),
+            subtitle: decodeHtml(slide.subtitle),
+            button_text: decodeHtml(slide.button_text),
+            image_url: formatImageUrl(slide.image_url)
+        }));
     } catch (error) {
         console.error('Error fetching admin slides:', error);
         return [];
@@ -536,28 +587,90 @@ export const deleteBackup = async (filename) => {
     }
 };
 
-export const getBranches = async () => {
+
+// ─── Warehouse & Dispatch Endpoints ──────────────────────────────────────────
+
+export const fetchWarehouses = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/super_branches.php`, {
+        const response = await fetch(`${API_BASE_URL}/admin_locations.php?_t=${Date.now()}`, {
             headers: getAuthHeaders()
         });
-        return await response.json();
+        const result = await response.json();
+        return result.success ? result.data : [];
     } catch (error) {
-        console.error('Error fetching branches:', error);
+        console.error('Error fetching warehouses:', error);
         return [];
     }
 };
 
-export const addBranch = async (branchData) => {
+export const createWarehouse = async (data) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/admin_branches.php`, {
+        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'add', ...branchData }),
+            body: JSON.stringify({ action: 'create_warehouse', ...data }),
         });
         return await response.json();
     } catch (error) {
-        console.error('Error adding branch:', error);
+        console.error('Error creating warehouse:', error);
         throw error;
     }
 };
+
+export const deleteWarehouse = async (id) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'delete_warehouse', id }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting warehouse:', error);
+        throw error;
+    }
+};
+
+export const fetchDispatches = async (warehouseId = null) => {
+    try {
+        const url = `${API_BASE_URL}/admin_locations.php?action=dispatches${warehouseId ? `&warehouse_id=${warehouseId}` : ''}&_t=${Date.now()}`;
+        const response = await fetch(url, { headers: getAuthHeaders() });
+        const result = await response.json();
+        return result.success ? result.data : [];
+    } catch (error) {
+        console.error('Error fetching dispatches:', error);
+        return [];
+    }
+};
+
+export const createDispatch = async (data) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'dispatch', ...data }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error creating dispatch:', error);
+        throw error;
+    }
+};
+
+export const updateDispatchStatus = async (id, status) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'update_dispatch_status', id, status }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating dispatch status:', error);
+        throw error;
+    }
+};
+
+// Keep backward-compat exports pointing to correct functions
+export const getBranches = fetchWarehouses;
+export const addBranch = createWarehouse;

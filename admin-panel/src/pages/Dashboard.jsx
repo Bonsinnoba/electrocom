@@ -72,99 +72,95 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadDashboardData = async () => {
+    let isMounted = true;
+
+    const processDashboardData = (ordersData, customersData) => {
+      const now = new Date();
+      const thisMonth = now.getMonth();
+      const thisYear = now.getFullYear();
+
+      const currentMonthOrders = ordersData.filter(o => {
+        const d = new Date(o.date);
+        return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+      });
+      const prevMonthOrders = ordersData.filter(o => {
+        const d = new Date(o.date);
+        const targetMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+        const targetYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+        return d.getMonth() === targetMonth && d.getFullYear() === targetYear;
+      });
+
+      const currentRevenue = currentMonthOrders.reduce((sum, o) => sum + parseFloat(o.amount || 0), 0);
+      const prevRevenue = prevMonthOrders.reduce((sum, o) => sum + parseFloat(o.amount || 0), 0);
+      const revTrend = prevRevenue === 0
+        ? (currentRevenue > 0 ? '+100%' : '0%')
+        : `${(((currentRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1)}%`;
+      const orderTrend = prevMonthOrders.length === 0
+        ? (currentMonthOrders.length > 0 ? '+100%' : '0%')
+        : `${(((currentMonthOrders.length - prevMonthOrders.length) / prevMonthOrders.length) * 100).toFixed(1)}%`;
+
+      const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const monthlyData = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const m = d.getMonth(), y = d.getFullYear();
+        monthlyData.push({
+          name: monthNames[m],
+          value: ordersData
+            .filter(o => { const od = new Date(o.date); return od.getMonth() === m && od.getFullYear() === y; })
+            .reduce((sum, o) => sum + parseFloat(o.amount || 0), 0)
+        });
+      }
+
+      const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+      const weeklyData = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(); d.setDate(now.getDate() - i);
+        const dateStr = d.toDateString();
+        weeklyData.push({
+          name: dayNames[d.getDay()],
+          value: ordersData
+            .filter(o => new Date(o.date).toDateString() === dateStr)
+            .reduce((sum, o) => sum + parseFloat(o.amount || 0), 0)
+        });
+      }
+
+      return {
+        revenue: ordersData.reduce((sum, o) => sum + parseFloat(o.amount || 0), 0),
+        orders: ordersData.length,
+        customers: customersData.length,
+        trends: {
+          revenue: revTrend.startsWith('-') ? revTrend : `+${revTrend}`,
+          orders: orderTrend.startsWith('-') ? orderTrend : `+${orderTrend}`,
+          customers: '+0.0%'
+        },
+        fullChartData: { monthly: monthlyData, weekly: weeklyData }
+      };
+    };
+
+    const loadDashboardData = async (isInitial = false) => {
       try {
-        const [ordersData, customersData] = await Promise.all([
-          fetchOrders(),
-          fetchCustomers()
-        ]);
-
-        const now = new Date();
-        const thisMonth = now.getMonth();
-        const thisYear = now.getFullYear();
-        
-        // ── Calculate Trends ──────────────────────────────────────────────────
-        const currentMonthOrders = ordersData.filter(o => {
-          const d = new Date(o.date);
-          return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
-        });
-
-        const prevMonthOrders = ordersData.filter(o => {
-          const d = new Date(o.date);
-          const targetMonth = thisMonth === 0 ? 11 : thisMonth - 1;
-          const targetYear = thisMonth === 0 ? thisYear - 1 : thisYear;
-          return d.getMonth() === targetMonth && d.getFullYear() === targetYear;
-        });
-
-        const currentRevenue = currentMonthOrders.reduce((sum, o) => sum + parseFloat(o.amount || 0), 0);
-        const prevRevenue = prevMonthOrders.reduce((sum, o) => sum + parseFloat(o.amount || 0), 0);
-        
-        const revTrend = prevRevenue === 0 ? (currentRevenue > 0 ? '+100%' : '0%') : 
-          `${(((currentRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1)}%`;
-        
-        const orderTrend = prevMonthOrders.length === 0 ? (currentMonthOrders.length > 0 ? '+100%' : '0%') :
-          `${(((currentMonthOrders.length - prevMonthOrders.length) / prevMonthOrders.length) * 100).toFixed(1)}%`;
-
-        // ── Process Monthly Data (Full Year - 12 Months) ──────────────────────
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const monthlyData = [];
-        for (let i = 11; i >= 0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const m = d.getMonth();
-            const y = d.getFullYear();
-            
-            const monthlyTotal = ordersData
-                .filter(o => {
-                    const od = new Date(o.date);
-                    return od.getMonth() === m && od.getFullYear() === y;
-                })
-                .reduce((sum, o) => sum + parseFloat(o.amount || 0), 0);
-            
-            monthlyData.push({
-                name: monthNames[m],
-                value: monthlyTotal
-            });
-        }
-
-        // ── Process Weekly Data (Last 7 Days) ─────────────────────────────────
-        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const weeklyData = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(now.getDate() - i);
-            const dateStr = d.toDateString();
-            
-            const dailyTotal = ordersData
-                .filter(o => new Date(o.date).toDateString() === dateStr)
-                .reduce((sum, o) => sum + parseFloat(o.amount || 0), 0);
-            
-            weeklyData.push({
-                name: dayNames[d.getDay()],
-                value: dailyTotal
-            });
-        }
-
-        setStats({
-          revenue: ordersData.reduce((sum, order) => sum + parseFloat(order.amount || 0), 0),
-          orders: ordersData.length,
-          customers: customersData.length,
-          trends: {
-            revenue: revTrend.startsWith('-') ? revTrend : `+${revTrend}`,
-            orders: orderTrend.startsWith('-') ? orderTrend : `+${orderTrend}`,
-            customers: '+0.0%' 
-          },
-          fullChartData: { monthly: monthlyData, weekly: weeklyData }
-        });
-
+        if (isInitial) setLoading(true);
+        const [ordersData, customersData] = await Promise.all([fetchOrders(), fetchCustomers()]);
+        if (!isMounted) return;
+        setStats(processDashboardData(ordersData, customersData));
         setRecentOrders(ordersData.slice(0, 4));
       } catch (error) {
         console.error("Dashboard data load error:", error);
       } finally {
-        setLoading(false);
+        if (isInitial) setLoading(false);
       }
     };
 
-    loadDashboardData();
+    loadDashboardData(true);
+
+    // Poll silently every 5 seconds — no loading spinner on background updates
+    const intervalId = setInterval(() => loadDashboardData(false), 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
   return (

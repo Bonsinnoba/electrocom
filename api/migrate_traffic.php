@@ -1,5 +1,7 @@
 <?php
 require_once 'db.php';
+require_once 'security.php';
+requireRole('super', $pdo);
 
 try {
     // Create Traffic Logs Table

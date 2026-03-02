@@ -38,6 +38,8 @@ import FAQ from './pages/FAQ';
 import { fetchOrders, fetchProducts, checkUserStatus } from './services/api';
 import { useUser } from './context/UserContext';
 import { formatRelativeTime, formatDate } from './utils/dateFormatter';
+import MaintenancePage from './pages/MaintenancePage';
+import Verification from './pages/Verification';
 
 // Helper function for relative time
 // Moved to utils/dateFormatter.js
@@ -56,6 +58,39 @@ function AppContent() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState('signin');
   const [loginMessage, setLoginMessage] = useState('');
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+
+  // Check maintenance mode from backend
+  useEffect(() => {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    const checkMaintenance = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/get_products.php?limit=1`);
+        if (res.status === 503) {
+          const data = await res.json();
+          setIsMaintenanceMode(data.maintenance === true);
+        } else {
+          setIsMaintenanceMode(false);
+        }
+      } catch {}
+    };
+    checkMaintenance();
+    const intervalId = setInterval(checkMaintenance, 60000); // re-check every minute
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Must be before any conditional returns to satisfy Rules of Hooks
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('social_error') || params.get('social_token')) {
+       setAuthInitialMode('signin');
+       setIsLoginOpen(true);
+    }
+  }, []);
+
+  // Move maintenance check AFTER hooks
+  // if (isMaintenanceMode) return <MaintenancePage />;
+
 
   const openAuth = (mode = 'signin') => {
     setAuthInitialMode(mode);
@@ -77,6 +112,11 @@ function AppContent() {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { addNotification, notifications, deleteNotification } = useNotifications();
   const { user, logout } = useUser();
+  const maintenanceRef = useRef(isMaintenanceMode);
+
+  useEffect(() => {
+    maintenanceRef.current = isMaintenanceMode;
+  }, [isMaintenanceMode]);
 
   useEffect(() => {
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
@@ -93,7 +133,6 @@ function AppContent() {
       // Use ref to check current state to avoid stale closures in interval
       if (productsRef.current.length === 0) setLoading(true);
       
-      console.log('App: Fetching products...');
       const data = await fetchProducts();
       if (data && Array.isArray(data)) {
           const API_BASE = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL + '/' : 'http://localhost:8000/';
@@ -127,10 +166,17 @@ function AppContent() {
           throw new Error("Invalid data format from server");
       }
     } catch (error) {
-      console.error("Failed to load products", error);
+      if (error.maintenance) {
+        setIsMaintenanceMode(true);
+        return; // Silently fail and let the maintenance page handle it
+      }
+      
       // Only show error notification if we don't have products locally
       if (productsRef.current.length === 0) {
-        addNotification(`API Error: ${error.message}`, "error");
+        // Suppress notification if maintenance mode is already known via Ref
+        if (!maintenanceRef.current) {
+            addNotification(`API Error: ${error.message}`, "error");
+        }
       }
     } finally {
       if (productsRef.current.length === 0) setLoading(false);
@@ -145,7 +191,6 @@ function AppContent() {
 
     // Refresh on window focus
     const handleFocus = () => {
-        console.log('App: Window focused, refreshing products...');
         loadProducts();
     };
     
@@ -173,6 +218,10 @@ function AppContent() {
     if (user) {
         interval = setInterval(async () => {
             const result = await checkUserStatus();
+            if (result.maintenance) {
+                setIsMaintenanceMode(true);
+                return;
+            }
             if (result.unauthorized) {
                 logout();
                 addNotification("Session expired. Please login again.", "info");
@@ -195,7 +244,7 @@ function AppContent() {
                 const data = await fetchOrders(user.id);
                 setOrders(data);
             } catch (error) {
-                console.error("Failed to load orders", error);
+                // Ignore silent error
             }
         };
         loadOrders();
@@ -246,6 +295,8 @@ function AppContent() {
     );
   };
 
+  if (isMaintenanceMode) return <MaintenancePage />;
+
   return (
     <div className={`app-root ${isDarkMode ? 'dark-mode' : ''}`}>
       <Sidebar 
@@ -284,6 +335,7 @@ function AppContent() {
             <Route path="/settings" element={<Settings searchQuery={searchQuery} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/verify-id" element={<Verification />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />
@@ -353,7 +405,7 @@ function AppContent() {
                         color: (order.status || 'pending') === 'completed' ? 'var(--success)' : ((order.status || 'pending') === 'pending' ? 'var(--warning)' : 'var(--accent-blue)'), 
                         fontSize: '12px', 
                         fontWeight: 600, 
-                        background: (order.status || 'completed' ? 'var(--success-bg)' : ((order.status || 'pending') === 'pending' ? 'var(--warning-bg)' : 'var(--info-bg)')), 
+                        background: (order.status || 'pending') === 'completed' ? 'var(--success-bg)' : ((order.status || 'pending') === 'pending' ? 'var(--warning-bg)' : 'var(--info-bg)'), 
                         padding: '2px 8px', 
                         borderRadius: '10px' 
                     }}>

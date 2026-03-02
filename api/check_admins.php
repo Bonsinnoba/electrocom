@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'security.php';
+requireRole('super', $pdo);
 try {
     $stmt = $pdo->query("SELECT id, name, email, role FROM users WHERE role = 'admin'");
     $admins = $stmt->fetchAll(PDO::FETCH_ASSOC);

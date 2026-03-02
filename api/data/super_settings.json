@@ -1,0 +1,14 @@
+{
+    "siteName": "EssentialsHub",
+    "siteEmail": "admin@essentialshub.gh",
+    "maintenanceMode": false,
+    "allowRegistration": true,
+    "maxLoginAttempts": 5,
+    "sessionTimeout": 60,
+    "twoFactorAdmin": true,
+    "emailNotify": true,
+    "securityAlerts": true,
+    "apiRateLimit": 100,
+    "debugMode": true,
+    "backupFrequency": "daily"
+}

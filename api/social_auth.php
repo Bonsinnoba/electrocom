@@ -80,7 +80,11 @@ $requiredKeys = [
 foreach ($requiredKeys[$provider] as $key) {
     if (empty($config[$key]) || !trim((string) $config[$key])) {
         $frontend = $config['FRONTEND_URL'] ?? '';
-        $msg = 'Sign-in with ' . ucfirst($provider) . ' is not configured. Please set ' . $key . ' (and related keys) in the server .env.php and in the ' . ucfirst($provider) . ' developer console.';
+        $internalMsg = 'Sign-in with ' . ucfirst($provider) . ' is not configured. Please set ' . $key . ' (and related keys) in the server .env.php and in the ' . ucfirst($provider) . ' developer console.';
+        error_log("Social Auth Config Error: " . $internalMsg);
+
+        $msg = 'Sign-in with ' . ucfirst($provider) . ' is currently unavailable. Please try another sign-in method or contact support.';
+
         if ($frontend) {
             header('Location: ' . rtrim($frontend, '/') . '/?social_error=' . urlencode($msg));
             exit;
@@ -106,15 +110,15 @@ try {
     $accessToken = $oauthProvider->getAccessToken('authorization_code', [
         'code' => $code
     ]);
-    
+
     // fetch user profile
     $resourceOwner = $oauthProvider->getResourceOwner($accessToken);
     $userInfo = $resourceOwner->toArray();
-    
+
     // extract email and name (provider-specific)
     $email = null;
     $name = null;
-    
+
     switch ($provider) {
         case 'google':
             $email = $userInfo['email'] ?? null;
@@ -133,22 +137,22 @@ try {
             $name = trim(($userInfo['localizedFirstName'] ?? '') . ' ' . ($userInfo['localizedLastName'] ?? ''));
             break;
     }
-    
+
     if (!$email) {
         throw new Exception('No email returned by provider');
     }
-    
+
     // look up or create local user
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$user) {
         // social login is only for existing accounts
         http_response_code(403);
         throw new Exception('This email has no account yet. Please register using Ghana card verification first.');
     }
-    
+
     // issue token
     $token = generateToken($user['id']);
     // if front-end URL configured, redirect there with token instead of dumping JSON
@@ -175,4 +179,3 @@ try {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => $err]);
 }
-

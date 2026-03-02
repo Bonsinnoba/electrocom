@@ -3,13 +3,8 @@
 require_once 'db.php';
 require_once 'cors_middleware.php';
 
-if (file_exists('security.php')) {
-    require_once 'security.php';
-    if (function_exists('authenticate') && function_exists('requireRole')) {
-        $user = authenticate($pdo);
-        requireRole($user, ['super']);
-    }
-}
+require_once 'security.php';
+requireRole('super', $pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {

@@ -56,30 +56,30 @@ if (!function_exists('saveBase64Image')) {
             return $base64String;
         }
 
-    $dir = 'uploads/slider/';
-    if (!file_exists($dir)) {
-        mkdir($dir, 0777, true);
+        $dir = 'uploads/slider/';
+        if (!file_exists($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+        $parts = explode(',', $base64String);
+        if (count($parts) < 2) return $base64String;
+
+        $header = $parts[0];
+        $data = base64_decode($parts[1]);
+
+        preg_match('/image\/([a-z+]+);/', $header, $matches);
+        $ext = $matches[1] ?? 'png';
+        $ext = ($ext === 'jpeg') ? 'jpg' : $ext;
+
+        $filename = 'slide_' . uniqid() . '.' . $ext;
+        $filepath = $dir . $filename;
+
+        if (file_put_contents($filepath, $data)) {
+            return $filepath;
+        }
+
+        return $base64String;
     }
-
-    $parts = explode(',', $base64String);
-    if (count($parts) < 2) return $base64String;
-
-    $header = $parts[0];
-    $data = base64_decode($parts[1]);
-
-    preg_match('/image\/([a-z+]+);/', $header, $matches);
-    $ext = $matches[1] ?? 'png';
-    $ext = ($ext === 'jpeg') ? 'jpg' : $ext;
-
-    $filename = 'slide_' . uniqid() . '.' . $ext;
-    $filepath = $dir . $filename;
-
-    if (file_put_contents($filepath, $data)) {
-        return 'http://essentialshub.local/api/' . $filepath;
-    }
-
-    return $base64String;
-}
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -87,7 +87,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 try {
     if ($method === 'GET') {
         // Fetch All Slides (including inactive)
-        $stmt = $pdo->prepare("SELECT * FROM slider_images ORDER BY display_order ASC, created_at DESC");
+        $stmt = $pdo->prepare("SELECT * FROM slider_images ORDER BY display_order ASC, created_at ASC");
         $stmt->execute();
         $slides = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'data' => $slides]);
@@ -114,6 +114,12 @@ try {
             echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
         } elseif ($action === 'update') {
             $id = $data['id'];
+
+            // Fetch old image path before update
+            $stmt = $pdo->prepare("SELECT image_url FROM slider_images WHERE id = ?");
+            $stmt->execute([$id]);
+            $oldImageUrl = $stmt->fetchColumn();
+
             $image_url = saveBase64Image($data['image_url'] ?? '');
             $content_blocks = isset($data['content_blocks']) ? json_encode($data['content_blocks']) : '[]';
             $stmt = $pdo->prepare("UPDATE slider_images SET image_url=?, title=?, subtitle=?, button_text=?, button_link=?, text_position=?, content_blocks=?, display_order=?, is_active=? WHERE id=?");
@@ -129,9 +135,25 @@ try {
                 (int)$data['is_active'],
                 $id
             ]);
+
+            // Cleanup old image if it was replaced
+            if ($oldImageUrl && $image_url !== $oldImageUrl && file_exists($oldImageUrl) && is_file($oldImageUrl)) {
+                unlink($oldImageUrl);
+            }
+
             echo json_encode(['success' => true]);
         } elseif ($action === 'delete') {
             $id = $data['id'];
+
+            // Fetch image path before deletion
+            $stmt = $pdo->prepare("SELECT image_url FROM slider_images WHERE id=?");
+            $stmt->execute([$id]);
+            $imageUrl = $stmt->fetchColumn();
+
+            if ($imageUrl && file_exists($imageUrl) && is_file($imageUrl)) {
+                unlink($imageUrl);
+            }
+
             $stmt = $pdo->prepare("DELETE FROM slider_images WHERE id=?");
             $stmt->execute([$id]);
             echo json_encode(['success' => true]);
@@ -149,7 +171,7 @@ try {
             $targetPath = $uploadDir . $filename;
 
             if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-                $publicUrl = "http://essentialshub.local/api/uploads/slider/" . $filename;
+                $publicUrl = "uploads/slider/" . $filename;
                 echo json_encode(['success' => true, 'url' => $publicUrl]);
             } else {
                 throw new Exception('Failed to move uploaded file');

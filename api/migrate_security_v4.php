@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'security.php';
+requireRole('super', $pdo);
 
 try {
     // 1. Add login protection columns if they don't exist

@@ -21,10 +21,10 @@ export default function Profile() {
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || ''
       });
     }
   }, [user]);
@@ -191,7 +191,7 @@ export default function Profile() {
               <span>{user.levelName} Level {user.level}</span>
             </div>
 
-            {user.role !== 'customer' && (
+            {user?.role && user.role !== 'customer' && (
               <div style={{ 
                 marginTop: '12px', 
                 display: 'inline-flex', 
@@ -206,17 +206,17 @@ export default function Profile() {
                 border: '1px solid rgba(59, 130, 246, 0.2)',
                 textTransform: 'uppercase'
               }}>
-                <ShieldCheck size={14} /> {user.role.replace('_', ' ')} Account
+                <ShieldCheck size={14} /> {user.role?.replace('_', ' ')} Account
               </div>
             )}
             
             <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-light)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '20px', fontWeight: 800 }}>{user.ordersCount}</div>
+                <div style={{ fontSize: '20px', fontWeight: 800 }}>{user.ordersCount || 0}</div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Orders</div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '20px', fontWeight: 800 }}>{user.reviewsCount}</div>
+                <div style={{ fontSize: '20px', fontWeight: 800 }}>{user.reviewsCount || 0}</div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Reviews</div>
               </div>
             </div>

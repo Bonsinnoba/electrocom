@@ -23,16 +23,6 @@ try {
         $product['gallery'] = json_decode($product['gallery'] ?? '[]', true);
         $product['price'] = (float)$product['price'];
         $product['rating'] = (float)($product['rating'] ?? 0);
-
-        // TEMP: inject test gallery if empty so we can verify the UI works
-        // Remove this block once real gallery images are added via admin panel
-        if (empty($product['gallery']) && !empty($product['image_url'])) {
-            $product['gallery'] = [
-                'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80',
-                'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80',
-                'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&q=80',
-            ];
-        }
     }
 
     echo json_encode([

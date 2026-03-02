@@ -2,6 +2,14 @@
 // backend/security.php
 // Security Utilities and Middleware
 
+// Standardized RBAC Role Groups
+if (!defined('RBAC_ADMIN_GROUP')) {
+    define('RBAC_ADMIN_GROUP', ['admin', 'branch_admin', 'marketing', 'accountant']);
+}
+if (!defined('RBAC_SUPER_GROUP')) {
+    define('RBAC_SUPER_GROUP', ['super']);
+}
+
 /**
  * Hash a password using Argon2id with a server-side pepper.
  * NOTE: password_hash() handles salting automatically.
@@ -249,6 +257,8 @@ if (!function_exists('logger')) {
         $source = strtoupper($source);
 
         $line = "{$timestamp} [{$level}] [{$source}] {$message}" . PHP_EOL;
+        // Ensure the line is UTF-8 before writing
+        $line = mb_convert_encoding($line, 'UTF-8');
         file_put_contents($logFile, $line, FILE_APPEND);
     }
 }

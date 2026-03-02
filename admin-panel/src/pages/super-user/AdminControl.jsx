@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users, Shield, ShieldOff, Search, Trash2,
   CheckCircle, XCircle, RefreshCw, UserCog, ChevronDown,
-  Crown, AlertTriangle, Eye
+  Crown, AlertTriangle, Eye, ShieldCheck, ShieldAlert
 } from 'lucide-react';
 import { 
   fetchCustomers as getUsers, 
@@ -51,7 +51,7 @@ export default function AdminControl() {
     setLoading(true); setError(null);
     try {
       const [uRes, bRes] = await Promise.all([getUsers(), fetchStoreData()]);
-      setUsers(uRes.data || []);
+      setUsers(uRes || []);
       setBranches(bRes.branches || []);
     } catch (e) {
       setError(e.message);
@@ -88,7 +88,7 @@ export default function AdminControl() {
 
   const counts = useMemo(() => ({
     total: users.length,
-    admins: users.filter(u => u.role === 'admin').length,
+    admins: users.filter(u => ['super', 'admin', 'branch_admin', 'accountant', 'marketing'].includes(u.role)).length,
     customers: users.filter(u => u.role === 'customer').length,
     suspended: users.filter(u => u.status === 'Suspended').length,
   }), [users]);
@@ -186,7 +186,14 @@ export default function AdminControl() {
                             {user.avatar_text || user.name?.[0]?.toUpperCase() || 'U'}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: '14px' }}>{user.name}</div>
+                            <div style={{ fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {user.name}
+                              {user.id_verified == 1 ? (
+                                <ShieldCheck size={14} color="#22c55e" title="Identity Verified" />
+                              ) : user.id_number ? (
+                                <ShieldAlert size={14} color="#f59e0b" title="Verification Pending" />
+                              ) : null}
+                            </div>
                             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{user.email}</div>
                           </div>
                         </div>

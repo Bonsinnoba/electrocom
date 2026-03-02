@@ -6,31 +6,7 @@ import {
 } from 'lucide-react';
 import { fetchLogs, clearLogs, fetchBackups, createBackup, deleteBackup } from '../../services/api';
 
-// ── Mock log generator (replaces super_logs.php when API is offline) ──────────
-const MOCK_EVENTS = [
-  { level: 'error',   source: 'KMS-01',    msg: 'Brute-force login attempt detected – IP 196.4.12.88 blocked' },
-  { level: 'warn',    source: 'ACC-01',    msg: 'Disk usage at 87%. Cleanup recommended.' },
-  { level: 'info',    source: 'CORE',      msg: 'Global database backup completed successfully (3.2 GB).' },
-  { level: 'info',    source: 'WA-01',     msg: 'Node heartbeat confirmed. Uptime: 99.9%' },
-  { level: 'success', source: 'PAYMENTS',  msg: 'Paystack webhook verified — GH₵ 450.00 settled.' },
-  { level: 'error',   source: 'MAILER',    msg: 'SMTP timeout after 30s – message queued for retry.' },
-  { level: 'info',    source: 'PRODUCTS',  msg: 'Product catalogue refreshed: 5 SKUs updated.' },
-  { level: 'warn',    source: 'SESSION',   msg: 'Unusual spike in concurrent sessions (+212%).' },
-  { level: 'success', source: 'ORDERS',    msg: '47 orders processed in last 60 minutes.' },
-  { level: 'info',    source: 'AUTH',      msg: 'Super User panel login — user root@essentialshub.gh' },
-  { level: 'error',   source: 'ACC-01',    msg: 'PHP Fatal Error in admin_products.php:82 — division by zero' },
-  { level: 'success', source: 'CDN',       msg: 'Assets purged and re-cached globally. TTL reset.' },
-];
 
-function seedLogs(n = 40) {
-  const logs = [];
-  const base = Date.now() - n * 60000;
-  for (let i = 0; i < n; i++) {
-    const ev = MOCK_EVENTS[i % MOCK_EVENTS.length];
-    logs.push({ id: i + 1, ...ev, ts: new Date(base + i * 60000 + Math.random() * 55000).toISOString() });
-  }
-  return logs.reverse();
-}
 
 const LEVEL_STYLE = {
   error:   { bg: 'rgba(239,68,68,0.1)',    border: 'rgba(239,68,68,0.25)',   color: '#ef4444',  Icon: XCircle,      label: 'ERROR' },
@@ -59,9 +35,10 @@ export default function SystemLogs() {
     setLoading(true);
     try {
       const res = await fetchLogs();
-      setLogs(res.data || seedLogs());
+      setLogs(res.data || []);
     } catch (e) {
-      setLogs(seedLogs());
+      console.error(e);
+      setLogs([]);
     } finally {
       setLoading(false);
     }

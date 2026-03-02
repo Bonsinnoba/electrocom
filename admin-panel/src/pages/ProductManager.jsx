@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, X, Upload, Save, CheckCircle, Image as ImageIcon, Loader, Star, Download, UploadCloud } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, X, Upload, Save, CheckCircle, Image as ImageIcon, Loader, Star, Download, UploadCloud, ShieldAlert } from 'lucide-react';
 import Papa from 'papaparse';
-import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../services/api';
+import { fetchProducts, createProduct, updateProduct, deleteProduct, fetchStoreData } from '../services/api';
+import { useNotifications } from '../context/NotificationContext';
+
 
 const colorsToString = (colors) => Array.isArray(colors) ? colors.join(', ') : '';
 const stringToColors = (str) => str.split(',').map(s => s.trim()).filter(s => s !== '');
@@ -25,7 +27,9 @@ const stringToSpecs = (str) => {
 };
 
 export default function ProductManager() {
+  const { addNotification } = useNotifications();
   const [products, setProducts] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -129,7 +133,7 @@ export default function ProductManager() {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image is too large. Max 5MB');
+        addNotification('Image is too large. Max 5MB', 'error');
         return;
       }
       const reader = new FileReader();
@@ -144,7 +148,7 @@ export default function ProductManager() {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image is too large. Max 5MB');
+        addNotification('Image is too large. Max 5MB', 'error');
         return;
       }
       const reader = new FileReader();
@@ -161,11 +165,11 @@ export default function ProductManager() {
     const file = e.target.files[0];
     if (file) {
         if (file.type !== 'application/pdf') {
-            alert('Please upload a PDF file');
+            addNotification('Please upload a PDF file', 'error');
             return;
         }
         if (file.size > 10 * 1024 * 1024) {
-            alert('File is too large. Max 10MB');
+            addNotification('File is too large. Max 10MB', 'error');
             return;
         }
         const reader = new FileReader();
@@ -208,11 +212,12 @@ export default function ProductManager() {
       } else {
         await createProduct(apiData);
       }
+      addNotification(editingProduct ? 'Product updated successfully' : 'Product created successfully', 'success');
       handleCloseModal();
       loadProducts();
-    } catch (error) {
-      console.error("Save error:", error);
-      alert('Failed to save product');
+    } catch (err) {
+      console.error("Save error:", err);
+      addNotification(err.message || 'Error saving product', 'error');
     } finally {
       setSaving(false);
     }
@@ -285,26 +290,28 @@ export default function ProductManager() {
           let errorCount = 0;
 
           for (const row of rows) {
-             const apiData = {
-                name: row.Name || 'Unnamed Product',
-                product_code: row.Code || '',
-                category: row.Category || 'Passives',
-                price: row.Price || 0,
-                stock: row.Stock || 0,
-                location: row.Location || '',
-                rating: row.Rating || 5,
-                description: row.Description || '',
-                image: '',
-                colors: JSON.stringify(stringToColors(row.Colors || '')),
-                specs: JSON.stringify({}),
-                included: JSON.stringify(stringToIncluded(row.Included || '')),
-                directions: '',
-                gallery: []
-            };
+              const existingProduct = row.ID ? products.find(p => String(p.id) === String(row.ID)) : null;
+
+              const apiData = {
+                name: row.Name !== undefined ? row.Name : (existingProduct ? existingProduct.name : 'Unnamed Product'),
+                product_code: row.Code !== undefined ? row.Code : (existingProduct ? existingProduct.product_code : ''),
+                category: row.Category !== undefined ? row.Category : (existingProduct ? existingProduct.category : 'Passives'),
+                price: row.Price !== undefined ? row.Price : (existingProduct ? existingProduct.price : 0),
+                stock: row.Stock !== undefined ? row.Stock : (existingProduct ? existingProduct.stock : 0),
+                location: row.Location !== undefined ? row.Location : (existingProduct ? existingProduct.location : ''),
+                rating: row.Rating !== undefined ? row.Rating : (existingProduct ? existingProduct.rating : 5),
+                description: row.Description !== undefined ? row.Description : (existingProduct ? existingProduct.description : ''),
+                image: existingProduct ? (existingProduct.image || existingProduct.image_url || '') : '',
+                colors: row.Colors !== undefined ? JSON.stringify(stringToColors(row.Colors)) : (existingProduct ? JSON.stringify(existingProduct.colors || []) : '[]'),
+                specs: existingProduct ? JSON.stringify(existingProduct.specs || {}) : '{}',
+                included: row.Included !== undefined ? JSON.stringify(stringToIncluded(row.Included)) : (existingProduct ? JSON.stringify(existingProduct.included || []) : '[]'),
+                directions: existingProduct ? (existingProduct.directions || '') : '',
+                gallery: existingProduct ? (existingProduct.gallery || []) : []
+              };
 
             try {
-              if (row.ID) {
-                  await updateProduct(row.ID, apiData);
+              if (existingProduct) {
+                  await updateProduct(existingProduct.id, apiData);
               } else {
                   await createProduct(apiData);
               }

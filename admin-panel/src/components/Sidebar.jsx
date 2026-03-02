@@ -1,8 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, Package, ShoppingCart, Users, Settings, 
-  LogOut, MapPin, ShieldAlert, Database, Globe, Zap, Activity 
+  LayoutDashboard, Package, ShoppingCart, Users, Settings,
+  LogOut, MapPin, ShieldAlert, Database, Globe, Zap, Activity, ShieldCheck 
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -25,7 +25,8 @@ export default function Sidebar() {
 
   const superItems = [
     { icon: <ShieldAlert size={20} />, label: 'Global Overview', path: '/super/dashboard' },
-    { icon: <MapPin size={20} />, label: 'Branches', path: '/super/branches' },
+    { icon: <ShieldCheck size={20} />, label: 'ID Verification', path: '/super/verification' },
+    { icon: <MapPin size={20} />, label: 'Warehouses', path: '/super/branches' },
     { icon: <Users size={20} />, label: 'Admin Control', path: '/super/admins' },
     { icon: <Database size={20} />, label: 'System Logs', path: '/super/logs' },
     { icon: <Activity size={20} />, label: 'Traffic Control', path: '/super/traffic' },

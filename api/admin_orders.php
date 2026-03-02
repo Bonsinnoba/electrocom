@@ -19,19 +19,11 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // Granular Role Access
 if ($method === 'GET') {
-    // Audit access: Admins, Branch Admins, Accountants
-    if (!in_array($role, ['super', 'admin', 'branch_admin', 'accountant'])) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Forbidden: View access required']);
-        exit;
-    }
+    // Audit access: Admins, Branch Admins, Accountants, Super
+    requireRole(array_merge(RBAC_ADMIN_GROUP, RBAC_SUPER_GROUP), $pdo);
 } elseif ($method === 'POST') {
     // Fulfillment access: Admins and Branch Admins only
-    if (!in_array($role, ['super', 'admin', 'branch_admin'])) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Forbidden: Fulfillment permissions required']);
-        exit;
-    }
+    requireRole(['super', 'admin', 'branch_admin'], $pdo);
 }
 
 if ($method === 'GET') {
