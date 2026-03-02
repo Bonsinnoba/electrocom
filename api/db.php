@@ -24,19 +24,51 @@ try {
     // Global Security Middleware
     if (file_exists('security.php')) {
         require_once 'security.php';
+        
+        // --- NEW: Debug Mode Logic ---
+        if (isDebugEnabled()) {
+            ini_set('display_errors', 1);
+            ini_set('display_startup_errors', 1);
+            error_reporting(E_ALL);
+        }
+        // -----------------------------
+
         checkRateLimit($pdo);
         checkMaintenanceMode($pdo);
     }
 } catch (\PDOException $e) {
     // SECURITY: Don't expose database credentials/paths in production
-    // Instead, log the error and show a generic message
-    error_log($e->getMessage());
+    // UNLESS Debug Mode is explicitly enabled
+    $message = 'Internal Server Error: Database Connection Failed.';
+    
+    // Check debug status if security.php was loaded, otherwise check file directly
+    $debug = false;
+    if (function_exists('isDebugEnabled')) {
+        $debug = isDebugEnabled();
+    } else {
+        $sf = __DIR__ . '/data/super_settings.json';
+        if (file_exists($sf)) {
+            $s = json_decode(file_get_contents($sf), true);
+            $debug = isset($s['debugMode']) && $s['debugMode'] === true;
+        }
+    }
+
+    if ($debug) {
+        $message = "DEBUG: " . $e->getMessage();
+    } else {
+        error_log($e->getMessage());
+    }
 
     header('Content-Type: application/json');
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Internal Server Error: Database Connection Failed.'
+        'message' => $message,
+        'debug_info' => $debug ? [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => explode("\n", $e->getTraceAsString())
+        ] : null
     ]);
     exit;
 }

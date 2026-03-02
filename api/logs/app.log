@@ -12,3 +12,23 @@
 2026-03-01 16:24:05 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
 2026-03-01 16:26:24 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
 2026-03-01 16:26:29 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-02 19:11:42 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
+2026-03-02 19:41:32 [WARNING] [EMAIL_SERVICE] Failed to send email to test_super@essentialshub.com via native mail(). Check server configuration.
+2026-03-02 19:41:32 [INFO] [EMAIL_SERVICE] SIMULATED EMAIL to test_super@essentialshub.com: Welcome to EssentialsHub! Your verification code is: 508922. Please enter this code to activate your account.
+2026-03-02 19:45:24 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-02 19:45:34 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-02 21:18:00 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-02 21:18:37 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-02 21:21:08 [INFO] [STAFF] User ID: 9 status updated to Suspended by User ID: 8
+2026-03-02 21:21:11 [INFO] [STAFF] User ID: 9 status updated to Active by User ID: 8
+2026-03-02 21:21:13 [INFO] [STAFF] User ID: 8 status updated to Suspended by User ID: 8
+2026-03-02 21:21:16 [INFO] [STAFF] User ID: 7 status updated to Suspended by User ID: 8
+2026-03-02 21:21:18 [INFO] [STAFF] User ID: 5 status updated to Suspended by User ID: 8
+2026-03-02 21:21:25 [INFO] [STAFF] User ID: 8 status updated to Active by User ID: 8
+2026-03-02 21:21:26 [INFO] [STAFF] User ID: 7 status updated to Active by User ID: 8
+2026-03-02 21:21:28 [INFO] [STAFF] User ID: 5 status updated to Active by User ID: 8
+2026-03-02 21:36:50 [INFO] [STAFF] User ID: 9 role updated to BRANCH_ADMIN by User ID: 8
+2026-03-02 21:36:55 [INFO] [STAFF] User ID: 9 role updated to CUSTOMER by User ID: 8
+2026-03-02 21:38:26 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-02 21:44:33 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
+2026-03-02 21:44:57 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER

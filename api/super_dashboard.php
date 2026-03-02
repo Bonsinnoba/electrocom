@@ -64,6 +64,24 @@ try {
 
     $branches = $pdo->query("SELECT * FROM store_branches ORDER BY name ASC")->fetchAll();
 
+    // Dynamic Load Calculation
+    foreach ($branches as &$b) {
+        if ($b['type'] === 'headquarters') {
+            // HQ Load = (Pending Orders / 50) * 100, capped at 100.
+            // 50 is an arbitrary "High Pressure" threshold.
+            $hqLoad = min(100, round(($revenueRow['pending'] / 50) * 100));
+            $b['load_level'] = $hqLoad;
+        } else {
+            // Warehouse Load = (Pending Dispatches / 10) * 100, capped at 100.
+            // 10 is an arbitrary "High Pressure" threshold per warehouse.
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM warehouse_dispatches WHERE warehouse_id = ? AND status = 'pending'");
+            $stmt->execute([$b['id']]);
+            $pendingDispatches = $stmt->fetchColumn();
+            $whLoad = min(100, round(($pendingDispatches / 10) * 100));
+            $b['load_level'] = $whLoad;
+        }
+    }
+
     // ── Compose response ──────────────────────────────────────────────────────
     echo json_encode([
         'success'        => true,

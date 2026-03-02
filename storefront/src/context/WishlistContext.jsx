@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useUser } from './UserContext';
+import { secureStorage } from '../utils/secureStorage';
 
 const WishlistContext = createContext();
 
@@ -11,14 +13,15 @@ export const useWishlist = () => {
 };
 
 export const WishlistProvider = ({ children }) => {
+  const { user } = useUser();
+
   const [wishlistItems, setWishlistItems] = useState(() => {
-    const saved = localStorage.getItem('ehub_wishlist');
-    return saved ? JSON.parse(saved) : [];
+    return secureStorage.getItem('wishlist', user?.id) || [];
   });
 
   useEffect(() => {
-    localStorage.setItem('ehub_wishlist', JSON.stringify(wishlistItems));
-  }, [wishlistItems]);
+    secureStorage.setItem('wishlist', wishlistItems, user?.id);
+  }, [wishlistItems, user?.id]);
 
   const toggleWishlist = (product) => {
     setWishlistItems(prev => {

@@ -34,32 +34,14 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="admin-sidebar glass" style={{
-      width: 'var(--sidebar-width)',
-      height: '100vh',
-      position: 'fixed',
-      left: 0,
-      top: 0,
-      padding: '32px 20px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '40px',
-      zIndex: 100
-    }}>
-      <div className="admin-logo" style={{
-        fontSize: '24px',
-        fontWeight: 800,
-        color: 'var(--primary-blue)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
-      }}>
+    <aside className="admin-sidebar glass">
+      <div className="sidebar-logo">
         Hub<span style={{ color: 'var(--text-main)' }}>Admin</span>
       </div>
 
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', padding: '0 16px 8px 16px' }}>
+      <nav className="sidebar-nav">
+        <div className="sidebar-group">
+          <div className="sidebar-section-label">
             {isAccountant ? 'Financial Control' : 
              isMarketing ? 'Promotion & Analytics' : 
              role === 'branch_admin' ? 'Branch Operations' : 
@@ -76,29 +58,19 @@ export default function Sidebar() {
             >
               <NavLink
                 to={item.path}
-                style={({ isActive }) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 16px',
-                  borderRadius: 'var(--radius-sm)',
-                  textDecoration: 'none',
-                  color: isActive ? 'white' : 'var(--text-muted)',
-                  background: isActive ? 'var(--primary-blue)' : 'transparent',
-                  fontWeight: 600,
-                  transition: 'all 0.2s'
-                })}
+                className={({ isActive }) => `sidebar-nav-link${isActive ? ' active' : ''}`}
+                title={item.label}
               >
-                {item.icon}
-                {item.label}
+                <span className="sidebar-icon">{item.icon}</span>
+                <span className="sidebar-label">{item.label}</span>
               </NavLink>
             </div>
           ))}
         </div>
 
         {isSuper && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary-gold)', textTransform: 'uppercase', letterSpacing: '1px', padding: '0 16px 8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className="sidebar-group">
+            <div className="sidebar-section-label gold">
               <ShieldAlert size={14} /> Root Control
             </div>
             {superItems.map((item, idx) => (
@@ -112,21 +84,11 @@ export default function Sidebar() {
               >
                 <NavLink
                   to={item.path}
-                  style={({ isActive }) => ({
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-sm)',
-                    textDecoration: 'none',
-                    color: isActive ? 'white' : 'var(--text-muted)',
-                    background: isActive ? 'var(--primary-gold)' : 'transparent',
-                    fontWeight: 600,
-                    transition: 'all 0.2s'
-                  })}
+                  className={({ isActive }) => `sidebar-nav-link super${isActive ? ' active-super' : ''}`}
+                  title={item.label}
                 >
-                  {item.icon}
-                  {item.label}
+                  <span className="sidebar-icon">{item.icon}</span>
+                  <span className="sidebar-label">{item.label}</span>
                 </NavLink>
               </div>
             ))}
@@ -136,25 +98,16 @@ export default function Sidebar() {
 
       <div className="sidebar-footer animate-slide-in" style={{ animationDelay: '0.6s', animationFillMode: 'both' }}>
         <button 
-          className="btn" 
+          className="btn sidebar-logout"
           onClick={() => {
             localStorage.removeItem('ehub_token');
             localStorage.removeItem('ehub_user');
             window.location.reload();
           }}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            color: 'var(--danger)',
-            background: 'transparent',
-            padding: '12px 16px',
-            cursor: 'pointer'
-          }}
+          title="Logout"
         >
-          <LogOut size={20} />
-          Logout
+          <span className="sidebar-icon"><LogOut size={20} /></span>
+          <span className="sidebar-label">Logout</span>
         </button>
       </div>
 

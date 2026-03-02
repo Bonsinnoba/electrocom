@@ -113,6 +113,17 @@ try {
     // Generate token
     $token = generateToken($user['id']);
 
+    // Set HttpOnly Cookie for security
+    // In production, secure should be true. For local dev (no HTTPS), we keep it false.
+    setcookie('ehub_session', $token, [
+        'expires' => time() + (60 * 60 * 24), // 24 hours
+        'path' => '/',
+        'domain' => '', // Current domain
+        'secure' => false, // Set to true if using HTTPS
+        'httponly' => true,
+        'samesite' => 'Strict'
+    ]);
+
     logger('ok', 'AUTH', "User {$user['email']} logged in successfully as " . strtoupper($user['role']));
 
     echo json_encode([

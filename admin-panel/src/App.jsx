@@ -127,7 +127,56 @@ function App() {
   }, []);
 
   const ProtectedLayout = ({ children, requireSuper = false }) => {
+    const [isMaintenance, setIsMaintenance] = useState(false);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        
+        // Quick check for maintenance mode if not already on a super route
+        const check = async () => {
+            try {
+                const res = await fetch('http://localhost:8000/super_settings.php', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('ehub_token')}` }
+                });
+                if (res.status === 503) {
+                    const data = await res.json();
+                    if (data.maintenance) {
+                        const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
+                        if (user.role !== 'super') {
+                            setIsMaintenance(true);
+                        }
+                    }
+                }
+            } catch (e) {}
+        };
+        check();
+    }, [isAuthenticated]);
+
     if (!isAuthenticated) return <Navigate to="/login" />;
+
+    if (isMaintenance) {
+        return (
+            <div style={{ 
+                height: '100vh', display: 'flex', flexDirection: 'column', 
+                alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+                padding: '20px', background: 'var(--bg-main)', color: 'var(--text-main)'
+            }}>
+                <div style={{ fontSize: '64px', marginBottom: '24px' }}>🛠️</div>
+                <h1 style={{ fontSize: '32px', fontWeight: 900, marginBottom: '16px' }}>System Maintenance</h1>
+                <p style={{ color: 'var(--text-muted)', maxWidth: '500px', lineHeight: '1.6' }}>
+                    The administration panel is currently undergoing scheduled maintenance. 
+                    Only Super Admins can access the dashboard at this time.
+                </p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="btn-primary" 
+                  style={{ marginTop: '32px', padding: '12px 24px' }}
+                >
+                    Retry Connection
+                </button>
+            </div>
+        );
+    }
     
     // Check role if super is required
     if (requireSuper) {

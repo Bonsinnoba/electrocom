@@ -10,8 +10,45 @@ header('Content-Type: application/json');
 $authenticatedUserId = authenticate();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    // If an ID is provided, verify it matches the authenticated user
-    // Otherwise, just use the authenticated user's ID
+    // If a specific order ID is requested
+    $orderIdStr = $_GET['order_id'] ?? null;
+
+    if ($orderIdStr) {
+        $id = str_replace('ORD-', '', $orderIdStr);
+        try {
+            $stmt = $pdo->prepare("
+                SELECT id, total_amount, status, created_at, updated_at, shipping_address, payment_method
+                FROM orders 
+                WHERE id = ? AND user_id = ?
+            ");
+            $stmt->execute([$id, $authenticatedUserId]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Order not found']);
+                exit;
+            }
+
+            // Get items
+            $itemStmt = $pdo->prepare("
+                SELECT p.name, oi.quantity as qty, oi.price_at_purchase as price, p.image_url
+                FROM order_items oi
+                JOIN products p ON oi.product_id = p.id
+                WHERE oi.order_id = ?
+            ");
+            $itemStmt->execute([$id]);
+            $order['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            echo json_encode(['success' => true, 'data' => $order]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to fetch order details']);
+        }
+        exit;
+    }
+
+    // Otherwise, fetch all orders for the user
     $requestedUserId = $_GET['user_id'] ?? $authenticatedUserId;
 
     if ($requestedUserId != $authenticatedUserId) {

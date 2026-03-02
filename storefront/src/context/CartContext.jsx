@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useUser } from './UserContext';
+import { secureStorage } from '../utils/secureStorage';
 
 const CartContext = createContext();
 
@@ -11,14 +13,15 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
+  const { user } = useUser();
+
   const [cartItems, setCartItems] = useState(() => {
-    const savedCart = localStorage.getItem('ehub_cart');
-    return savedCart ? JSON.parse(savedCart) : [];
+    return secureStorage.getItem('cart', user?.id) || [];
   });
 
   useEffect(() => {
-    localStorage.setItem('ehub_cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+    secureStorage.setItem('cart', cartItems, user?.id);
+  }, [cartItems, user?.id]);
 
   const addToCart = (product, quantity = 1, color = 'Default') => {
     setCartItems(prev => {

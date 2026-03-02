@@ -23,13 +23,24 @@ const formatImageUrl = (url) => {
 
 /**
  * Helper to get authentication headers
+ * Note: Authorization header is now handled implicitly via HttpOnly cookies.
+ * We only need to ensure credentials: 'include' is set in fetch.
  */
 const getAuthHeaders = () => {
-    const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
-    const token = localStorage.getItem('ehub_token');
     return {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        'Content-Type': 'application/json'
+    };
+};
+
+// Global fetch options to ensure cookies are included
+const getFetchOptions = (options = {}) => {
+    return {
+        credentials: 'include',
+        ...options,
+        headers: {
+            ...getAuthHeaders(),
+            ...(options.headers || {})
+        }
     };
 };
 
@@ -39,7 +50,7 @@ export const fetchProducts = async (category = null) => {
         : `${API_BASE_URL}/get_products.php?_t=${Date.now()}`;
 
 
-    const response = await fetch(url);
+    const response = await fetch(url, getFetchOptions());
     if (response.status === 503) {
         const err = new Error('Maintenance Mode');
         err.maintenance = true;
@@ -65,47 +76,50 @@ export const fetchProducts = async (category = null) => {
 };
 
 export const registerUser = async (userData) => {
-    const response = await fetch(`${API_BASE_URL}/register.php`, {
+    const response = await fetch(`${API_BASE_URL}/register.php`, getFetchOptions({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
-    });
-    const result = await response.json();
-    if (result.success && result.data.token) {
-        localStorage.setItem('ehub_token', result.data.token);
-    }
-    return result;
+    }));
+    if (response.status === 503) return { success: false, maintenance: true };
+    return await response.json();
 };
 
 export const verifyUser = async (userId, code) => {
-    const response = await fetch(`${API_BASE_URL}/verify.php`, {
+    const response = await fetch(`${API_BASE_URL}/verify.php`, getFetchOptions({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, code }),
-    });
+    }));
     return await response.json();
 };
 
 export const loginUser = async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/login.php`, {
+    const response = await fetch(`${API_BASE_URL}/login.php`, getFetchOptions({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
-    });
-    const result = await response.json();
-    if (result.success && result.data.token) {
-        localStorage.setItem('ehub_token', result.data.token);
+    }));
+    if (response.status === 503) return { success: false, maintenance: true };
+    return await response.json();
+};
+
+export const logoutUser = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/logout.php`, getFetchOptions({
+            method: 'POST'
+        }));
+        return await response.json();
+    } catch (error) {
+        console.error('Logout error:', error);
+        return { success: false };
     }
-    return result;
 };
 
 export const updateProfile = async (profileData) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/update_profile.php`, {
+        const response = await fetch(`${API_BASE_URL}/update_profile.php`, getFetchOptions({
             method: 'POST',
-            headers: getAuthHeaders(),
             body: JSON.stringify(profileData),
-        });
+        }));
+        if (response.status === 503) return { success: false, maintenance: true };
         return await response.json();
     } catch (error) {
         console.error('Error updating profile:', error);
@@ -115,11 +129,11 @@ export const updateProfile = async (profileData) => {
 
 export const createOrder = async (orderData) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/orders.php`, {
+        const response = await fetch(`${API_BASE_URL}/orders.php`, getFetchOptions({
             method: 'POST',
-            headers: getAuthHeaders(),
             body: JSON.stringify(orderData),
-        });
+        }));
+        if (response.status === 503) return { success: false, maintenance: true };
         return await response.json();
     } catch (error) {
         console.error('Error creating order:', error);
@@ -129,9 +143,7 @@ export const createOrder = async (orderData) => {
 
 export const fetchOrders = async (userId) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/orders.php?user_id=${userId}`, {
-            headers: getAuthHeaders()
-        });
+        const response = await fetch(`${API_BASE_URL}/orders.php?user_id=${userId}`, getFetchOptions());
         if (response.status === 503) return []; // Silent during maintenance
         if (!response.ok) throw new Error('Failed to fetch orders');
         const result = await response.json();
@@ -142,11 +154,22 @@ export const fetchOrders = async (userId) => {
     }
 };
 
+export const fetchOrderDetails = async (orderId) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/orders.php?order_id=${orderId}`, getFetchOptions());
+        if (response.status === 503) throw new Error('Maintenance Mode');
+        if (!response.ok) throw new Error('Failed to fetch order details');
+        const result = await response.json();
+        return result.success ? result.data : null;
+    } catch (error) {
+        console.error('Error fetching order details:', error);
+        throw error;
+    }
+};
+
 export const checkUserStatus = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/check_user_status.php`, {
-            headers: getAuthHeaders()
-        });
+        const response = await fetch(`${API_BASE_URL}/check_user_status.php`, getFetchOptions());
         if (response.status === 503) return { success: false, maintenance: true };
         if (!response.ok) {
             // If 401, token might be invalid
@@ -162,10 +185,9 @@ export const checkUserStatus = async () => {
 
 export const deleteMyAccount = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/delete_account.php`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
+        const response = await fetch(`${API_BASE_URL}/delete_account.php`, getFetchOptions({
+            method: 'POST'
+        }));
         return await response.json();
     } catch (error) {
         console.error('Error deleting account:', error);
@@ -175,9 +197,7 @@ export const deleteMyAccount = async () => {
 
 export const getWallet = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/wallet.php`, {
-            headers: getAuthHeaders()
-        });
+        const response = await fetch(`${API_BASE_URL}/wallet.php`, getFetchOptions());
         if (!response.ok) throw new Error('Failed to fetch wallet info');
         return await response.json();
     } catch (error) {
@@ -188,11 +208,10 @@ export const getWallet = async () => {
 
 export const verifyPayment = async (reference, type = 'wallet_topup', orderId = null) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/verify_payment.php`, {
+        const response = await fetch(`${API_BASE_URL}/verify_payment.php`, getFetchOptions({
             method: 'POST',
-            headers: getAuthHeaders(),
             body: JSON.stringify({ reference, type, order_id: orderId })
-        });
+        }));
         const result = await response.json();
         if (!result.success) throw new Error(result.message || 'Payment verification failed');
         return result;
@@ -205,6 +224,7 @@ export const verifyPayment = async (reference, type = 'wallet_topup', orderId = 
 export const fetchSlides = async () => {
     const response = await fetch(`${API_BASE_URL}/get_slider.php?_t=${Date.now()}`);
 
+    if (response.status === 503) return [];
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
     const result = await response.json();
     const slides = result.success ? result.data : [];

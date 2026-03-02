@@ -9,6 +9,6 @@
     "emailNotify": true,
     "securityAlerts": true,
     "apiRateLimit": 100,
-    "debugMode": true,
+    "debugMode": false,
     "backupFrequency": "daily"
 }
