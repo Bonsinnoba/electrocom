@@ -2,6 +2,8 @@
 // api/cleanup_demo.php
 require 'db.php';
 require 'security.php';
+requireRole('super', $pdo);
+require 'security.php';
 
 header('Content-Type: application/json');
 
@@ -12,16 +14,7 @@ header('Content-Type: application/json');
  */
 
 try {
-    $userId = authenticate();
-    $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-    $user = $stmt->fetch();
-
-    if (!$user || $user['role'] !== 'super') {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Unauthorized: Only a Super Admin can perform demo cleanup.']);
-        exit;
-    }
+    $userId = requireRole('super', $pdo);
 
     // Perform Truncations
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");

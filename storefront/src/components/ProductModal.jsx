@@ -185,8 +185,8 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
 
           {/* Right Column: Info & Details */}
           <div className="product-modal-details" style={{ scrollBehavior: 'smooth' }}>
-            <h2 className="product-title" style={{ fontSize: '32px', marginBottom: '8px' }}>{product.name}</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '24px' }}>
+            <h2 className="product-title" style={{ fontSize: '32px', marginBottom: '4px' }}>{product.name}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '16px' }}>
                 <p className="product-price" style={{ fontSize: '28px', margin: 0 }}>{formatPrice(product.price)}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--warning-bg)', padding: '6px 14px', borderRadius: '100px' }}>
                     <div style={{ display: 'flex', gap: '2px' }}>
@@ -203,7 +203,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                 </div>
             </div>
             
-            <div style={{ borderTop: '1px solid var(--border-light)', margin: '20px 0' }}></div>
+            <div style={{ borderTop: '1px solid var(--border-light)', margin: '12px 0' }}></div>
 
 
             <div className="product-info-tabs">

@@ -136,6 +136,7 @@ if ($method === 'POST') {
     if ($action === 'create') {
         $name = sanitizeInput($decoded['name'] ?? '');
         $category = sanitizeInput($decoded['category'] ?? '');
+        if (empty($category)) $category = 'Gadgets';
         $price = max(0, (float)($decoded['price'] ?? 0));
         $stock = max(0, (int)($decoded['stock'] ?? 0));
         $rating = (float)($decoded['rating'] ?? 0.0);
@@ -167,14 +168,24 @@ if ($method === 'POST') {
         }
 
         try {
+            $pdo->beginTransaction();
             $stmt = $pdo->prepare("INSERT INTO products (name, category, price, stock_quantity, rating, description, image_url, gallery, colors, specs, included, directions, product_code, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$name, $category, $price, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location]);
             $productId = $pdo->lastInsertId();
 
+            // Sync to Store Layout (Default to HQ Branch)
+            if ($location) {
+                $branchId = $pdo->query("SELECT id FROM store_branches WHERE type = 'headquarters' LIMIT 1")->fetchColumn() ?: 1;
+                $sync = $pdo->prepare("INSERT INTO product_locations (product_id, branch_id, shelf_label) VALUES (?, ?, ?)");
+                $sync->execute([$productId, $branchId, $location]);
+            }
+
+            $pdo->commit();
             logger('info', 'PRODUCTS', "New product created: {$name} (ID: {$productId}) by User ID: {$userId}");
 
             echo json_encode(['success' => true, 'id' => $productId, 'image_url' => $image_url]);
         } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
             error_log("Product creation failed: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Failed to create product. Check server logs.']);
@@ -183,6 +194,7 @@ if ($method === 'POST') {
         $id = (int)($decoded['id'] ?? 0);
         $name = sanitizeInput($decoded['name'] ?? '');
         $category = sanitizeInput($decoded['category'] ?? '');
+        if (empty($category)) $category = 'Gadgets';
         $price = max(0, (float)($decoded['price'] ?? 0));
         $stock = max(0, (int)($decoded['stock'] ?? 0));
         $rating = (float)($decoded['rating'] ?? 0.0);
@@ -214,13 +226,59 @@ if ($method === 'POST') {
         }
 
         try {
+            // Fetch old file paths before update
+            $stmt = $pdo->prepare("SELECT image_url, gallery, directions FROM products WHERE id = ?");
+            $stmt->execute([$id]);
+            $oldProduct = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $pdo->beginTransaction();
             $stmt = $pdo->prepare("UPDATE products SET name = ?, category = ?, price = ?, stock_quantity = ?, rating = ?, description = ?, image_url = ?, gallery = ?, colors = ?, specs = ?, included = ?, directions = ?, product_code = ?, location = ? WHERE id = ?");
             $stmt->execute([$name, $category, $price, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location, $id]);
 
+            // Cleanup replaced files
+            if ($oldProduct) {
+                // Main image cleanup
+                if ($image_url !== $oldProduct['image_url'] && $oldProduct['image_url'] && file_exists($oldProduct['image_url']) && is_file($oldProduct['image_url'])) {
+                    unlink($oldProduct['image_url']);
+                }
+
+                // Directions cleanup
+                if ($directions_url !== $oldProduct['directions'] && $oldProduct['directions'] && file_exists($oldProduct['directions']) && is_file($oldProduct['directions'])) {
+                    unlink($oldProduct['directions']);
+                }
+
+                // Gallery cleanup (remove files that are not in the new gallery)
+                $oldGallery = json_decode($oldProduct['gallery'] ?? '[]', true);
+                $newGallery = json_decode($gallery_json, true);
+                if (is_array($oldGallery) && is_array($newGallery)) {
+                    foreach ($oldGallery as $oldImg) {
+                        if ($oldImg && !in_array($oldImg, $newGallery) && file_exists($oldImg) && is_file($oldImg)) {
+                            unlink($oldImg);
+                        }
+                    }
+                }
+            }
+
+            // Sync to Store Layout (Default to HQ Branch)
+            if ($location) {
+                $branchId = $pdo->query("SELECT id FROM store_branches WHERE type = 'headquarters' LIMIT 1")->fetchColumn() ?: 1;
+                $check = $pdo->prepare("SELECT id FROM product_locations WHERE product_id = ? AND branch_id = ?");
+                $check->execute([$id, $branchId]);
+                if ($check->fetchColumn()) {
+                    $upd = $pdo->prepare("UPDATE product_locations SET shelf_label = ?, updated_at = CURRENT_TIMESTAMP WHERE product_id = ? AND branch_id = ?");
+                    $upd->execute([$location, $id, $branchId]);
+                } else {
+                    $ins = $pdo->prepare("INSERT INTO product_locations (product_id, branch_id, shelf_label) VALUES (?, ?, ?)");
+                    $ins->execute([$id, $branchId, $location]);
+                }
+            }
+
+            $pdo->commit();
             logger('info', 'PRODUCTS', "Product updated (ID: {$id}) by User ID: {$userId}");
 
             echo json_encode(['success' => true, 'image_url' => $image_url]);
         } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
             error_log("Product update failed: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Failed to update product.']);
@@ -235,10 +293,37 @@ if ($method === 'POST') {
         }
 
         try {
+            // Fetch file paths before deletion
+            $stmt = $pdo->prepare("SELECT image_url, gallery, directions FROM products WHERE id = ?");
+            $stmt->execute([$id]);
+            $product = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($product) {
+                // List of files to delete
+                $filesToDelete = [];
+                if ($product['image_url']) $filesToDelete[] = $product['image_url'];
+                if ($product['directions']) $filesToDelete[] = $product['directions'];
+
+                // Parse gallery JSON
+                $gallery = json_decode($product['gallery'] ?? '[]', true);
+                if (is_array($gallery)) {
+                    foreach ($gallery as $img) {
+                        if ($img) $filesToDelete[] = $img;
+                    }
+                }
+
+                // Delete files from filesystem
+                foreach ($filesToDelete as $file) {
+                    if (file_exists($file) && is_file($file)) {
+                        unlink($file);
+                    }
+                }
+            }
+
             $stmt = $pdo->prepare("DELETE FROM products WHERE id = ?");
             $stmt->execute([$id]);
 
-            logger('warn', 'PRODUCTS', "Product deleted (ID: {$id}) by User ID: {$userId}");
+            logger('warn', 'PRODUCTS', "Product deleted (ID: {$id}) and images cleaned up by User ID: {$userId}");
 
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {

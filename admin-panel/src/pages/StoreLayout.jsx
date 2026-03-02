@@ -179,7 +179,7 @@ export default function StoreLayout() {
              <h1 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1px', margin: 0 }}>Inventory Spreadsheet</h1>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
-            Detailed logistical view of stock placement in <strong>{selectedBranch?.name}</strong> ({selectedBranch?.branch_code}).
+            Detailed logistical view of stock placement in <strong>{selectedBranch?.name}</strong>.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -197,7 +197,7 @@ export default function StoreLayout() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)' }}>
             <MapPin size={20} />
-            <span style={{ fontSize: '14px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Select Branch:</span>
+            <span style={{ fontSize: '14px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Select Location:</span>
           </div>
           <select 
             value={selectedBranch?.id || ''}
@@ -223,23 +223,25 @@ export default function StoreLayout() {
           </select>
         </div>
         
-        <button 
-          onClick={() => setIsAddingBranch(true)}
-          style={{ 
-            fontSize: '13px',
-            color: 'var(--primary-blue)',
-            background: 'transparent',
-            border: 'none',
-            fontWeight: 700,
-            cursor: 'pointer',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            transition: 'background 0.2s'
-          }}
-          className="btn-text-hover"
-        >
-          + Register New Branch
-        </button>
+        {user.role === 'super' && (
+          <button 
+            onClick={() => setIsAddingBranch(true)}
+            style={{ 
+              fontSize: '13px',
+              color: 'var(--primary-blue)',
+              background: 'transparent',
+              border: 'none',
+              fontWeight: 700,
+              cursor: 'pointer',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              transition: 'background 0.2s'
+            }}
+            className="btn-text-hover"
+          >
+            + Register New Warehouse
+          </button>
+        )}
       </div>
 
       <div className="card glass" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border-light)' }}>
@@ -288,7 +290,8 @@ export default function StoreLayout() {
                 <tr>
                   <td colSpan="6" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     <Box size={40} style={{ margin: '0 auto 12px', opacity: 0.2 }} />
-                    <p>No inventory records found for this branch.</p>
+                    <p style={{ fontWeight: 600, fontSize: '18px', color: 'var(--text-main)', marginBottom: '8px' }}>Inventory Spreadsheet Empty</p>
+                    <p style={{ maxWidth: '300px', margin: '0 auto' }}>No products have been assigned to shelves in this branch yet. Use the <strong>"Assign Location"</strong> button above or update locations in the <strong>Products</strong> page.</p>
                   </td>
                 </tr>
               ) : (
@@ -380,14 +383,14 @@ export default function StoreLayout() {
             </div>
             <form onSubmit={handleAssignSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Target Branch</label>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Target Location</label>
                 <select 
                   value={assignForm.target_branch_id}
                   onChange={(e) => setAssignForm({ ...assignForm, target_branch_id: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)' }}
                   required
                 >
-                  <option value="">-- Select Branch --</option>
+                  <option value="">-- Select Location --</option>
                   {branches.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
@@ -440,10 +443,10 @@ export default function StoreLayout() {
                 <h4 style={{ margin: 0, fontSize: '12px', textTransform: 'uppercase', color: 'var(--primary-blue)', letterSpacing: '0.5px' }}>Security Verification</h4>
                 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 600 }}>Verify Branch Code</label>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 600 }}>Verify Location Code</label>
                   <input 
                     type="text" 
-                    placeholder="Enter target branch code"
+                    placeholder="Enter target location code"
                     value={assignForm.branch_code_verify}
                     onChange={(e) => setAssignForm({ ...assignForm, branch_code_verify: e.target.value })}
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'white', color: 'var(--text-main)' }}
@@ -491,16 +494,16 @@ export default function StoreLayout() {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="card glass" style={{ width: '100%', maxWidth: '500px', padding: '32px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: 800, margin: 0 }}>Register New Branch</h2>
+                <h2 style={{ fontSize: '24px', fontWeight: 800, margin: 0 }}>Register New Warehouse</h2>
                 <button onClick={() => setIsAddingBranch(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={24} /></button>
             </div>
             <form onSubmit={handleBranchSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Branch Name</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Warehouse Name</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. Accra Mall Branch"
+                    placeholder="e.g. Kumasi Warehouse"
                     value={branchForm.name}
                     onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })}
                     style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)' }}
@@ -508,10 +511,10 @@ export default function StoreLayout() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Branch Code</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Location Code</label>
                   <input 
                     type="text" 
-                    placeholder="ACC-02"
+                    placeholder="KMS-01"
                     value={branchForm.branch_code}
                     onChange={(e) => setBranchForm({ ...branchForm, branch_code: e.target.value })}
                     style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)' }}
@@ -532,7 +535,7 @@ export default function StoreLayout() {
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                <button type="submit" className="btn-primary" style={{ flex: 1 }}>Initialize Branch</button>
+                <button type="submit" className="btn-primary" style={{ flex: 1 }}>Initialize Warehouse</button>
                 <button type="button" className="btn-secondary" onClick={() => setIsAddingBranch(false)} style={{ flex: 1 }}>Cancel</button>
               </div>
             </form>

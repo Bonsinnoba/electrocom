@@ -358,8 +358,8 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode }) {
       <style dangerouslySetInnerHTML={{ __html: `
         @media (min-width: 1024px) {
           .settings-page {
-            grid-template-columns: repeat(3, 1fr) !important;
-            max-width: 1400px;
+            grid-template-columns: repeat(2, 1fr) !important;
+            max-width: 1100px;
             margin: 0 auto;
           }
         }

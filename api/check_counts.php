@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'security.php';
+requireRole('super', $pdo);
 header('Content-Type: application/json');
 try {
     $products = $pdo->query("SELECT * FROM products LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);

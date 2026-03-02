@@ -15,6 +15,8 @@ if (typeof L !== 'undefined' && L.Icon && L.Icon.Default) {
 }
 
 import { fetchCustomers, toggleUserStatus, approveVerification, rejectVerification } from '../services/api';
+import { useNotifications } from '../context/NotificationContext';
+
 
 export default function CustomerManager() {
   const [customers, setCustomers] = useState([]);
@@ -26,7 +28,9 @@ export default function CustomerManager() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+  const { addNotification } = useNotifications();
   const [verifyingCustomer, setVerifyingCustomer] = useState(null); // for preview modal
+
   
   const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
   const isAccountant = user.role === 'accountant';
@@ -51,7 +55,6 @@ export default function CustomerManager() {
     setLoading(true);
     try {
         const data = await fetchCustomers();
-        console.log("Raw customers from API:", data);
         const mapped = data.map(c => ({
             ...c,
             orders: parseInt(c.orders_count || 0),
@@ -61,7 +64,6 @@ export default function CustomerManager() {
             lng: -0.1870,
             location: c.address || 'Accra, Ghana'
         }));
-        console.log("Mapped customers for state:", mapped);
         setCustomers(mapped);
     } catch (error) {
         console.error("Failed to load customers", error);
@@ -90,7 +92,8 @@ export default function CustomerManager() {
     e.preventDefault();
     // For now we don't have a create/update user API in admin_customers.php
     // as users usually register themselves.
-    alert("User editing is disabled for security. Users manage their own profiles.");
+    addNotification("User editing is disabled for security. Users manage their own profiles.", "info");
+
     handleCloseModal();
   };
 
@@ -102,7 +105,8 @@ export default function CustomerManager() {
         await toggleUserStatus(customer.id, customer.status || 'Active');
         loadCustomers();
     } catch (error) {
-        alert("Failed to update user status");
+        addNotification("Failed to update user status", "error");
+
     }
   };
 
@@ -112,7 +116,8 @@ export default function CustomerManager() {
       await approveVerification(customer.id);
       loadCustomers();
     } catch (err) {
-      alert('Could not approve verification');
+      addNotification('Could not approve verification', 'error');
+
     }
   };
 
@@ -123,7 +128,8 @@ export default function CustomerManager() {
       await rejectVerification(customer.id, reason);
       loadCustomers();
     } catch (err) {
-      alert('Could not reject verification');
+      addNotification('Could not reject verification', 'error');
+
     }
   };
 

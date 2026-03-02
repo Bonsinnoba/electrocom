@@ -1,6 +1,27 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 /**
+ * Helper to decode HTML entities like &gt; to >
+ */
+const decodeHtml = (html) => {
+    if (!html) return html;
+    const txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
+};
+
+/**
+ * Helper to ensure image URLs are absolute
+ */
+const formatImageUrl = (url) => {
+    if (!url) return url;
+    // Fix hardcoded dev URLs from DB
+    url = url.replace('http://essentialshub.local/api/', '');
+    if (url.startsWith('http')) return url;
+    return `${API_BASE_URL}/${url.startsWith('/') ? url.slice(1) : url}`;
+};
+
+/**
  * Helper to get authentication headers
  */
 const getAuthHeaders = () => {
@@ -19,12 +40,28 @@ export const fetchProducts = async (category = null) => {
 
 
     const response = await fetch(url);
+    if (response.status === 503) {
+        const err = new Error('Maintenance Mode');
+        err.maintenance = true;
+        throw err;
+    }
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
     const result = await response.json();
     if (!result.success) throw new Error(result.message || "API error");
 
-    return result.data || [];
+    const data = result.data || [];
+    return data.map(product => ({
+        ...product,
+        name: decodeHtml(product.name),
+        description: decodeHtml(product.description),
+        category: decodeHtml(product.category),
+        image_url: formatImageUrl(product.image_url),
+        directions: formatImageUrl(product.directions), // Handles PDF uploads
+        gallery: Array.isArray(product.gallery)
+            ? product.gallery.map(formatImageUrl)
+            : []
+    }));
 };
 
 export const registerUser = async (userData) => {
@@ -95,6 +132,7 @@ export const fetchOrders = async (userId) => {
         const response = await fetch(`${API_BASE_URL}/orders.php?user_id=${userId}`, {
             headers: getAuthHeaders()
         });
+        if (response.status === 503) return []; // Silent during maintenance
         if (!response.ok) throw new Error('Failed to fetch orders');
         const result = await response.json();
         return Array.isArray(result) ? result : (result.data || []);
@@ -109,6 +147,7 @@ export const checkUserStatus = async () => {
         const response = await fetch(`${API_BASE_URL}/check_user_status.php`, {
             headers: getAuthHeaders()
         });
+        if (response.status === 503) return { success: false, maintenance: true };
         if (!response.ok) {
             // If 401, token might be invalid
             if (response.status === 401) return { success: false, unauthorized: true };
@@ -168,5 +207,13 @@ export const fetchSlides = async () => {
 
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
     const result = await response.json();
-    return result.success ? result.data : [];
+    const slides = result.success ? result.data : [];
+
+    return slides.map(slide => ({
+        ...slide,
+        title: decodeHtml(slide.title),
+        subtitle: decodeHtml(slide.subtitle),
+        button_text: decodeHtml(slide.button_text),
+        image_url: formatImageUrl(slide.image_url)
+    }));
 };

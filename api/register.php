@@ -5,13 +5,15 @@ require_once 'security.php';
 require_once 'cors_middleware.php';
 
 // simple helper for Ghana card number validity – placeholder for external API checks
-function isValidGhanaCardNumber($number) {
+function isValidGhanaCardNumber($number)
+{
     // allow alphanumeric groups separated by hyphens (e.g. GHA-1234-5678)
     return preg_match('/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/i', $number);
 }
 
 // call a government verification service using cURL
-function verifyWithGovernmentAPI($idNumber, $idPhoto) {
+function verifyWithGovernmentAPI($idNumber, $idPhoto)
+{
     $config = require '.env.php';
     $url = $config['GOV_API_URL'] ?? '';
     $key = $config['GOV_API_KEY'] ?? '';
@@ -59,6 +61,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// Check if registrations are currently allowed (controlled from Super Settings)
+$settingsFile = __DIR__ . '/data/super_settings.json';
+$globalSettings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+if (isset($globalSettings['allowRegistration']) && $globalSettings['allowRegistration'] === false) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'New registrations are currently disabled. Please contact support.']);
+    exit;
+}
+
+
 // Get raw POST data
 $rawData = file_get_contents('php://input');
 $data = json_decode($rawData, true);
@@ -85,6 +97,15 @@ if (empty($name) || empty($email) || empty($password)) {
 if (!isValidEmail($email)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid email format.']);
+    exit;
+}
+
+// Check for existing email
+$checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+$checkStmt->execute([$email]);
+if ($checkStmt->fetch()) {
+    http_response_code(409);
+    echo json_encode(['success' => false, 'message' => 'An account with this email already exists.']);
     exit;
 }
 
@@ -130,44 +151,45 @@ try {
         }
     }
 
-    // Basic server-side validation for Ghana card
-    if (empty($idNumber) || empty($idPhoto)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Ghana card number and photo are required for verification.']);
-        exit;
+    // Ghana card verification logic (only if provided)
+    if ($idNumber && $idPhoto) {
+        // pattern check
+        if (!isValidGhanaCardNumber($idNumber)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid Ghana card number format.']);
+            exit;
+        }
+
+        // gov API check
+        $govResult = verifyWithGovernmentAPI($idNumber, $idPhoto);
+        if (!$govResult['valid']) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Government verification failed: ' . $govResult['message']]);
+            exit;
+        }
+
+        // ensure idPhoto is a valid base64 image
+        $decoded = base64_decode(preg_replace('#^data:image/[^;]+;base64,#', '', $idPhoto));
+        if ($decoded === false || @getimagesizefromstring($decoded) === false) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid photo provided.']);
+            exit;
+        }
     }
 
-    // simple pattern check – delegate to helper (could be replaced by an external API call)
-    if (!isValidGhanaCardNumber($idNumber)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid Ghana card number format.']);
-        exit;
-    }
-
-    // call government verification API if configured
-    $govResult = verifyWithGovernmentAPI($idNumber, $idPhoto);
-    if (!$govResult['valid']) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Government verification failed: ' . $govResult['message']]);
-        exit;
-    }
-
-    // ensure idPhoto is a valid base64 image
-    $decoded = base64_decode(preg_replace('#^data:image/[^;]+;base64,#', '', $idPhoto));
-    if ($decoded === false || @getimagesizefromstring($decoded) === false) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid photo provided.']);
-        exit;
-    }
-
-    $stmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, phone, avatar_text, verification_code, verification_method, id_number, id_photo, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+    $stmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, phone, avatar_text, verification_code, verification_method, id_number, id_photo, id_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
     $stmt->execute([$name, $email, $hashedPassword, $phone, $avatarText, $verificationCode, $verificationMethod, $idNumber, $idPhoto]);
 
     // Dispatch verification code
+    require_once 'notifications.php';
+    $notifier = new NotificationService();
+    $subject = "Your EssentialsHub Verification Code";
+    $msg = "Welcome to EssentialsHub! Your verification code is: {$verificationCode}. Please enter this code to activate your account.";
+
     if ($verificationMethod === 'sms') {
-        logger('info', 'SMS_SERVICE', "Sending verification code {$verificationCode} to {$phone}");
+        $notifier->sendSMS($phone, $msg);
     } else {
-        logger('info', 'EMAIL_SERVICE', "Sending verification code {$verificationCode} to {$email}");
+        $notifier->sendEmail($email, $subject, $msg);
     }
 
     $userId = $pdo->lastInsertId();
@@ -189,7 +211,8 @@ try {
                 'phone' => $phone,
                 'avatar' => $avatarText,
                 'level' => 1,
-                'levelName' => 'Starter'
+                'levelName' => 'Starter',
+                'role' => 'customer'
             ]
         ]
     ]);

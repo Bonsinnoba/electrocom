@@ -19,19 +19,11 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // Granular Role Access
 if ($method === 'GET') {
-    // Basic audit: Admins, Branch Admins, Accountants
-    if (!in_array($role, ['super', 'admin', 'branch_admin', 'accountant'])) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Forbidden: View access required']);
-        exit;
-    }
+    // Basic audit: Admins, Branch Admins, Accountants, Super
+    requireRole(array_merge(RBAC_ADMIN_GROUP, RBAC_SUPER_GROUP), $pdo);
 } elseif ($method === 'POST') {
     // Moderation: Admins and Branch Admins only
-    if (!in_array($role, ['super', 'admin', 'branch_admin'])) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Forbidden: Moderation permissions required']);
-        exit;
-    }
+    requireRole(['super', 'admin', 'branch_admin'], $pdo);
 }
 
 if ($method === 'GET') {
@@ -47,7 +39,14 @@ if ($method === 'GET') {
             LEFT JOIN store_branches sb ON u.branch_id = sb.id
             ORDER BY u.created_at DESC
         ");
-        $users = $stmt->fetchAll();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Security & Performance: Remove sensitive/heavy data
+        foreach ($users as &$user) {
+            unset($user['password_hash']);
+            if (isset($user['id_photo'])) unset($user['id_photo']);
+            if (isset($user['profile_image'])) unset($user['profile_image']);
+        }
 
         echo json_encode(['success' => true, 'data' => $users]);
     } catch (PDOException $e) {

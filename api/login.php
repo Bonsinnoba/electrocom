@@ -77,13 +77,29 @@ try {
         exit;
     }
 
-    /* 
     if (!$user['is_verified'] && !in_array($user['role'], ['admin', 'super'])) {
+        // Generate a new code for the login attempt if one doesn't exist
+        $newCode = str_pad(rand(100000, 999999), 6, '0', STR_PAD_LEFT);
+        $stmt = $pdo->prepare("UPDATE users SET verification_code = ? WHERE id = ?");
+        $stmt->execute([$newCode, $user['id']]);
+
+        // Dispatch new code
+        require_once 'notifications.php';
+        $notifier = new NotificationService();
+        $subject = "Your EssentialsHub Verification Code";
+        $msg = "Your verification code is: {$newCode}. Please enter this code to activate your account.";
+
+        if ($user['verification_method'] === 'sms') {
+            $notifier->sendSMS($user['phone'], $msg);
+        } else {
+            $notifier->sendEmail($user['email'], $subject, $msg);
+        }
+
         http_response_code(403);
         echo json_encode([
             'success' => false,
             'needs_verification' => true,
-            'message' => 'Please verify your account to continue.',
+            'message' => 'Please verify your account to continue. A new code has been sent.',
             'user' => [
                 'id' => $user['id'],
                 'email' => $user['email'],
@@ -93,7 +109,6 @@ try {
         ]);
         exit;
     }
-    */
 
     // Generate token
     $token = generateToken($user['id']);

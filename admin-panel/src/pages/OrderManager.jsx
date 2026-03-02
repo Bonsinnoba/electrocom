@@ -6,16 +6,62 @@ export default function OrderManager() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [liveStats, setLiveStats] = useState({ review: 0, shipped: 0, deliveredToday: 0 });
   
   const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
   const isAccountant = user.role === 'accountant';
   const isMarketing = user.role === 'marketing';
 
   useEffect(() => {
-    if (!isMarketing) {
-      loadOrders();
+    if (isMarketing) return;
+
+    let isMounted = true;
+
+    const fetchAndProcess = async (isInitial = false) => {
+      try {
+        if (isInitial) setLoading(true);
+        const data = await fetchOrders();
+        if (!isMounted) return;
+        setOrders(data);
+
+        // Compute live stat card values
+        const today = new Date().toDateString();
+        setLiveStats({
+          review: data.filter(o => o.status === 'Pending' || o.status === 'pending').length,
+          shipped: data.filter(o => o.status === 'Shipped' || o.status === 'shipped').length,
+          deliveredToday: data.filter(o =>
+            (o.status === 'Delivered' || o.status === 'delivered') &&
+            new Date(o.date).toDateString() === today
+          ).length
+        });
+      } catch (error) {
+        console.error("Failed to load orders", error);
+      } finally {
+        if (isInitial) setLoading(false);
+      }
+    };
+
+    fetchAndProcess(true);
+    const intervalId = setInterval(() => fetchAndProcess(false), 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [isMarketing]);
+
+  const handleUpdateStatus = async (id, newStatus) => {
+    try {
+        await updateOrderStatus(id, newStatus);
+        // Optimistically update the selected order panel; interval will sync the table
+        if (selectedOrder && selectedOrder.id === id) {
+          setSelectedOrder({ ...selectedOrder, status: newStatus });
+        }
+    } catch (error) {
+        alert("Failed to update status");
     }
-  }, []);
+  };
+
 
   if (isMarketing) {
     return (
@@ -25,30 +71,6 @@ export default function OrderManager() {
       </div>
     );
   }
-
-  const loadOrders = async () => {
-    setLoading(true);
-    try {
-        const data = await fetchOrders();
-        setOrders(data);
-    } catch (error) {
-        console.error("Failed to load orders", error);
-    } finally {
-        setLoading(false);
-    }
-  };
-
-  const handleUpdateStatus = async (id, newStatus) => {
-    try {
-        await updateOrderStatus(id, newStatus);
-        loadOrders();
-        if (selectedOrder && selectedOrder.id === id) {
-          setSelectedOrder({ ...selectedOrder, status: newStatus });
-        }
-    } catch (error) {
-        alert("Failed to update status");
-    }
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -62,21 +84,21 @@ export default function OrderManager() {
           <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-blue)', borderRadius: '10px' }}><Clock size={20} /></div>
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>In Review</div>
-            <div style={{ fontSize: '20px', fontWeight: 800 }}>12</div>
+            <div style={{ fontSize: '20px', fontWeight: 800 }}>{liveStats.review}</div>
           </div>
         </div>
         <div className="card glass" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 24px' }}>
           <div style={{ padding: '10px', background: 'rgba(245, 158, 11, 0.1)', color: 'var(--warning)', borderRadius: '10px' }}><Truck size={20} /></div>
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Active Shipments</div>
-            <div style={{ fontSize: '20px', fontWeight: 800 }}>8</div>
+            <div style={{ fontSize: '20px', fontWeight: 800 }}>{liveStats.shipped}</div>
           </div>
         </div>
         <div className="card glass" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 24px' }}>
           <div style={{ padding: '10px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '10px' }}><CheckCircle size={20} /></div>
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Completed today</div>
-            <div style={{ fontSize: '20px', fontWeight: 800 }}>24</div>
+            <div style={{ fontSize: '20px', fontWeight: 800 }}>{liveStats.deliveredToday}</div>
           </div>
         </div>
       </div>

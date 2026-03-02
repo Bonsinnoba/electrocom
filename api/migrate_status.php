@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'security.php';
+requireRole('super', $pdo);
 
 try {
     $pdo->exec("ALTER TABLE users ADD COLUMN status ENUM('Active', 'Suspended') DEFAULT 'Active' AFTER role");

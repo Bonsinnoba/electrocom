@@ -2,6 +2,9 @@
 require 'db.php';
 require 'security.php';
 
+// Strictly enforce Super Admin only for this script
+requireRole('super', $pdo);
+
 $name = "Admin User";
 $email = "admin@essentialshub.com";
 $password = "admin123";

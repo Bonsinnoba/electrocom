@@ -31,5 +31,12 @@ return [
     'LINKEDIN_CLIENT_SECRET' => '',
     'LINKEDIN_REDIRECT' => 'http://localhost/social_auth.php?provider=linkedin',
     // URL of your frontend application where users should land after social login
-    'FRONTEND_URL' => 'http://localhost:3000',
+    'FRONTEND_URL' => 'http://localhost:5173',
+
+    // --- notification services ---
+    'MAIL_FROM' => 'no-reply@essentialshub.com',
+    'SMTP_HOST' => '', // e.g., smtp.gmail.com (Real SMTP requires an SMTP library like PHPMailer)
+    'SMS_SID' => '',   // Twilio Account SID
+    'SMS_TOKEN' => '', // Twilio Auth Token
+    'SMS_FROM' => '',  // Twilio Phone Number
 ];

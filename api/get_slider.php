@@ -45,7 +45,7 @@ try {
         $stmt->execute(['https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=1600&h=600&auto=format&fit=crop', 'Smart Home Setup', 'Automate your life with smart home essentials.', 'View Collection', '/shop', 3]);
     }
 
-    $stmt = $pdo->prepare("SELECT * FROM slider_images WHERE is_active = TRUE ORDER BY display_order ASC, created_at DESC");
+    $stmt = $pdo->prepare("SELECT * FROM slider_images WHERE is_active = TRUE ORDER BY display_order ASC, created_at ASC");
     $stmt->execute();
     $slides = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

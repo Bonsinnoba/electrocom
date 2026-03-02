@@ -9,7 +9,6 @@ export default function HeroSlider() {
 
   const loadSlides = async () => {
       try {
-          console.log('HeroSlider: Fetching slides...');
           const data = await fetchSlides();
           // Only update if data actually changed to avoid resetting the slider position unnecessarily
           setSlides(prev => {
@@ -17,7 +16,7 @@ export default function HeroSlider() {
               return isDifferent ? data : prev;
           });
       } catch (err) {
-          console.error('HeroSlider: Failed to load slides', err);
+          // Silent error handling to avoid console clutter
       }
   };
 
@@ -27,7 +26,6 @@ export default function HeroSlider() {
     const interval = setInterval(loadSlides, 20000); // Check every 20 seconds
     
     const handleFocus = () => {
-        console.log('HeroSlider: Window focused, refreshing slides...');
         loadSlides();
     };
 
@@ -72,7 +70,7 @@ export default function HeroSlider() {
 
 
   return (
-    <div className="hero-slider" style={{ position: 'relative', height: '500px', overflow: 'hidden', borderRadius: '16px' }}>
+    <div className="hero-slider" style={{ position: 'relative', height: '480px', overflow: 'hidden', borderRadius: '16px' }}>
       <div 
         className="slides-wrapper" 
         style={{ 

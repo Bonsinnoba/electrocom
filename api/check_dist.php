@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'security.php';
+requireRole('super', $pdo);
 header('Content-Type: application/json');
 try {
     $categories = $pdo->query("SELECT category, COUNT(*) as count FROM products GROUP BY category")->fetchAll(PDO::FETCH_ASSOC);

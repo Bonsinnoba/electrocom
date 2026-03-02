@@ -22,14 +22,28 @@ export const NotificationProvider = ({ children }) => {
   }, [notifications]);
 
   const addNotification = (text, type = 'info') => {
-    const newNotif = {
-      id: Date.now(),
-      text,
-      time: new Date().toISOString(),
-      read: false,
-      type
-    };
-    setNotifications(prev => [newNotif, ...prev]);
+    setNotifications(prev => {
+      // Check for existing unread notification with same text and type
+      const existingIdx = prev.findIndex(n => !n.read && n.text === text && n.type === type);
+      
+      if (existingIdx !== -1) {
+        // If found, update its time and bring it to top
+        const updated = [...prev];
+        const item = { ...updated[existingIdx], time: new Date().toISOString() };
+        updated.splice(existingIdx, 1);
+        return [item, ...updated];
+      }
+
+      // Otherwise add new
+      const newNotif = {
+        id: Date.now(),
+        text,
+        time: new Date().toISOString(),
+        read: false,
+        type
+      };
+      return [newNotif, ...prev];
+    });
   };
 
   const markAsRead = (id) => {

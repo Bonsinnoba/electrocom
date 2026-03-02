@@ -136,20 +136,26 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
           setStep(3);
       } else if (step === 3) {
           if (!formData.id_number) {
-              setError('Please enter your ID number.');
+              setError('Please enter your ID number or click "Skip for now"');
               return;
           }
-          // simple pattern check to give early feedback, hyphens allowed
           if (!/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/i.test(formData.id_number)) {
               setError('Ghana card number format seems incorrect. Do not include spaces.');
               return;
           }
           if (!formData.id_photo) {
-              setError('Please scan the face on your Ghana card.');
+              setError('Please scan the face on your Ghana card or click "Skip for now"');
               return;
           }
           setStep(4);
       }
+  };
+
+  const handleSkipVerification = () => {
+    setFormData(prev => ({ ...prev, id_number: '', id_photo: '' }));
+    setIdPhoto('');
+    setError('');
+    setStep(4);
   };
 
   const handleSubmit = async (e) => {
@@ -161,8 +167,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
       return;
     }
 
-    if (isSignUp && step < 3) {
-      return; // Only submit on step 3
+    if (isSignUp && step < 4) {
+      return; // Only submit on step 4 (password step)
     }
 
     if (isSignUp && formData.password !== formData.confirmPassword) {
@@ -191,6 +197,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
           onClose(response.data.user);
           setFormData({ name: '', email: '', phone: '', country: 'Ghana', password: '', confirmPassword: '', verification_method: 'email', id_number: '', id_photo: '' });
         }
+      } else if (response.needs_verification) {
+          setTempUser(response.user);
+          setVerificationStep(true);
+          setError(response.message);
       } else {
           setError(response.message || "Authentication failed. Please check your credentials.");
       }
@@ -378,23 +388,18 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
                           )}
                           <canvas ref={canvasRef} style={{ display: 'none' }} />
                         </div>
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        <button type="button" className="btn-secondary" onClick={() => setStep(2)} style={{ flex: 1 }}>Back</button>
-                        <button type="button" className="btn-primary" onClick={handleNextStep} style={{ flex: 2 }}>Next Step</button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                          <button type="button" className="btn-secondary" onClick={() => setStep(2)} style={{ flex: 1 }}>Back</button>
+                          <button type="button" className="btn-primary" onClick={handleNextStep} style={{ flex: 2 }}>Next Step</button>
+                        </div>
+                        <button type="button" className="btn-outline" onClick={handleSkipVerification} style={{ width: '100%', border: 'none', color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'underline' }}>
+                          Skip verification for now (Restricted access)
+                        </button>
                       </div>
                     </div>
                   ) : (
                     <div className="animate-slide-down">
-                      <div className="form-group summary">
-                        <label>Review Information</label>
-                        <div style={{ background: 'var(--bg-surface-secondary)', padding: '12px', borderRadius: '8px', color: 'var(--text-main)', fontSize: '14px' }}>
-                          <p><strong>Name:</strong> {formData.name}</p>
-                          <p><strong>Email:</strong> {formData.email}</p>
-                          <p><strong>Phone:</strong> {formData.phone}</p>
-                          <p><strong>ID #:</strong> {formData.id_number}</p>
-                          {idPhoto && <img src={idPhoto} alt="ID preview" style={{ width:'100%', borderRadius:'12px', marginTop:'10px' }} />}
-                        </div>
-                      </div>
                       <div className="form-group">
                         <label><Lock size={14} /> Password</label>
                         <div className="input-wrapper" style={{ position: 'relative' }}>

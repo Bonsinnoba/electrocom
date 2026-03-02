@@ -68,30 +68,68 @@ const selectStyle = {
 };
 
 export default function GlobalSettings() {
-  const [settings, setSettings] = useState(() => {
-    try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('ehub_super_settings') || '{}') }; }
-    catch { return DEFAULTS; }
-  });
+  const [settings, setSettings] = useState(DEFAULTS);
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
+  const [loading, setLoading]   = useState(true);
+  const [lastSynced, setLastSynced] = useState(null);
   const [tab, setTab]           = useState('general');
 
-  const set = (key) => (val) => setSettings(prev => ({ ...prev, [key]: val }));
+  // Load from API on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await getSettings();
+        if (res.success && res.data) {
+          setSettings({ ...DEFAULTS, ...res.data });
+          setLastSynced(new Date());
+          localStorage.setItem('ehub_super_settings', JSON.stringify(res.data));
+        }
+      } catch (e) {
+        // Fall back to localStorage if API is unreachable
+        try {
+          const cached = JSON.parse(localStorage.getItem('ehub_super_settings') || '{}');
+          setSettings({ ...DEFAULTS, ...cached });
+        } catch {}
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const set = (key) => async (val) => {
+    const updated = { ...settings, [key]: val };
+    setSettings(updated);
+    // Auto-save immediately for toggles so changes take effect in real-time
+    try {
+      await saveSettings(updated);
+      localStorage.setItem('ehub_super_settings', JSON.stringify(updated));
+      setLastSynced(new Date());
+    } catch (e) {
+      console.error('Auto-save failed:', e);
+    }
+  };
+
   const setVal = (key) => (e) => setSettings(prev => ({ ...prev, [key]: e.target.value }));
   const setNum = (key) => (e) => setSettings(prev => ({ ...prev, [key]: Number(e.target.value) }));
 
   const save = async () => {
     setSaving(true);
-    localStorage.setItem('ehub_super_settings', JSON.stringify(settings));
     try {
-        await saveSettings(settings);
+      await saveSettings(settings);
+      localStorage.setItem('ehub_super_settings', JSON.stringify(settings));
+      setLastSynced(new Date());
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-        console.error(e);
+      console.error('Save error:', e);
+      alert('Failed to save settings. Please try again.');
+    } finally {
+      setSaving(false);
     }
-    await new Promise(r => setTimeout(r, 800));
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
   };
+
 
   const TABS = [
     { id: 'general',  label: 'General',  icon: <Globe size={16} /> },
@@ -99,6 +137,13 @@ export default function GlobalSettings() {
     { id: 'notifications', label: 'Notifications', icon: <Bell size={16} /> },
     { id: 'system',   label: 'System',   icon: <Server size={16} /> },
   ];
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)' }}>
+      <Settings size={36} style={{ opacity: 0.3, marginBottom: '12px' }} />
+      <p>Loading settings from server...</p>
+    </div>
+  );
 
   return (
     <div className="animate-fade-in">
@@ -112,6 +157,11 @@ export default function GlobalSettings() {
           <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
             Configure site-wide preferences, security policies, and system behaviour.
           </p>
+          {lastSynced && (
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <CheckCircle size={12} color="#22c55e" /> Synced from server at {lastSynced.toLocaleTimeString()}
+            </p>
+          )}
         </div>
         <button
           onClick={save}

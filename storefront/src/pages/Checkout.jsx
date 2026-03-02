@@ -35,22 +35,22 @@ export default function Checkout() {
 
   // GHANA_REGIONS Moved up to use in shipping calculation
   const GHANA_REGIONS = [
-    { code: 'GA-', city: 'Accra', label: 'Greater Accra (GA)', distanceToBranch: 0 },
-    { code: 'AK-', city: 'Kumasi', label: 'Ashanti (AK)', distanceToBranch: 0 },
-    { code: 'CR-', city: 'Cape Coast', label: 'Central (CR)', distanceToBranch: 150 },
-    { code: 'WR-', city: 'Takoradi', label: 'Western (WR)', distanceToBranch: 225 },
-    { code: 'ER-', city: 'Koforidua', label: 'Eastern (ER)', distanceToBranch: 85 },
-    { code: 'VR-', city: 'Ho', label: 'Volta (VR)', distanceToBranch: 165 },
-    { code: 'NR-', city: 'Tamale', label: 'Northern (NR)', distanceToBranch: 300 },
-    { code: 'UE-', city: 'Bolgatanga', label: 'Upper East (UE)', distanceToBranch: 320 },
-    { code: 'UW-', city: 'Wa', label: 'Upper West (UW)', distanceToBranch: 0 },
-    { code: 'BA-', city: 'Sunyani', label: 'Brong Ahafo (BA)', distanceToBranch: 130 },
-    { code: 'WN-', city: 'Sefwi Wiawso', label: 'Western North (WN)', distanceToBranch: 250 },
-    { code: 'AH-', city: 'Goaso', label: 'Ahafo (AH)', distanceToBranch: 140 },
-    { code: 'BE-', city: 'Techiman', label: 'Bono East (BE)', distanceToBranch: 125 },
-    { code: 'OR-', city: 'Dambai', label: 'Oti (OR)', distanceToBranch: 300 },
-    { code: 'NE-', city: 'Nalerigu', label: 'North East (NE)', distanceToBranch: 350 },
-    { code: 'SR-', city: 'Damongo', label: 'Savannah (SR)', distanceToBranch: 150 },
+    { code: 'GA-', city: 'Accra', label: 'Greater Accra (GA)', shippingFee: 20 },
+    { code: 'AK-', city: 'Kumasi', label: 'Ashanti (AK)', shippingFee: 20 },
+    { code: 'CR-', city: 'Cape Coast', label: 'Central (CR)', shippingFee: 95 },
+    { code: 'WR-', city: 'Takoradi', label: 'Western (WR)', shippingFee: 130 },
+    { code: 'ER-', city: 'Koforidua', label: 'Eastern (ER)', shippingFee: 65 },
+    { code: 'VR-', city: 'Ho', label: 'Volta (VR)', shippingFee: 105 },
+    { code: 'NR-', city: 'Tamale', label: 'Northern (NR)', shippingFee: 170 },
+    { code: 'UE-', city: 'Bolgatanga', label: 'Upper East (UE)', shippingFee: 180 },
+    { code: 'UW-', city: 'Wa', label: 'Upper West (UW)', shippingFee: 20 },
+    { code: 'BA-', city: 'Sunyani', label: 'Brong Ahafo (BA)', shippingFee: 85 },
+    { code: 'WN-', city: 'Sefwi Wiawso', label: 'Western North (WN)', shippingFee: 145 },
+    { code: 'AH-', city: 'Goaso', label: 'Ahafo (AH)', shippingFee: 90 },
+    { code: 'BE-', city: 'Techiman', label: 'Bono East (BE)', shippingFee: 85 },
+    { code: 'OR-', city: 'Dambai', label: 'Oti (OR)', shippingFee: 170 },
+    { code: 'NE-', city: 'Nalerigu', label: 'North East (NE)', shippingFee: 190 },
+    { code: 'SR-', city: 'Damongo', label: 'Savannah (SR)', shippingFee: 95 },
   ];
 
   const calculateShipping = () => {
@@ -61,7 +61,7 @@ export default function Checkout() {
     if (formData.region) {
        const exactRegion = GHANA_REGIONS.find(r => r.code === formData.region);
        if (exactRegion) {
-         return 20 + (exactRegion.distanceToBranch * 0.5);
+         return exactRegion.shippingFee;
        }
     }
 
@@ -70,7 +70,7 @@ export default function Checkout() {
        const uZip = formData.zip.toUpperCase();
        const exactRegion = GHANA_REGIONS.find(r => uZip.startsWith(r.code));
        if (exactRegion) {
-         return 20 + (exactRegion.distanceToBranch * 0.5); // 20 base + 0.5/km
+         return exactRegion.shippingFee;
        }
     }
     // Default base delivery fee if zip/region is missing
@@ -198,6 +198,43 @@ export default function Checkout() {
     if (step === 2 && nextStep === 3 && !validatePayment()) return;
     setStep(nextStep);
   };
+
+  // Check if user is verified before allowing checkout
+  if (user && user.role === 'customer' && parseInt(user.id_verified) === 0) {
+    return (
+      <div className="card glass animate-fade-in" style={{ padding: '60px 32px', textAlign: 'center' }}>
+        <div style={{ 
+          width: '80px', 
+          height: '80px', 
+          borderRadius: '50%', 
+          background: 'rgba(239, 68, 68, 0.1)', 
+          color: '#ef4444', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          margin: '0 auto 24px' 
+        }}>
+          <ShieldCheck size={40} />
+        </div>
+        <h2 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '16px' }}>Verification Required</h2>
+        <p style={{ color: 'var(--text-muted)', maxWidth: '500px', margin: '0 auto 32px', lineHeight: '1.6' }}>
+          To ensure the safety of our premium products and comply with regional regulations, we require all customers to verify their identity with a Ghana Card before making a purchase.
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+          <Link to="/" className="btn-secondary">
+            Return to Store
+          </Link>
+          <button 
+            className="btn-primary" 
+            onClick={() => navigate('/verify-id')}
+          >
+            Complete Verification
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card glass animate-fade-in" style={{ height: '100%', overflowY: 'auto', padding: '32px' }}>

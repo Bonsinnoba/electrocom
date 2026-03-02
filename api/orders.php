@@ -55,6 +55,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Use authenticated User ID instead of trusting input
     $userId = $authenticatedUserId;
+
+    // Check if user is verified
+    $userStmt = $pdo->prepare("SELECT id_verified, role FROM users WHERE id = ?");
+    $userStmt->execute([$userId]);
+    $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$userData || ($userData['id_verified'] == 0 && $userData['role'] === 'customer')) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'Verification Required: Please complete your Ghana Card verification to place orders.', 'verification_required' => true]);
+        exit;
+    }
+
     $items = $decoded['items'] ?? [];
     $totalAmount = (float)($decoded['total_amount'] ?? 0);
     $shippingAddress = sanitizeInput($decoded['shipping_address'] ?? '');

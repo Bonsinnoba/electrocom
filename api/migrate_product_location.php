@@ -1,5 +1,7 @@
 <?php
 require 'db.php';
+require 'security.php';
+requireRole('super', $pdo);
 
 try {
     $cols = $pdo->query("SHOW COLUMNS FROM products LIKE 'location'")->fetchAll();
