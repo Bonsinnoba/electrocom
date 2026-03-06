@@ -8,6 +8,7 @@ header('Content-Type: application/json');
 // Authenticate and Require Roles
 try {
     $userId = requireRole(['admin', 'branch_admin', 'marketing'], $pdo);
+    $userName = getUserName($userId, $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized: Authentication failed']);
@@ -183,7 +184,7 @@ if ($method === 'POST') {
             }
 
             $pdo->commit();
-            logger('info', 'PRODUCTS', "New product created: {$name} (ID: {$productId}) by User ID: {$userId}");
+            logger('info', 'PRODUCTS', "New product created: {$name} (ID: {$productId}) by {$userName}");
 
             echo json_encode(['success' => true, 'id' => $productId, 'image_url' => $image_url]);
         } catch (PDOException $e) {
@@ -276,7 +277,7 @@ if ($method === 'POST') {
             }
 
             $pdo->commit();
-            logger('info', 'PRODUCTS', "Product updated (ID: {$id}) by User ID: {$userId}");
+            logger('info', 'PRODUCTS', "Product updated (ID: {$id}) by {$userName}");
 
             echo json_encode(['success' => true, 'image_url' => $image_url]);
         } catch (PDOException $e) {
@@ -325,7 +326,7 @@ if ($method === 'POST') {
             $stmt = $pdo->prepare("DELETE FROM products WHERE id = ?");
             $stmt->execute([$id]);
 
-            logger('warn', 'PRODUCTS', "Product deleted (ID: {$id}) and images cleaned up by User ID: {$userId}");
+            logger('warn', 'PRODUCTS', "Product deleted (ID: {$id}) and images cleaned up by {$userName}");
 
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {

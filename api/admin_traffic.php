@@ -8,6 +8,7 @@ header('Content-Type: application/json');
 // Authenticate and Require Roles
 try {
     $userId = requireRole(['admin'], $pdo);
+    $userName = getUserName($userId, $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -67,7 +68,7 @@ if ($method === 'GET') {
             $stmt = $pdo->prepare("INSERT INTO access_restrictions (type, value, reason) VALUES (?, ?, ?)");
             $stmt->execute([$type, $value, $reason]);
 
-            logger('info', 'SECURITY', "New restriction added: {$type} = {$value} by User ID: {$userId}");
+            logger('info', 'SECURITY', "New restriction added: {$type} = {$value} by {$userName}");
 
             echo json_encode(['success' => true, 'message' => 'Restriction added successfully']);
         } catch (PDOException $e) {
@@ -87,7 +88,7 @@ if ($method === 'GET') {
             $stmt = $pdo->prepare("DELETE FROM access_restrictions WHERE id = ?");
             $stmt->execute([$id]);
 
-            logger('info', 'SECURITY', "Restriction removed (ID: {$id}) by User ID: {$userId}");
+            logger('info', 'SECURITY', "Restriction removed (ID: {$id}) by {$userName}");
 
             echo json_encode(['success' => true, 'message' => 'Restriction removed successfully']);
         } catch (PDOException $e) {

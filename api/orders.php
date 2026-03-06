@@ -44,6 +44,7 @@ if ($config['DB_AUTO_REPAIR'] ?? false) {
 
 // Authenticate User for all order operations
 $authenticatedUserId = authenticate();
+$authenticatedUserName = getUserName($authenticatedUserId, $pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // If a specific order ID is requested
@@ -184,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $orderStatus = 'pending';
         if ($paymentMethod === 'Wallet') {
-            logger('info', 'PAYMENTS', "Wallet payment initiated for GH\xc2\xa2 {$totalAmount} by User ID: {$userId}");
+            logger('info', 'PAYMENTS', "Wallet payment initiated for GH\xc2\xa2 {$totalAmount} by {$authenticatedUserName}");
         }
     }
 
@@ -209,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->commit();
 
-        logger('ok', 'ORDERS', "New order created: ORD-{$orderId} (Amt: GH\xc2\xa2 {$totalAmount}) by User ID: {$userId}");
+        logger('ok', 'ORDERS', "New order created: ORD-{$orderId} (Amt: GH\xc2\xa2 {$totalAmount}) by {$authenticatedUserName}");
 
         echo json_encode(['success' => true, 'order_id' => $orderId]);
     } catch (Exception $e) {

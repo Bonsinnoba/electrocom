@@ -12,6 +12,7 @@ header('Expires: 0');
 // Authenticate and Require Roles
 try {
     $userId = requireRole(['admin', 'marketing'], $pdo);
+    $userName = getUserName($userId, $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -113,7 +114,9 @@ try {
                 (int)$data['display_order'],
                 isset($data['is_active']) ? (int)$data['is_active'] : 1
             ]);
-            echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
+            $newId = $pdo->lastInsertId();
+            logger('info', 'APPEARANCE', "New hero slide created (ID: {$newId}) by {$userName}");
+            echo json_encode(['success' => true, 'id' => $newId]);
         } elseif ($action === 'update') {
             $id = $data['id'];
 
@@ -143,6 +146,7 @@ try {
                 unlink($oldImageUrl);
             }
 
+            logger('info', 'APPEARANCE', "Hero slide updated (ID: {$id}) by {$userName}");
             echo json_encode(['success' => true]);
         } elseif ($action === 'delete') {
             $id = $data['id'];
@@ -158,6 +162,8 @@ try {
 
             $stmt = $pdo->prepare("DELETE FROM slider_images WHERE id=?");
             $stmt->execute([$id]);
+
+            logger('warn', 'APPEARANCE', "Hero slide deleted (ID: {$id}) by {$userName}");
             echo json_encode(['success' => true]);
         } elseif ($action === 'upload') {
             // Handle file upload

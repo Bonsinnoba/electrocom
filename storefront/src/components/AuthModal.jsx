@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Lock, Mail, LogIn, UserPlus, Phone, Loader, Globe, Eye, EyeOff, Facebook, Linkedin, Chrome, Github } from 'lucide-react';
-import { loginUser, registerUser, verifyUser } from '../services/api';
+import { X, User, Lock, Mail, LogIn, UserPlus, Phone, Loader, Globe, Eye, EyeOff, Facebook, Linkedin, Chrome, Github, ArrowLeft } from 'lucide-react';
+import { loginUser, registerUser, verifyUser, forgotPassword } from '../services/api';
 import { useUser } from '../context/UserContext';
 
 
@@ -110,6 +110,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
   const [verificationStep, setVerificationStep] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [tempUser, setTempUser] = useState(null);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordMethod, setForgotPasswordMethod] = useState('email'); // 'email' or 'sms'
+  const [forgotPasswordStatus, setForgotPasswordStatus] = useState({ type: '', message: '' });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -209,6 +213,25 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
       setError(err.message || "Authentication failed. Please check your connection.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!forgotPasswordEmail) return;
+    setLoading(true);
+    setForgotPasswordStatus({ type: '', message: '' });
+    try {
+        const response = await forgotPassword(forgotPasswordEmail, forgotPasswordMethod);
+        if (response.success) {
+            setForgotPasswordStatus({ type: 'success', message: response.message });
+        } else {
+            setForgotPasswordStatus({ type: 'error', message: response.message || 'Failed to send reset link.' });
+        }
+    } catch (err) {
+        setForgotPasswordStatus({ type: 'error', message: 'Connection error. Please try again.' });
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -434,45 +457,172 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
 
         {/* --- SIGN IN CONTAINER --- */}
         <div className="form-container sign-in-container">
-          <form onSubmit={handleSubmit}>
-            <h1>Sign In</h1>
-            <div className="social-container">
-              <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=facebook`} className="social" title="Sign in with Facebook"><Facebook size={20} /></a>
-              <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=google`} className="social" title="Sign in with Google"><Chrome size={20} /></a>
-              <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=github`} className="social" title="Sign in with GitHub" style={{ color: '#333' }}><Github size={20} /></a>
-              <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=linkedin`} className="social" title="Sign in with LinkedIn"><Linkedin size={20} /></a>
-            </div>
-            <span>or use your account</span>
-            
-            {error && <div className="auth-error">{error}</div>}
+          {!isForgotPassword ? (
+            <form onSubmit={handleSubmit} className="animate-fade-in">
+              <h1>Sign In</h1>
+              <div className="social-container">
+                <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=facebook`} className="social" title="Sign in with Facebook"><Facebook size={20} /></a>
+                <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=google`} className="social" title="Sign in with Google"><Chrome size={20} /></a>
+                <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=github`} className="social" title="Sign in with GitHub" style={{ color: '#333' }}><Github size={20} /></a>
+                <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=linkedin`} className="social" title="Sign in with LinkedIn"><Linkedin size={20} /></a>
+              </div>
+              <span>or use your account</span>
+              
+              {error && <div className="auth-error">{error}</div>}
 
-            <div className="form-group">
-              <label><Mail size={14} /> Email</label>
-              <div className="input-wrapper">
-                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" required />
+              <div className="form-group">
+                <label><Mail size={14} /> Email</label>
+                <div className="input-wrapper">
+                  <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" required />
+                </div>
               </div>
-            </div>
-            <div className="form-group">
-              <div className="label-row">
-                <label><Lock size={14} /> Password</label>
-                <a href="#" className="forgot-link">Forgot?</a>
+              <div className="form-group">
+                <div className="label-row">
+                  <label><Lock size={14} /> Password</label>
+                  <button type="button" className="forgot-link" onClick={() => {
+                    setIsForgotPassword(true);
+                    setForgotPasswordEmail(formData.email);
+                    setForgotPasswordStatus({ type: '', message: '' });
+                  }} style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'var(--accent-blue)', cursor: 'pointer', textDecoration: 'underline' }}>Forgot?</button>
+                </div>
+                <div className="input-wrapper" style={{ position: 'relative' }}>
+                  <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} placeholder="Password" required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="eye-btn">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
-              <div className="input-wrapper" style={{ position: 'relative' }}>
-                <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} placeholder="Password" required />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="eye-btn">
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
+                {loading ? <Loader className="animate-spin" size={18} /> : 'Sign In'}
+              </button>
+              
+              <p className="mobile-only-text">
+                Don't have an account? <button type="button" className="toggle-auth-btn" onClick={() => setIsSignUp(true)}>Sign Up</button>
+              </p>
+            </form>
+          ) : (
+            <div className="forgot-password-view animate-fade-in" style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              padding: '10px 0'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <h1 style={{ marginBottom: '8px' }}>Reset Password</h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Enter your email to receive a password reset link.</p>
+              </div>
+
+              {forgotPasswordStatus.message && (
+                <div style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  marginBottom: '20px',
+                  fontSize: '13px',
+                  background: forgotPasswordStatus.type === 'success' ? 'var(--success-bg)' : 'var(--error-bg)',
+                  color: forgotPasswordStatus.type === 'success' ? 'var(--success)' : 'var(--error)',
+                  border: '1px solid currentColor',
+                  textAlign: 'center'
+                }}>
+                  {forgotPasswordStatus.message}
+                </div>
+              )}
+
+              <div className="reset-method-selection" style={{
+                display: 'flex',
+                gap: '8px',
+                marginBottom: '20px',
+                background: 'var(--bg-surface-secondary)',
+                padding: '4px',
+                borderRadius: '12px'
+              }}>
+                <button 
+                  type="button" 
+                  onClick={() => setForgotPasswordMethod('email')}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    background: forgotPasswordMethod === 'email' ? 'var(--bg-card)' : 'transparent',
+                    color: forgotPasswordMethod === 'email' ? 'var(--primary-blue)' : 'var(--text-muted)',
+                    boxShadow: forgotPasswordMethod === 'email' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Email
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setForgotPasswordMethod('sms')}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    background: forgotPasswordMethod === 'sms' ? 'var(--bg-card)' : 'transparent',
+                    color: forgotPasswordMethod === 'sms' ? 'var(--primary-blue)' : 'var(--text-muted)',
+                    boxShadow: forgotPasswordMethod === 'sms' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  SMS
                 </button>
               </div>
+
+              <form onSubmit={handleForgotPassword}>
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label><Mail size={14} /> Registered Email</label>
+                  <div className="input-wrapper">
+                    <input 
+                      type="email" 
+                      value={forgotPasswordEmail} 
+                      onChange={(e) => setForgotPasswordEmail(e.target.value)} 
+                      placeholder="Enter your account email" 
+                      required 
+                      autoFocus
+                    />
+                  </div>
+                  {forgotPasswordMethod === 'sms' && (
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      We'll send the reset link to the phone number linked to this email.
+                    </p>
+                  )}
+                </div>
+                <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
+                  {loading ? <Loader className="animate-spin" size={18} /> : 'Send Reset Link'}
+                </button>
+                
+                <button 
+                  type="button" 
+                  className="btn-ghost" 
+                  onClick={() => setIsForgotPassword(false)}
+                  style={{ 
+                    width: '100%', 
+                    marginTop: '16px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '8px',
+                    color: 'var(--text-muted)',
+                    fontSize: '14px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <ArrowLeft size={16} /> Back to Sign In
+                </button>
+              </form>
             </div>
-            <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
-              {loading ? <Loader className="animate-spin" size={18} /> : 'Sign In'}
-            </button>
-            
-            {/* Mobile Toggle */}
-            <p className="mobile-only-text">
-              Don't have an account? <button type="button" className="toggle-auth-btn" onClick={() => setIsSignUp(true)}>Sign Up</button>
-            </p>
-          </form>
+          )}
         </div>
 
         {/* --- OVERLAY CONTAINER --- */}
