@@ -9,6 +9,7 @@ header('Content-Type: application/json');
 try {
     $userId = authenticate();
     $role = getUserRole($userId, $pdo);
+    $userName = getUserName($userId, $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -70,7 +71,7 @@ if ($method === 'GET') {
             $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
             $stmt->execute([$id]);
 
-            logger('warn', 'STAFF', "User ID: {$id} was permanently deleted by User ID: {$userId}");
+            logger('warn', 'STAFF', "User ID: {$id} was permanently deleted by {$userName}");
 
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {
@@ -92,7 +93,7 @@ if ($method === 'GET') {
             $stmt = $pdo->prepare("UPDATE users SET status = ? WHERE id = ?");
             $stmt->execute([$newStatus, $id]);
 
-            logger('info', 'STAFF', "User ID: {$id} status updated to {$newStatus} by User ID: {$userId}");
+            logger('info', 'STAFF', "User ID: {$id} status updated to {$newStatus} by {$userName}");
 
             echo json_encode(['success' => true, 'status' => $newStatus]);
         } catch (PDOException $e) {
@@ -113,7 +114,7 @@ if ($method === 'GET') {
             $stmt = $pdo->prepare("UPDATE users SET role = ? WHERE id = ?");
             $stmt->execute([$role, $id]);
 
-            logger('info', 'STAFF', "User ID: {$id} role updated to " . strtoupper($role) . " by User ID: {$userId}");
+            logger('info', 'STAFF', "User ID: {$id} role updated to " . strtoupper($role) . " by {$userName}");
 
             echo json_encode(['success' => true, 'role' => $role]);
         } catch (PDOException $e) {
@@ -134,7 +135,7 @@ if ($method === 'GET') {
             $stmt = $pdo->prepare("UPDATE users SET branch_id = ? WHERE id = ?");
             $stmt->execute([$branch_id, $id]);
 
-            logger('info', 'STAFF', "User ID: {$id} assigned to Branch ID: {$branch_id} by User ID: {$userId}");
+            logger('info', 'STAFF', "User ID: {$id} assigned to Branch ID: {$branch_id} by {$userName}");
 
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {

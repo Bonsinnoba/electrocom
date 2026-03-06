@@ -9,6 +9,7 @@ header('Content-Type: application/json');
 try {
     $userId = authenticate();
     $role = getUserRole($userId, $pdo);
+    $userName = getUserName($userId, $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -83,7 +84,7 @@ if ($method === 'GET') {
             $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
             $stmt->execute([$status, $id]);
 
-            logger('info', 'ORDERS', "Order {$idStr} status updated to " . strtoupper($status) . " by User ID: {$userId}");
+            logger('info', 'ORDERS', "Order {$idStr} status updated to " . strtoupper($status) . " by {$userName}");
 
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {

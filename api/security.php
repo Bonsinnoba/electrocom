@@ -168,6 +168,20 @@ if (!function_exists('getUserRole')) {
 }
 
 /**
+ * Get User Name
+ */
+if (!function_exists('getUserName')) {
+    function getUserName($userId, $pdo)
+    {
+        $stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+        return $row ? $row['name'] : 'System';
+    }
+}
+
+
+/**
  * Check if Super Admin (non-blocking)
  */
 if (!function_exists('isSuperAdmin')) {

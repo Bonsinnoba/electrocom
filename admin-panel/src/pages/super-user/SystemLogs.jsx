@@ -238,11 +238,11 @@ export default function SystemLogs() {
                         {s.label}
                       </div>
                       {/* Source */}
-                      <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary-gold)', width: '80px', flexShrink: 0, paddingTop: '2px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary-gold)', minWidth: '120px', flexShrink: 0, paddingTop: '2px' }}>
                         [{log.source}]
                       </div>
                       {/* Message */}
-                      <div style={{ flex: 1, fontSize: '13px', color: '#e2e8f0', lineHeight: 1.5 }}>{log.msg}</div>
+                      <div style={{ flex: 1, fontSize: '13px', color: '#e2e8f0', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word', paddingRight: '10px' }}>{log.msg}</div>
                       {/* Timestamp */}
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0, paddingTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Clock size={10} />

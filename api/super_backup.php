@@ -8,6 +8,7 @@ header('Content-Type: application/json');
 try {
     // 1. Authenticate Super User
     $userId = requireRole('super', $pdo);
+    $userName = getUserName($userId, $pdo);
 
     $method = $_SERVER['REQUEST_METHOD'];
 
@@ -98,7 +99,7 @@ try {
             $filepath = $backupDir . '/' . $filename;
 
             if (file_put_contents($filepath, $sqlDump)) {
-                logger('success', 'SYSTEM', "Database backup created: {$filename} by User ID: {$userId}");
+                logger('success', 'SYSTEM', "Database backup created: {$filename} by {$userName}");
                 echo json_encode(['success' => true, 'message' => "Backup '$filename' created successfully.", 'file' => $filename]);
             } else {
                 throw new Exception("Failed to write backup file.");
@@ -109,7 +110,7 @@ try {
 
             if ($filename && file_exists($filepath)) {
                 unlink($filepath);
-                logger('warn', 'SYSTEM', "Database backup deleted: $filename by User ID: $userId");
+                logger('warn', 'SYSTEM', "Database backup deleted: $filename by $userName");
                 echo json_encode(['success' => true, 'message' => "Backup deleted."]);
             } else {
                 http_response_code(404);

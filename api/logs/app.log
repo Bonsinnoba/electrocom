@@ -1,50 +1,5 @@
-2026-03-01 12:25:02 [INFO] [PRODUCTS] New product created: Capasitor (ID: 48) by User ID: 8
-2026-03-01 12:26:06 [INFO] [PRODUCTS] New product created: LED (ID: 49) by User ID: 8
-2026-03-01 16:21:04 [INFO] [STAFF] User ID: 4 assigned to Branch ID: 1 by User ID: 8
-2026-03-01 16:21:09 [INFO] [STAFF] User ID: 7 assigned to Branch ID: 1 by User ID: 8
-2026-03-01 16:21:36 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-01 16:21:41 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-01 16:22:33 [OK] [AUTH] User admin@essentialshub.com logged in successfully as ADMIN
-2026-03-01 16:22:44 [OK] [AUTH] User admin@essentialshub.com logged in successfully as ADMIN
-2026-03-01 16:23:11 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-01 16:23:19 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-01 16:23:58 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
-2026-03-01 16:24:05 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
-2026-03-01 16:26:24 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-01 16:26:29 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-02 19:11:42 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
-2026-03-02 19:41:32 [WARNING] [EMAIL_SERVICE] Failed to send email to test_super@essentialshub.com via native mail(). Check server configuration.
-2026-03-02 19:41:32 [INFO] [EMAIL_SERVICE] SIMULATED EMAIL to test_super@essentialshub.com: Welcome to EssentialsHub! Your verification code is: 508922. Please enter this code to activate your account.
-2026-03-02 19:45:24 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-02 19:45:34 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-02 21:18:00 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-02 21:18:37 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-02 21:21:08 [INFO] [STAFF] User ID: 9 status updated to Suspended by User ID: 8
-2026-03-02 21:21:11 [INFO] [STAFF] User ID: 9 status updated to Active by User ID: 8
-2026-03-02 21:21:13 [INFO] [STAFF] User ID: 8 status updated to Suspended by User ID: 8
-2026-03-02 21:21:16 [INFO] [STAFF] User ID: 7 status updated to Suspended by User ID: 8
-2026-03-02 21:21:18 [INFO] [STAFF] User ID: 5 status updated to Suspended by User ID: 8
-2026-03-02 21:21:25 [INFO] [STAFF] User ID: 8 status updated to Active by User ID: 8
-2026-03-02 21:21:26 [INFO] [STAFF] User ID: 7 status updated to Active by User ID: 8
-2026-03-02 21:21:28 [INFO] [STAFF] User ID: 5 status updated to Active by User ID: 8
-2026-03-02 21:36:50 [INFO] [STAFF] User ID: 9 role updated to BRANCH_ADMIN by User ID: 8
-2026-03-02 21:36:55 [INFO] [STAFF] User ID: 9 role updated to CUSTOMER by User ID: 8
-2026-03-02 21:38:26 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-02 21:44:33 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
-2026-03-02 21:44:57 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-04 18:05:54 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-04 18:05:58 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-04 18:15:49 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
-2026-03-04 18:18:37 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
-2026-03-04 18:20:03 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
-2026-03-04 18:21:38 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
-2026-03-04 18:28:44 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
-2026-03-04 18:29:13 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-04 18:29:24 [INFO] [STAFF] User ID: 9 status updated to Suspended by User ID: 8
-2026-03-04 18:29:31 [INFO] [STAFF] User ID: 9 status updated to Active by User ID: 8
-2026-03-04 18:31:09 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
-2026-03-04 18:31:55 [WARNING] [EMAIL_SERVICE] Failed to send email to ivenbalika@gmail.com via native mail(). Check server configuration.
-2026-03-04 18:31:55 [INFO] [EMAIL_SERVICE] SIMULATED EMAIL to ivenbalika@gmail.com: Your verification code is: 967579. Please enter this code to activate your account.
-2026-03-04 18:32:10 [WARNING] [EMAIL_SERVICE] Failed to send email to ivenbalika@gmail.com via native mail(). Check server configuration.
-2026-03-04 18:32:10 [INFO] [EMAIL_SERVICE] SIMULATED EMAIL to ivenbalika@gmail.com: Your verification code is: 775900. Please enter this code to activate your account.
-2026-03-04 18:40:17 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
+2026-03-06 05:19:10 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-06 05:19:17 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-06 05:23:52 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-06 05:23:59 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-06 06:42:42 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT

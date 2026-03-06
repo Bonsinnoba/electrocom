@@ -2,6 +2,8 @@
 // backend/db.php
 // Secure Database Connection Configuration using PDO
 
+date_default_timezone_set('GMT');
+
 $config = require '.env.php';
 
 $host = $config['DB_HOST'];

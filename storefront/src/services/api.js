@@ -109,7 +109,29 @@ export const logoutUser = async () => {
         return await response.json();
     } catch (error) {
         console.error('Logout error:', error);
-        return { success: false };
+    }
+};
+
+export const forgotPassword = async (email, method = 'email') => {
+    const response = await fetch(`${API_BASE_URL}/forgot_password.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, method }),
+    });
+    return await response.json();
+};
+
+export const resetPassword = async (resetData) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/reset_password.php`, getFetchOptions({
+            method: 'POST',
+            body: JSON.stringify(resetData),
+        }));
+        if (response.status === 503) return { success: false, maintenance: true };
+        return await response.json();
+    } catch (error) {
+        console.error('Reset password error:', error);
+        throw error;
     }
 };
 

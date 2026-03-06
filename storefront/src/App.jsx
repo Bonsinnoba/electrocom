@@ -41,6 +41,7 @@ import { useUser } from './context/UserContext';
 import { formatRelativeTime, formatDate } from './utils/dateFormatter';
 import MaintenancePage from './pages/MaintenancePage';
 import Verification from './pages/Verification';
+import ResetPassword from './pages/ResetPassword';
 
 // Helper function for relative time
 // Moved to utils/dateFormatter.js
@@ -352,6 +353,7 @@ function AppContent() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/verify-id" element={<Verification />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />
