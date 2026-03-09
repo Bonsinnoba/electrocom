@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS orders (
     shipping_address TEXT,
     payment_method VARCHAR(50),
     payment_reference VARCHAR(100), -- Paystack/Stripe reference
+    review_requested_at DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
@@ -97,7 +98,6 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Slider Images table
 CREATE TABLE IF NOT EXISTS slider_images (
     id INT AUTO_INCREMENT PRIMARY KEY,
     image_url LONGTEXT NOT NULL,
@@ -110,4 +110,75 @@ CREATE TABLE IF NOT EXISTS slider_images (
     display_order INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Reviews table
+CREATE TABLE IF NOT EXISTS product_reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    rating INT NOT NULL,
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_product (user_id, product_id)
+);
+
+-- Coupons table for discount codes
+CREATE TABLE IF NOT EXISTS coupons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    discount_type ENUM('percent', 'fixed') NOT NULL,
+    discount_value DECIMAL(10, 2) NOT NULL,
+    min_spend DECIMAL(10, 2) DEFAULT 0.00,
+    max_uses INT DEFAULT NULL,
+    current_uses INT DEFAULT 0,
+    valid_until DATETIME DEFAULT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Wishlists table
+CREATE TABLE IF NOT EXISTS wishlists (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_wishlist_item (user_id, product_id)
+);
+
+-- Product Variants (SKUs) table
+CREATE TABLE IF NOT EXISTS product_variants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    sku VARCHAR(100) UNIQUE,
+    attributes JSON, -- e.g., {"color": "Red", "size": "128GB"}
+    price_modifier DECIMAL(10, 2) DEFAULT 0.00,
+    stock_quantity INT DEFAULT 0,
+    image_url VARCHAR(255),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+-- Cart Abandonment tracking
+CREATE TABLE IF NOT EXISTS abandoned_carts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    cart_data JSON NOT NULL,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    status ENUM('active', 'recovered', 'abandoned') DEFAULT 'active',
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- CMS Pages table
+CREATE TABLE IF NOT EXISTS cms_pages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(100) NOT NULL UNIQUE,
+    title VARCHAR(255) NOT NULL,
+    content LONGTEXT,
+    is_published BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

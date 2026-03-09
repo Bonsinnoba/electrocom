@@ -51,7 +51,7 @@ export default function TermsOfService() {
             <AlertCircle size={24} className="text-primary" /> 3. Disclaimer
           </h2>
           <p style={{ lineHeight: '1.8', color: 'var(--text-main)', opacity: 0.9 }}>
-            The materials on ElectroCom's website are provided on an 'as is' basis. ElectroCom makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+            The materials on ElectroCom's website are provided on an 'as is' basis. ElectroCom makes no warranties, expressed or implied, regarding the fitness of any electronic component, module, or STEM kit for a specific application or circuit design. Users are responsible for verifying component specifications against their own project requirements before purchase. Datasheets are available on request and should be consulted prior to use in critical applications.
           </p>
         </section>
 

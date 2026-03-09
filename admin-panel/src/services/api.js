@@ -32,6 +32,32 @@ const getAuthHeaders = () => {
     };
 };
 
+/**
+ * Helper to fetch with auth headers
+ */
+const authFetch = async (url, options = {}) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}${url}`, {
+            ...options,
+            headers: {
+                ...getAuthHeaders(),
+                ...options.headers
+            }
+        });
+
+        const text = await response.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error('Invalid JSON response from server:', text);
+            return { success: false, message: 'Server returned an invalid response.' };
+        }
+    } catch (error) {
+        console.error('Network error during authFetch:', error);
+        return { success: false, message: 'Network connection error.' };
+    }
+};
+
 export const loginUser = async (credentials) => {
     const response = await fetch(`${API_BASE_URL}/login.php`, {
         method: 'POST',
@@ -144,6 +170,15 @@ export const fetchCustomers = async () => {
         return [];
     }
 };
+
+export const deleteUser = async (id) => authFetch(`/admin_users.php?id=${id}`, { method: 'DELETE' });
+export const fetchAnalytics = async () => authFetch('/admin_analytics.php');
+
+// --- CMS ---
+export const fetchCMSPages = async () => authFetch('/cms.php?all=1');
+export const getCMSPage = async (slug) => authFetch(`/cms.php?slug=${slug}`);
+export const saveCMSPage = async (pageData) => authFetch('/cms.php', { method: 'POST', body: JSON.stringify(pageData) });
+export const deleteCMSPage = async (id) => authFetch(`/cms.php?id=${id}`, { method: 'DELETE' });
 
 export const deleteCustomer = async (id) => {
     try {
@@ -671,6 +706,75 @@ export const updateDispatchStatus = async (id, status) => {
     }
 };
 
+// --- Reviews ---
+export const fetchAllReviews = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_reviews.php?_t=${Date.now()}`, {
+            headers: getAuthHeaders()
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching reviews:', error);
+        return { success: false, data: [] };
+    }
+};
+
+export const deleteReview = async (id) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_reviews.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'delete', id })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting review:', error);
+        throw error;
+    }
+};
+
+export const fetchAbandonedCarts = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_abandoned_carts.php?_t=${Date.now()}`, {
+            headers: getAuthHeaders()
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching abandoned carts:', error);
+        return { success: false, data: [] };
+    }
+};
+
+// --- Notifications ---
+
+
+export const fetchAdminNotifications = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/get_notifications.php?admin=true&_t=${Date.now()}`, {
+            headers: getAuthHeaders()
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching admin notifications:', error);
+        return { success: false, data: [] };
+    }
+};
+
+export const markNotificationRead = async (id) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/get_notifications.php?action=mark_read`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ id })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+        throw error;
+    }
+};
+
 // Keep backward-compat exports pointing to correct functions
 export const getBranches = fetchWarehouses;
 export const addBranch = createWarehouse;
+

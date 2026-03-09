@@ -7,7 +7,7 @@ require_once 'security.php';
  */
 class NotificationService
 {
-    private $config;
+    public $config;
 
     public function __construct()
     {
@@ -86,6 +86,26 @@ class NotificationService
             return true;
         } else {
             logger('error', 'SMS_SERVICE', "Twilio API error (Code {$httpCode}): " . $response);
+            return false;
+        }
+    }
+
+    /**
+     * Log a notification for all administrators
+     */
+    public function logAdminNotification($title, $message, $type = 'info')
+    {
+        global $pdo;
+        if (!isset($pdo)) {
+            require_once 'db.php';
+        }
+
+        try {
+            $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) 
+                                   SELECT id, ?, ?, ? FROM users WHERE role IN ('admin', 'super')");
+            return $stmt->execute([$title, $message, $type]);
+        } catch (Exception $e) {
+            logger('error', 'SYSTEM', "Failed to log admin notification: " . $e->getMessage());
             return false;
         }
     }

@@ -6,12 +6,20 @@ export default function FAQ() {
 
   const faqs = [
     {
-      q: "Where do you ship from?",
-      a: "Depending on your location and the product availability, we dispatch orders from our primary central warehouse or the nearest localized fulfillment branch."
+      q: "What types of products does ElectroCom sell?",
+      a: "ElectroCom specializes in electronic components (resistors, capacitors, transistors, ICs, LEDs, sensors), microcontroller modules (Arduino, ESP32, Raspberry Pi accessories), breadboards, jumper wires, soldering tools, power supplies, and complete STEM project kits for students, hobbyists, and professional engineers."
+    },
+    {
+      q: "Are your components genuine and quality-tested?",
+      a: "Yes. All components sold on ElectroCom are sourced from verified suppliers and pass quality checks before stocking. Datasheets are available on request for most ICs and modules. If you receive a defective part, we will replace it free of charge."
     },
     {
       q: "Can I modify or cancel my order?",
-      a: "Orders can be modified or cancelled within 1 hour of placement. Once an order enters the 'processing' or 'shipped' phase, it cannot be altered. You will need to wait for delivery and initiate a standard return."
+      a: "Orders can be modified or cancelled within 1 hour of placement. Once an order enters the 'processing' or 'shipped' phase, it cannot be altered. You will need to wait for delivery and initiate a standard return for eligible items."
+    },
+    {
+      q: "Do you sell components in bulk for schools or businesses?",
+      a: "Yes! We offer bulk pricing for institutions, schools, universities, and businesses. Contact us at support@electrocom.com with your component list and quantities and we'll provide a custom quote within 24 hours."
     },
     {
       q: "What payment methods are accepted?",
@@ -19,11 +27,15 @@ export default function FAQ() {
     },
     {
       q: "Do I need an account to place an order?",
-      a: "Yes. An account is required to place an order to ensure we can provide accurate tracking, order history, and localized customer support."
+      a: "Yes. An account is required to place an order so we can provide accurate tracking, order history, and dedicated customer support."
+    },
+    {
+      q: "Do you carry STEM kits suitable for beginners?",
+      a: "Absolutely. We stock beginner-friendly STEM kits that include everything needed to complete guided projects — components, a breadboard, jumper wires, and step-by-step instructions. They are ideal for students from secondary school through university level."
     },
     {
       q: "How do I contact customer support?",
-      a: "You can reach out via the 'Support' tab in your user dashboard, email us directly at support@electrocom.com, or use the live chat widget available during business hours."
+      a: "You can reach us via the 'Support' tab in your dashboard, email us at support@electrocom.com, call us on 0536683393 / 0506408074, or message us on WhatsApp for quick replies."
     }
   ];
 

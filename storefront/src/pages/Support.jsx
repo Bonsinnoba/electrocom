@@ -5,12 +5,12 @@ export default function Support({ searchQuery = '' }) {
   const [openIndex, setOpenIndex] = useState(null);
 
   const faqs = [
-    { q: "How can I track my order?", a: "You can track your order in the Orders section." },
-    { q: "What is your return policy?", a: "We offer a 30-day money-back guarantee." },
-    { q: "Do you ship internationally?", a: "Yes, we ship to over 50 countries worldwide." },
-    { q: "How do I change my shipping address?", a: "You can update it in your Profile or during checkout." },
-    { q: "What payment methods do you accept?", a: "We accept all major credit cards, PayPal, and Mobile Money." },
-    { q: "How do I cancel my order?", a: "Orders can be cancelled within 2 hours of placement." }
+    { q: "How can I track my order?", a: "You can track your order in the Orders section of your dashboard. A tracking number is also sent via SMS or email once your package is dispatched." },
+    { q: "Are the electronic components genuine?", a: "Yes. All components are sourced from verified suppliers. Datasheets are available on request for ICs, transistors, and modules. Dead-on-arrival (DOA) items are replaced free of charge." },
+    { q: "Do you offer bulk pricing for schools or businesses?", a: "Yes! Email us at support@electrocom.com with your parts list and quantities. We offer competitive bulk discounts for institutions, universities, and engineering firms." },
+    { q: "What is your return policy for components?", a: "We accept returns for DOA or damaged-on-arrival components and unopened STEM kits within 14 days. Opened component packs and ESD-damaged items are not eligible for return." },
+    { q: "Do you provide datasheets or documentation?", a: "Yes. For most ICs, sensors, and modules we can provide the manufacturer datasheet on request. Contact us with the part number and we'll send it within 24 hours." },
+    { q: "How do I cancel my order?", a: "Orders can be cancelled within 1 hour of placement by contacting our support team immediately. Orders already in processing cannot be cancelled." }
   ];
 
   const filteredFaqs = faqs.filter(f => 

@@ -2,7 +2,6 @@
 // backend/forgot_password.php
 require_once 'db.php';
 require_once 'security.php';
-require_once 'cors_middleware.php';
 require_once 'notifications.php';
 
 header('Content-Type: application/json');

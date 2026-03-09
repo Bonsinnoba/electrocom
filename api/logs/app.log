@@ -3,3 +3,81 @@
 2026-03-06 05:23:52 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
 2026-03-06 05:23:59 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
 2026-03-06 06:42:42 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ACCOUNTANT
+2026-03-07 19:41:13 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-07 19:41:18 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-07 19:57:35 [INFO] [STAFF] User ID: 5 role updated to CUSTOMER by Super User
+2026-03-07 19:57:45 [INFO] [STAFF] User ID: 7 role updated to CUSTOMER by Super User
+2026-03-07 19:57:50 [INFO] [STAFF] User ID: 7 role updated to MARKETING by Super User
+2026-03-07 19:57:57 [INFO] [STAFF] User ID: 5 role updated to ADMIN by Super User
+2026-03-07 19:58:10 [INFO] [STAFF] User ID: 4 role updated to SUPER by Super User
+2026-03-07 19:58:20 [INFO] [STAFF] User ID: 4 status updated to Suspended by Super User
+2026-03-07 19:58:25 [INFO] [STAFF] User ID: 4 status updated to Active by Super User
+2026-03-07 20:45:40 [INFO] [STAFF] User ID: 5 role updated to BRANCH_ADMIN by Super User
+2026-03-07 20:45:54 [INFO] [STAFF] User ID: 5 role updated to ADMIN by Super User
+2026-03-07 20:46:00 [INFO] [STAFF] User ID: 5 role updated to ACCOUNTANT by Super User
+2026-03-07 20:47:23 [INFO] [STAFF] User ID: 4 role updated to ADMIN by Super User
+2026-03-07 21:12:23 [INFO] [PRODUCTS] New product created: LED (ID: 50) by Super User
+2026-03-07 21:12:23 [INFO] [PRODUCTS] New product created: Capasitor (ID: 51) by Super User
+2026-03-07 21:12:23 [INFO] [PRODUCTS] New product created: Transistor (ID: 52) by Super User
+2026-03-07 21:12:23 [INFO] [PRODUCTS] New product created: resistor (ID: 53) by Super User
+2026-03-07 21:12:23 [INFO] [PRODUCTS] New product created: Fuse (ID: 54) by Super User
+2026-03-07 21:12:24 [INFO] [PRODUCTS] New product created: soldering iron (ID: 55) by Super User
+2026-03-07 21:12:24 [INFO] [PRODUCTS] New product created: Sensor (ID: 56) by Super User
+2026-03-07 21:12:24 [INFO] [PRODUCTS] New product created: variable resistor (ID: 57) by Super User
+2026-03-07 21:12:24 [INFO] [PRODUCTS] New product created: Motor (ID: 58) by Super User
+2026-03-07 21:12:24 [INFO] [PRODUCTS] New product created: LED (ID: 59) by Super User
+2026-03-07 22:11:13 [INFO] [PRODUCTS] Product updated (ID: 55) by Super User
+2026-03-07 22:11:27 [INFO] [PRODUCTS] Product updated (ID: 57) by Super User
+2026-03-07 22:11:51 [INFO] [PRODUCTS] Product updated (ID: 59) by Super User
+2026-03-07 22:12:35 [INFO] [PRODUCTS] Product updated (ID: 50) by Super User
+2026-03-07 22:16:08 [INFO] [PRODUCTS] Product updated (ID: 56) by Super User
+2026-03-07 22:16:18 [INFO] [PRODUCTS] Product updated (ID: 58) by Super User
+2026-03-07 22:16:32 [INFO] [PRODUCTS] Product updated (ID: 58) by Super User
+2026-03-07 22:17:16 [INFO] [PRODUCTS] Product updated (ID: 54) by Super User
+2026-03-07 22:17:39 [INFO] [PRODUCTS] Product updated (ID: 51) by Super User
+2026-03-07 22:18:23 [INFO] [PRODUCTS] Product updated (ID: 52) by Super User
+2026-03-07 22:18:55 [INFO] [PRODUCTS] Product updated (ID: 53) by Super User
+2026-03-07 22:40:53 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ADMIN
+2026-03-08 04:19:06 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-08 04:19:11 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-08 05:51:38 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 05:58:08 [INFO] [SYSTEM] Self-healed: Created default COMEBACK5 coupon for recovery logic.
+2026-03-08 06:16:46 [INFO] [STAFF] User ID: 11 status updated to Suspended by Super User
+2026-03-08 06:16:48 [INFO] [STAFF] User ID: 11 status updated to Suspended by Super User
+2026-03-08 06:16:54 [INFO] [STAFF] User ID: 11 status updated to Active by Super User
+2026-03-08 06:18:11 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:20:29 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:21:15 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:21:40 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:22:11 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:25:53 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:27:23 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:35:42 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:38:01 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:39:14 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:40:06 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:40:58 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:42:28 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:43:40 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:45:32 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:48:36 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:51:57 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 06:55:12 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 07:02:40 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 07:05:07 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 07:07:31 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 08:36:35 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 08:37:21 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-08 08:37:30 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-08 08:37:53 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 08:38:17 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 08:38:27 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-08 08:38:44 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 08:39:10 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 08:39:50 [OK] [AUTH] User admin@electrocom.com logged in successfully as ADMIN
+2026-03-08 08:41:20 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-08 08:44:03 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-08 08:58:27 [INFO] [PRODUCTS] Product updated (ID: 55) by Super User
+2026-03-09 18:58:37 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-03-09 19:02:39 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as ADMIN
+2026-03-09 19:08:59 [INFO] [PRODUCTS] Product updated (ID: 55) by Super User

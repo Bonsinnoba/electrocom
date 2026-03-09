@@ -1,13 +1,57 @@
 import React from 'react';
-import { X, Star } from 'lucide-react';
+import { X, Star, Heart } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useUser } from '../context/UserContext';
 
-export default function ProductCard({ name, price, image, rating, onClick, onRemove }) {
+export default function ProductCard({ id, name, price, image, rating, onClick, onRemove }) {
   const { formatPrice } = useSettings();
   const safeRating = parseFloat(rating) || 0;
+  
+  // Use hooks for wishlist and user state
+  const { toggleWishlist, isInWishlist } = useWishlist();
+  const { user, openAuthModal } = useUser();
+  const inWishlist = isInWishlist(id || name); 
+
+  const handleWishlistClick = (e) => {
+    e.stopPropagation();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
+    toggleWishlist({ id, name, price, image, rating });
+  };
 
   return (
     <div className="product-card" onClick={onClick} style={{ position: 'relative' }}>
+      {/* Heart Toggle Button - Shown on all cards if onRemove is NOT present (Shop view) */}
+      {!onRemove && (
+        <button 
+          onClick={handleWishlistClick}
+          className={`sidebar-icon ${inWishlist ? 'active' : ''}`}
+          style={{ 
+            position: 'absolute', 
+            top: '8px', 
+            right: '8px', 
+            width: '32px', 
+            height: '32px', 
+            margin: 0,
+            background: inWishlist ? 'var(--danger-bg)' : 'rgba(255,255,255,0.8)',
+            color: inWishlist ? 'var(--danger)' : 'var(--text-muted)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            zIndex: 10,
+            backdropFilter: 'blur(4px)',
+            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            transform: 'scale(1)',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.15)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          <Heart size={16} fill={inWishlist ? "var(--danger)" : "none"} />
+        </button>
+      )}
+      
       {onRemove && (
         <button 
           onClick={(e) => {

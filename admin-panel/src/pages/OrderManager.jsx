@@ -143,16 +143,23 @@ export default function OrderManager() {
                   </span>
                 </td>
                 <td style={{ padding: '16px 24px' }}>
-                  <span style={{ 
-                    padding: '4px 10px', 
-                    borderRadius: '100px', 
-                    fontSize: '11px', 
-                    fontWeight: 700,
-                    background: o.status === 'Delivered' ? 'var(--success-bg)' : o.status === 'Shipped' ? 'var(--info-bg)' : 'var(--warning-bg)',
-                    color: o.status === 'Delivered' ? 'var(--success)' : o.status === 'Shipped' ? 'var(--accent-blue)' : 'var(--warning)'
-                  }}>
-                    {o.status}
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                    <span style={{ 
+                      padding: '4px 10px', 
+                      borderRadius: '100px', 
+                      fontSize: '11px', 
+                      fontWeight: 700,
+                      background: o.status === 'Delivered' ? 'var(--success-bg)' : o.status === 'Shipped' ? 'var(--info-bg)' : 'var(--warning-bg)',
+                      color: o.status === 'Delivered' ? 'var(--success)' : o.status === 'Shipped' ? 'var(--accent-blue)' : 'var(--warning)'
+                    }}>
+                      {o.status}
+                    </span>
+                    {o.review_requested_at && (
+                      <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <CheckCircle size={10} /> Review Sent
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td style={{ padding: '16px 24px' }}>
                   <button onClick={() => setSelectedOrder(o)} className="btn" style={{ padding: '6px 14px', fontSize: '12px', background: 'var(--bg-surface-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -181,9 +188,18 @@ export default function OrderManager() {
           borderLeft: '1px solid var(--border-light)'
         }} className="glass animate-slide-in">
           <header style={{ padding: '24px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Order Details</h2>
-              <span style={{ fontSize: '12px', color: 'var(--primary-blue)', fontWeight: 700 }}>{selectedOrder.id}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Order Details</h2>
+                <span style={{ fontSize: '12px', color: 'var(--primary-blue)', fontWeight: 700 }}>{selectedOrder.id}</span>
+              </div>
+              <button 
+                onClick={() => window.open(`http://localhost:8000/invoice.php?order_id=${selectedOrder.id}`, '_blank')}
+                className="btn" 
+                style={{ padding: '6px 12px', fontSize: '11px', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                🖨️ Print Invoice
+              </button>
             </div>
             <button onClick={() => setSelectedOrder(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
               <X size={24} />
@@ -201,6 +217,11 @@ export default function OrderManager() {
                 <div style={{ marginTop: '12px', display: 'flex', gap: '8px', color: 'var(--text-muted)', fontSize: '13px' }}>
                   <MapPin size={16} style={{ flexShrink: 0 }} /> {selectedOrder.address}
                 </div>
+                {selectedOrder.review_requested_at && (
+                   <div style={{ marginTop: '12px', padding: '8px 12px', background: 'var(--success-bg)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success)', fontSize: '12px', fontWeight: 600 }}>
+                      <CheckCircle size={14} /> Review request sent on {new Date(selectedOrder.review_requested_at).toLocaleDateString()}
+                   </div>
+                )}
               </div>
             </section>
 

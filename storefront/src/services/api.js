@@ -259,3 +259,99 @@ export const fetchSlides = async () => {
         image_url: formatImageUrl(slide.image_url)
     }));
 };
+
+// --- Reviews ---
+export const fetchProductReviews = async (productId) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/reviews.php?product_id=${productId}`);
+        if (!response.ok) throw new Error('Failed to fetch reviews');
+        const result = await response.json();
+        return result.success ? result.data : { reviews: [], average_rating: 0, total_reviews: 0 };
+    } catch (error) {
+        console.error('Error fetching reviews:', error);
+        return { reviews: [], average_rating: 0, total_reviews: 0 };
+    }
+};
+
+export const submitReview = async (productId, rating, comment) => {
+    const response = await fetch(`${API_BASE_URL}/reviews.php`, getFetchOptions({
+        method: 'POST',
+        body: JSON.stringify({ product_id: productId, rating, comment }),
+    }));
+    return await response.json();
+};
+
+// --- Invoice ---
+export const getInvoiceUrl = (orderId) => {
+    return `${API_BASE_URL}/invoice.php?order_id=${orderId}`;
+};
+
+// --- Coupons ---
+export const validateCoupon = async (code, cartTotal) => {
+    const response = await fetch(`${API_BASE_URL}/coupons.php?action=validate`, getFetchOptions({
+        method: 'POST',
+        body: JSON.stringify({ code, cartTotal })
+    }));
+    return await response.json();
+};
+
+
+// --- Wishlist ---
+export const fetchWishlist = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/wishlist.php`, getFetchOptions());
+        if (!response.ok) throw new Error('Failed to fetch wishlist');
+        const result = await response.json();
+        const items = result.success ? result.items : [];
+        return items.map(product => ({
+            ...product,
+            name: decodeHtml(product.name),
+            category: decodeHtml(product.category),
+            image_url: formatImageUrl(product.image)
+        }));
+    } catch (error) {
+        console.error('Error fetching wishlist:', error);
+        return [];
+    }
+};
+
+export const addToWishlist = async (productId) => {
+    const response = await fetch(`${API_BASE_URL}/wishlist.php`, getFetchOptions({
+        method: 'POST',
+        body: JSON.stringify({ product_id: productId })
+    }));
+    return await response.json();
+};
+
+export const removeFromWishlist = async (productId) => {
+    const response = await fetch(`${API_BASE_URL}/wishlist.php`, getFetchOptions({
+        method: 'DELETE',
+        body: JSON.stringify({ product_id: productId })
+    }));
+    return await response.json();
+};
+
+// --- Cart ---
+export const syncCart = async (cartItems) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/cart_sync.php`, getFetchOptions({
+            method: 'POST',
+            body: JSON.stringify({ cart: cartItems })
+        }));
+        return await response.json();
+    } catch (error) {
+        // Silently fail for background cart syncs
+        return { success: false };
+    }
+};
+
+// --- Order Tracking ---
+export const trackOrder = async (orderId, email) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/track_order.php?order_id=${encodeURIComponent(orderId)}&email=${encodeURIComponent(email)}`, getFetchOptions());
+        return await response.json();
+    } catch (error) {
+        console.error('Error tracking order:', error);
+        return { success: false, error: 'Network error preventing order tracking.' };
+    }
+};

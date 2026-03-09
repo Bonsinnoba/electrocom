@@ -1,22 +1,66 @@
-import React, { useState } from 'react';
-import { X, Plus, Minus, ShoppingCart, Heart, FileText, Info, List, Settings, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Plus, Minus, ShoppingCart, Heart, FileText, Info, List, Settings, Star, MessageSquare, Send, ShoppingBag, CheckCircle } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
+import { useUser } from '../context/UserContext';
+import { fetchProductReviews, submitReview } from '../services/api';
 
 export default function ProductModal({ product, products = [], isOpen, onClose, onAddToCart, onAddToWishlist, onProductClick }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || 'Default');
+  const [selectedVariant, setSelectedVariant] = useState(product?.variants?.[0] || null);
   const [activeImage, setActiveImage] = useState(product?.image);
   const { isInWishlist } = useWishlist();
   const { formatPrice } = useSettings();
+  const { user } = useUser();
 
-  React.useEffect(() => {
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [reviewStats, setReviewStats] = useState({ average_rating: 0, total_reviews: 0 });
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState('');
+
+  useEffect(() => {
     if (product) {
       setActiveImage(product.image);
       setQuantity(1);
       setSelectedColor(product.colors?.[0] || 'Default');
+      setSelectedVariant(product.variants?.[0] || null);
+      setReviewMessage('');
+      setReviewComment('');
+      setReviewRating(5);
+      // Fetch reviews
+      fetchProductReviews(product.id).then(data => {
+        setReviews(data.reviews || []);
+        setReviewStats({ average_rating: data.average_rating, total_reviews: data.total_reviews });
+      });
     }
   }, [product]);
+
+  const handleSubmitReview = async () => {
+    if (!reviewComment.trim()) return;
+    setReviewSubmitting(true);
+    setReviewMessage('');
+    try {
+      const result = await submitReview(product.id, reviewRating, reviewComment);
+      if (result.success) {
+        setReviewMessage('Review submitted!');
+        setReviewComment('');
+        // Refresh reviews
+        const data = await fetchProductReviews(product.id);
+        setReviews(data.reviews || []);
+        setReviewStats({ average_rating: data.average_rating, total_reviews: data.total_reviews });
+      } else {
+        setReviewMessage(result.error || 'Failed to submit review');
+      }
+    } catch {
+      setReviewMessage('Failed to submit review. Please try again.');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -34,9 +78,20 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
 
   const handleAddToCart = () => {
     setIsAdding(true);
-    onAddToCart(product, quantity, selectedColor);
+    const cartProduct = {
+      ...product,
+      price: currentPrice.toString(),
+      image: selectedVariant?.image_url || product.image,
+      variant_sku: selectedVariant ? selectedVariant.sku : null,
+      selected_attributes: selectedVariant ? selectedVariant.attributes : null
+    };
+    // Ensure uniqueness in cart if different variant
+    cartProduct.id = selectedVariant ? `${product.id}-${selectedVariant.id}` : product.id;
+    onAddToCart(cartProduct, quantity, selectedColor);
     setTimeout(() => setIsAdding(false), 2000);
   };
+
+  const currentPrice = parseFloat(product.price) + (selectedVariant ? parseFloat(selectedVariant.price_modifier) : 0);
 
   const handleAddToWishlist = () => {
     setIsSaving(true);
@@ -88,10 +143,10 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
               <div className="modal-image-stage">
                 {activeImage ? (
                   <img 
-                    src={activeImage} 
+                    src={selectedVariant?.image_url || activeImage} 
                     alt={product.name} 
                     className="stage-image animate-fade-in"
-                    key={activeImage}
+                    key={selectedVariant?.image_url || activeImage}
                   />
                 ) : (
                   <div className="image-placeholder"></div>
@@ -125,6 +180,62 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                           title={color}
                         />
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {product.variants && product.variants.length > 0 && (
+                  <div className="detail-section" style={{ gridColumn: '1 / -1', marginTop: '4px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Settings size={14} /> Options & Variations
+                    </label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      {product.variants.map(v => {
+                        const label = v.sku || Object.values(v.attributes || {}).join(' - ') || 'Variant';
+                        const isSelected = selectedVariant?.id === v.id;
+                        return (
+                          <button 
+                            key={v.id} 
+                            onClick={() => setSelectedVariant(v)}
+                            className={`variant-chip ${isSelected ? 'active' : ''}`}
+                            style={{ 
+                              padding: '10px 16px', 
+                              borderRadius: '12px', 
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              border: '2px solid',
+                              borderColor: isSelected ? 'var(--primary-blue)' : 'var(--border-light)',
+                              color: isSelected ? 'var(--primary-blue)' : 'var(--text-main)',
+                              background: isSelected ? 'rgba(59, 130, 246, 0.08)' : 'var(--bg-surface)',
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              cursor: 'pointer',
+                              boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none',
+                              transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+                            }}
+                            onMouseEnter={(e) => !isSelected && (e.currentTarget.style.borderColor = 'var(--primary-blue)')}
+                            onMouseLeave={(e) => !isSelected && (e.currentTarget.style.borderColor = 'var(--border-light)')}
+                          >
+                            {isSelected && <CheckCircle size={14} className="animate-scale-in" />}
+                            <span>{label}</span>
+                            {parseFloat(v.price_modifier) > 0 && (
+                              <span style={{ 
+                                fontSize: '11px', 
+                                opacity: 0.8,
+                                background: isSelected ? 'var(--primary-blue)' : 'var(--bg-surface-secondary)',
+                                color: isSelected ? 'white' : 'var(--text-muted)',
+                                padding: '2px 6px',
+                                borderRadius: '6px',
+                                marginLeft: '4px'
+                              }}>
+                                +{formatPrice(parseFloat(v.price_modifier))}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -187,7 +298,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
           <div className="product-modal-details" style={{ scrollBehavior: 'smooth' }}>
             <h2 className="product-title" style={{ fontSize: '32px', marginBottom: '4px' }}>{product.name}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '16px' }}>
-                <p className="product-price" style={{ fontSize: '28px', margin: 0 }}>{formatPrice(product.price)}</p>
+                <p className="product-price" style={{ fontSize: '28px', margin: 0 }}>{formatPrice(currentPrice)}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--warning-bg)', padding: '6px 14px', borderRadius: '100px' }}>
                     <div style={{ display: 'flex', gap: '2px' }}>
                         {[1, 2, 3, 4, 5].map(s => (
@@ -282,21 +393,132 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                 </div>
               </div>
 
+              {/* Customer Reviews Section */}
+              <div className="info-tab">
+                <h3><MessageSquare size={16} /> Customer Reviews ({reviewStats.total_reviews})</h3>
+                
+                {/* Average Rating Summary */}
+                {reviewStats.total_reviews > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', padding: '12px', background: 'var(--bg-surface-secondary)', borderRadius: '12px' }}>
+                    <span style={{ fontSize: '32px', fontWeight: 800, color: 'var(--warning)' }}>{reviewStats.average_rating}</span>
+                    <div>
+                      <div style={{ display: 'flex', gap: '2px', marginBottom: '4px' }}>
+                        {[1,2,3,4,5].map(s => (
+                          <Star key={s} size={14} fill={s <= Math.round(reviewStats.average_rating) ? 'var(--warning)' : 'transparent'} color={s <= Math.round(reviewStats.average_rating) ? 'var(--warning)' : 'var(--text-muted)'} />
+                        ))}
+                      </div>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Based on {reviewStats.total_reviews} review{reviewStats.total_reviews !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Review List */}
+                {reviews.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                    {reviews.map(r => (
+                      <div key={r.id} style={{ padding: '14px', background: 'var(--bg-surface-secondary)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>
+                              {r.avatar_text || r.user_name?.charAt(0) || '?'}
+                            </div>
+                            <span style={{ fontWeight: 700, fontSize: '13px' }}>{r.user_name}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '2px' }}>
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} size={12} fill={s <= r.rating ? 'var(--warning)' : 'transparent'} color={s <= r.rating ? 'var(--warning)' : 'var(--text-muted)'} />
+                            ))}
+                          </div>
+                        </div>
+                        {r.comment && <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.5, color: 'var(--text-muted)' }}>{r.comment}</p>}
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', display: 'block' }}>{new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>No reviews yet. Be the first to review this product!</p>
+                )}
+
+                {/* Write a Review */}
+                {user && (
+                  <div style={{ padding: '16px', background: 'var(--bg-surface-secondary)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700 }}>Write a Review</h4>
+                    <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
+                      {[1,2,3,4,5].map(s => (
+                        <button key={s} onClick={() => setReviewRating(s)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px' }}>
+                          <Star size={20} fill={s <= reviewRating ? 'var(--warning)' : 'transparent'} color={s <= reviewRating ? 'var(--warning)' : 'var(--text-muted)'} />
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Share your experience with this product..."
+                      rows={3}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px', resize: 'vertical', fontFamily: 'inherit' }}
+                    />
+                    {reviewMessage && (
+                      <p style={{ fontSize: '12px', color: reviewMessage === 'Review submitted!' ? 'var(--success)' : 'var(--danger)', margin: '8px 0 0' }}>{reviewMessage}</p>
+                    )}
+                    <button
+                      onClick={handleSubmitReview}
+                      disabled={reviewSubmitting || !reviewComment.trim()}
+                      className="btn-primary"
+                      style={{ marginTop: '10px', padding: '10px 16px', fontSize: '13px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px', width: '100%', justifyContent: 'center' }}
+                    >
+                      <Send size={14} /> {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Related Products Section */}
               {related.length > 0 && (
-                <div className="related-products-section">
-                  <h3>Frequently Bought Together</h3>
-                  <div className="related-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '16px' }}>
+                <div className="related-products-section" style={{ marginTop: '32px', borderTop: '1px solid var(--border-light)', paddingTop: '24px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShoppingBag size={18} color="var(--primary-blue)" /> 
+                    Frequently Bought Together
+                  </h3>
+                  <div className="related-carousel" style={{ 
+                    display: 'flex', 
+                    gap: '16px', 
+                    overflowX: 'auto', 
+                    paddingBottom: '16px',
+                    scrollSnapType: 'x mandatory',
+                    WebkitOverflowScrolling: 'touch'
+                  }}>
                     {related.map(rp => (
-                      <div key={rp.id} className="related-card" onClick={() => {
+                      <div key={rp.id} className="related-card glass" style={{
+                        minWidth: '160px',
+                        maxWidth: '160px',
+                        padding: '12px',
+                        borderRadius: '16px',
+                        cursor: 'pointer',
+                        scrollSnapAlign: 'start',
+                        flexShrink: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        border: '1px solid var(--border-light)',
+                        transition: 'all 0.3s ease'
+                      }} 
+                      onClick={() => {
                           if (onProductClick) onProductClick(rp);
-                          // Scroll internal details container to top
                           const details = document.querySelector('.product-modal-details');
                           if (details) details.scrollTop = 0;
-                      }}>
-                        <img src={rp.image} alt={rp.name} />
-                        <h4>{rp.name}</h4>
-                        <p>{formatPrice(rp.price)}</p>
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary-blue)'}
+                      onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-light)'}
+                      >
+                        <div style={{ width: '100%', height: '120px', background: 'white', borderRadius: '10px', overflow: 'hidden', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img src={rp.image_url || rp.image} alt={rp.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                        </div>
+                        <h4 style={{ fontSize: '13px', fontWeight: 600, margin: '0 0 6px 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{rp.name}</h4>
+                        <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <p style={{ fontSize: '14px', fontWeight: 800, color: 'var(--primary-blue)', margin: 0 }}>{formatPrice(rp.price)}</p>
+                           <button className="btn-icon" style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--accent-blue)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                               <Plus size={14} />
+                           </button>
+                        </div>
                       </div>
                     ))}
                   </div>

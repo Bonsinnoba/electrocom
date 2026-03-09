@@ -15,45 +15,77 @@ export const useNotifications = () => {
 export const NotificationProvider = ({ children }) => {
   const { user } = useUser();
 
-  const [notifications, setNotifications] = useState(() => {
-    return secureStorage.getItem('notifications', user?.id) || [];
-  });
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    secureStorage.setItem('notifications', notifications, user?.id);
-  }, [notifications, user?.id]);
-
-  const addNotification = (text, type = 'info') => {
-    setNotifications(prev => {
-      // Check for existing unread notification with same text and type
-      const existingIdx = prev.findIndex(n => !n.read && n.text === text && n.type === type);
-      
-      if (existingIdx !== -1) {
-        // If found, update its time and bring it to top
-        const updated = [...prev];
-        const item = { ...updated[existingIdx], time: new Date().toISOString() };
-        updated.splice(existingIdx, 1);
-        return [item, ...updated];
+  const fetchServerNotifications = async () => {
+    if (!user) return;
+    try {
+      const response = await fetch('/api/get_notifications.php');
+      const result = await response.json();
+      if (result.success) {
+        // Map server notifications to local format
+        const mapped = result.data.map(n => ({
+          id: n.id,
+          text: n.message,
+          title: n.title,
+          time: n.created_at,
+          read: Boolean(parseInt(n.is_read)),
+          type: n.type
+        }));
+        setNotifications(mapped);
       }
-
-      // Otherwise add new
-      const newNotif = {
-        id: Date.now(),
-        text,
-        time: new Date().toISOString(),
-        read: false,
-        type
-      };
-      return [newNotif, ...prev];
-    });
+    } catch (error) {
+      console.error("Failed to fetch notifications", error);
+    }
   };
 
-  const markAsRead = (id) => {
+  useEffect(() => {
+    if (user) {
+      fetchServerNotifications();
+      const interval = setInterval(fetchServerNotifications, 30000); // 30s poll
+      return () => clearInterval(interval);
+    } else {
+      setNotifications([]);
+    }
+  }, [user]);
+
+  const addNotification = (text, type = 'info') => {
+    // This adds a temporary local notification, usually for UI actions
+    // Real persistent notifications from the server will be fetched next poll
+    const newNotif = {
+      id: Date.now(),
+      text,
+      time: new Date().toISOString(),
+      read: false,
+      type
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const markAsRead = async (id) => {
+    // Optimistic update
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    
+    // Server update if it's a persistent ID
+    if (typeof id === 'number' && id < 1000000000000) { // Simple check for non-timestamp ID
+        try {
+            await fetch('/api/get_notifications.php?action=mark_read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+        } catch (error) {
+            console.error("Failed to mark notification as read on server", error);
+        }
+    }
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => prev.map(n => {
+        if (!n.read) markAsRead(n.id);
+        return { ...n, read: true };
+    }));
   };
 
   const deleteNotification = (id) => {

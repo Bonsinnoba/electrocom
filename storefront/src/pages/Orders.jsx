@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Package, Truck, CheckCircle, Clock, ExternalLink, Calendar, Hash, MapPin, Loader } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, ExternalLink, Calendar, Hash, MapPin, Loader, FileText } from 'lucide-react';
 import { formatDateTime } from '../utils/dateFormatter';
 import { useUser } from '../context/UserContext';
-import { fetchOrders } from '../services/api';
+import { fetchOrders, getInvoiceUrl } from '../services/api';
 import { useSettings } from '../context/SettingsContext';
 import OrderTrackingModal from '../components/OrderTrackingModal';
 
@@ -131,7 +131,7 @@ export default function Orders({ searchQuery }) {
         </div>
       </div>
       
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', minWidth: '150px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px', minWidth: '150px' }}>
         <StatusBadge status={order.status} />
         <button 
           onClick={() => openTracking(order.id)}
@@ -150,6 +150,27 @@ export default function Orders({ searchQuery }) {
         >
           Track Order <ExternalLink size={14} />
         </button>
+        <a 
+          href={getInvoiceUrl(order.id)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-secondary" 
+          style={{ 
+            fontSize: '13px', 
+            fontWeight: 700,
+            padding: '10px 20px', 
+            borderRadius: '12px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px',
+            width: '100%',
+            justifyContent: 'center',
+            textDecoration: 'none',
+            color: 'var(--text-main)'
+          }}
+        >
+          <FileText size={14} /> Receipt
+        </a>
       </div>
 
       <div className="card-hover-bg" style={{ 

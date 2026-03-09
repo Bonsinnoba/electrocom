@@ -2,7 +2,6 @@
 // backend/register.php
 require_once 'db.php';
 require_once 'security.php';
-require_once 'cors_middleware.php';
 
 // simple helper for Ghana card number validity – placeholder for external API checks
 function isValidGhanaCardNumber($number)

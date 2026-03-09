@@ -84,6 +84,16 @@ if ($method === 'GET') {
             $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
             $stmt->execute([$status, $id]);
 
+            // Notify User of status change
+            $userStmt = $pdo->prepare("SELECT user_id FROM orders WHERE id = ?");
+            $userStmt->execute([$id]);
+            $order = $userStmt->fetch();
+            if ($order) {
+                $statusMsg = "Your order ORD-{$id} has been updated to " . ucfirst($status) . ".";
+                $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, 'Order Update', ?, 'order')")
+                    ->execute([$order['user_id'], $statusMsg]);
+            }
+
             logger('info', 'ORDERS', "Order {$idStr} status updated to " . strtoupper($status) . " by {$userName}");
 
             echo json_encode(['success' => true]);

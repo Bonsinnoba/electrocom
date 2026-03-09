@@ -7,6 +7,7 @@ date_default_timezone_set('GMT');
 $config = require '.env.php';
 
 $host = $config['DB_HOST'];
+
 $user = $config['DB_USER'];
 $pass = $config['DB_PASS'];
 $db   = $config['DB_NAME'];
@@ -22,6 +23,9 @@ $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+
+    // Set CORS headers early, but after $pdo is initialized since traffic_monitor depends on it
+    require_once 'cors_middleware.php';
 
     // Global Security Middleware
     if (file_exists('security.php')) {

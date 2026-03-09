@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, Search, Map, ShoppingCart, Moon, Sun, X, Bell, ExternalLink, ArrowRight } from 'lucide-react';
+import { Menu, Search, Map, ShoppingCart, Moon, Sun, X, ExternalLink, ArrowRight, Bell } from 'lucide-react';
 import CategoryDropdown from './CategoryDropdown';
 import { useCart } from '../context/CartContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -12,8 +12,9 @@ export default function Navbar({
   onMenuClick, 
   onThemeToggle, 
   onProductClick,
+  onNotificationsClick,
   isDarkMode,
-  searchQuery,
+  searchQuery = '',
   setSearchQuery,
   products = []
 }) {
@@ -37,8 +38,8 @@ export default function Navbar({
   ];
 
   const results = React.useMemo(() => {
-    if (!searchQuery.trim()) return { pages: [], products: [] };
-    const q = searchQuery.toLowerCase();
+    if (!searchQuery?.trim()) return { pages: [], products: [] };
+    const q = (searchQuery || '').toLowerCase();
     
     return {
       pages: pages.filter(p => p.name.toLowerCase().includes(q)),
@@ -185,15 +186,15 @@ export default function Navbar({
           <Map size={20} />
         </div>
         
-        {/* Mobile Notifications Toggle */}
-        <Link to="/notifications" className="sidebar-icon btn" style={{ position: 'relative' }}>
+        {/* Notifications */}
+        <div className="sidebar-icon btn" style={{ position: 'relative' }} onClick={onNotificationsClick}>
           <Bell size={20} />
-          {user && unreadCount > 0 && (
+          {unreadCount > 0 && (
             <span key={unreadCount} className="badge-premium badge-notif">
               {unreadCount}
             </span>
           )}
-        </Link>
+        </div>
         
         {/* Mobile Cart Link */}
         <Link to="/cart" className="sidebar-icon btn" style={{ position: 'relative' }}>

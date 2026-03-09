@@ -1,7 +1,5 @@
 <?php
-require_once 'cors_middleware.php';
 require_once 'db.php';
-require_once 'security.php';
 
 header('Content-Type: application/json');
 
@@ -152,6 +150,7 @@ if ($method === 'POST') {
         $product_code = sanitizeInput($decoded['product_code'] ?? '');
         $location = sanitizeInput($decoded['location'] ?? '');
         $gallery_input = $decoded['gallery'] ?? [];
+        $variants = $decoded['variants'] ?? [];
 
         $image_url = saveBase64File($image_data, ['image/jpeg', 'image/png', 'image/webp']);
         $directions_url = saveBase64File($directions, ['application/pdf']);
@@ -183,6 +182,15 @@ if ($method === 'POST') {
                 $sync->execute([$productId, $branchId, $location]);
             }
 
+            // Insert Variants
+            if (is_array($variants)) {
+                $varStmt = $pdo->prepare("INSERT INTO product_variants (product_id, sku, attributes, price_modifier, stock_quantity, image_url) VALUES (?, ?, ?, ?, ?, ?)");
+                foreach ($variants as $v) {
+                    $attr = is_string($v['attributes']) ? $v['attributes'] : json_encode($v['attributes'] ?? []);
+                    $varStmt->execute([$productId, sanitizeInput($v['sku'] ?? ''), $attr, (float)($v['price_modifier'] ?? 0), (int)($v['stock_quantity'] ?? 0), sanitizeInput($v['image_url'] ?? '')]);
+                }
+            }
+
             $pdo->commit();
             logger('info', 'PRODUCTS', "New product created: {$name} (ID: {$productId}) by {$userName}");
 
@@ -210,6 +218,7 @@ if ($method === 'POST') {
         $product_code = sanitizeInput($decoded['product_code'] ?? '');
         $location = sanitizeInput($decoded['location'] ?? '');
         $gallery_input = $decoded['gallery'] ?? [];
+        $variants = $decoded['variants'] ?? [];
 
         $image_url = saveBase64File($image_data, ['image/jpeg', 'image/png', 'image/webp']);
         $directions_url = saveBase64File($directions, ['application/pdf']);
@@ -273,6 +282,18 @@ if ($method === 'POST') {
                 } else {
                     $ins = $pdo->prepare("INSERT INTO product_locations (product_id, branch_id, shelf_label) VALUES (?, ?, ?)");
                     $ins->execute([$id, $branchId, $location]);
+                }
+            }
+
+            // Re-insert Variants
+            if (is_array($variants)) {
+                $pdo->prepare("DELETE FROM product_variants WHERE product_id = ?")->execute([$id]);
+                if (count($variants) > 0) {
+                    $varStmt = $pdo->prepare("INSERT INTO product_variants (product_id, sku, attributes, price_modifier, stock_quantity, image_url) VALUES (?, ?, ?, ?, ?, ?)");
+                    foreach ($variants as $v) {
+                        $attr = is_string($v['attributes']) ? $v['attributes'] : json_encode($v['attributes'] ?? []);
+                        $varStmt->execute([$id, sanitizeInput($v['sku'] ?? ''), $attr, (float)($v['price_modifier'] ?? 0), (int)($v['stock_quantity'] ?? 0), sanitizeInput($v['image_url'] ?? '')]);
+                    }
                 }
             }
 

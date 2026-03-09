@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useUser } from './UserContext';
 import { secureStorage } from '../utils/secureStorage';
+import { syncCart } from '../services/api';
 
 const CartContext = createContext();
 
@@ -21,7 +22,21 @@ export const CartProvider = ({ children }) => {
 
   useEffect(() => {
     secureStorage.setItem('cart', cartItems, user?.id);
-  }, [cartItems, user?.id]);
+
+    // Sync to backend for Abandoned Cart recovery (fire and forget)
+    if (user) {
+        const performCartSync = async () => {
+             try {
+                 await syncCart(cartItems);
+             } catch (e) {
+                 // Silently fail, it's a background sync
+             }
+        };
+        // Small debounce to avoid spamming if user clicks rapidly
+        const timeoutId = setTimeout(performCartSync, 1000);
+        return () => clearTimeout(timeoutId);
+    }
+  }, [cartItems, user]);
 
   const addToCart = (product, quantity = 1, color = 'Default') => {
     setCartItems(prev => {

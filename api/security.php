@@ -250,10 +250,10 @@ if (!function_exists('checkRateLimit')) {
             $stmt->execute([$ip]);
             $row = $stmt->fetch();
             if ($row && (time() - strtotime($row['last_request']) < 60)) {
-                if ($row['request_count'] >= 100) {
+                if ($row['request_count'] >= 300) {
                     header('Content-Type: application/json');
                     http_response_code(429);
-                    echo json_encode(['success' => false, 'message' => 'Too many requests.']);
+                    echo json_encode(['success' => false, 'message' => 'Too many requests. Please wait a minute.']);
                     exit;
                 }
                 $pdo->prepare("UPDATE api_rate_limits SET request_count = request_count + 1 WHERE ip_address = ?")->execute([$ip]);

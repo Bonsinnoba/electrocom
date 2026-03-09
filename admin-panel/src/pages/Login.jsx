@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { loginUser } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { Lock, Mail, Loader, AlertCircle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,18 +21,16 @@ export default function Login() {
     try {
         const result = await loginUser({ email, password });
         if (result.success) {
-            // Success! Store token and user info
-            localStorage.setItem('ehub_token', result.data.token);
-            localStorage.setItem('ehub_user', JSON.stringify(result.data.user));
-            
+            const user = result.data.user;
             const allowedRoles = ['admin', 'super', 'branch_admin', 'accountant', 'marketing'];
             
-            if (!allowedRoles.includes(result.data.user.role)) {
+            if (!allowedRoles.includes(user.role)) {
                 setError('Access denied: Unauthorized role.');
-                localStorage.removeItem('ehub_token');
-                localStorage.removeItem('ehub_user');
             } else {
-                if (result.data.user.role === 'super') {
+                // Use the login function from context to update state reactively
+                login(result.data.token, user);
+                
+                if (user.role === 'super') {
                     navigate('/super/dashboard');
                 } else {
                     navigate('/');

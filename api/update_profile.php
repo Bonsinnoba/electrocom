@@ -1,7 +1,6 @@
 <?php
 require_once 'db.php';
 require_once 'security.php';
-require_once 'cors_middleware.php';
 
 // Accept JSON POST payload
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

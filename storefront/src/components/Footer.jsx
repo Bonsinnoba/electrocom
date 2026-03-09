@@ -7,6 +7,7 @@ export default function Footer() {
     <footer className="footer">
       <div className="footer-content">
         <div className="footer-grid">
+
           {/* Company Info */}
           <div className="footer-column">
             <div className="footer-logo word-logo" style={{ marginBottom: '20px' }}>
@@ -31,6 +32,17 @@ export default function Footer() {
             </div>
           </div>
 
+          {/* Legal */}
+          <div className="footer-column">
+            <h4 className="footer-heading">Legal</h4>
+            <ul className="footer-links">
+              <li><Link to="/terms-of-service">Terms of Service</Link></li>
+              <li><Link to="/privacy-policy">Privacy Policy</Link></li>
+              <li><Link to="/returns">Return Policy</Link></li>
+              <li><Link to="/shipping-info">Shipping Info</Link></li>
+            </ul>
+          </div>
+
           {/* Quick Links */}
           <div className="footer-column">
             <h4 className="footer-heading">Quick Links</h4>
@@ -42,14 +54,15 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Customer Service */}
+          {/* Support */}
           <div className="footer-column">
-            <h4 className="footer-heading">Customer Service</h4>
+            <h4 className="footer-heading">Support</h4>
             <ul className="footer-links">
-              <li><Link to="/support">Support</Link></li>
-              <li><Link to="/shipping-info">Shipping Info</Link></li>
-              <li><Link to="/returns">Returns</Link></li>
+              <li><Link to="/support">About Us</Link></li>
+              <li><Link to="/shop">Shop Products</Link></li>
               <li><Link to="/faq">FAQ</Link></li>
+              <li><Link to="/track">Track Order</Link></li>
+              <li><Link to="/support">Contact Support</Link></li>
             </ul>
           </div>
 
@@ -67,10 +80,11 @@ export default function Footer() {
               </li>
               <li>
                 <MapPin size={16} />
-                <span>Accra, Kumasi & Wa, Ghana</span>
+                <span>Accra, Kumasi &amp; Wa, Ghana</span>
               </li>
             </ul>
           </div>
+
         </div>
 
         {/* Footer Bottom */}
@@ -84,6 +98,7 @@ export default function Footer() {
             <Link to="/cookie-policy">Cookie Policy</Link>
           </div>
         </div>
+
       </div>
     </footer>
   );

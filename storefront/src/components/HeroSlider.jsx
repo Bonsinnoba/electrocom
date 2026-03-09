@@ -44,6 +44,18 @@ export default function HeroSlider() {
     return () => clearInterval(timer);
   }, [slides]);
 
+  const [sliderHeight, setSliderHeight] = useState(() =>
+    window.innerWidth <= 768 ? 312 : 480
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setSliderHeight(window.innerWidth <= 768 ? 312 : 480);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (slides.length === 0) return null;
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -69,8 +81,9 @@ export default function HeroSlider() {
   };
 
 
+
   return (
-    <div className="hero-slider" style={{ position: 'relative', height: '480px', overflow: 'hidden', borderRadius: '16px' }}>
+    <div className="hero-slider" style={{ position: 'relative', height: `${sliderHeight}px`, overflow: 'hidden', borderRadius: '16px' }}>
       <div 
         className="slides-wrapper" 
         style={{ 
