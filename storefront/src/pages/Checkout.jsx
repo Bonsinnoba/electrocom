@@ -4,8 +4,8 @@ import { useNotifications } from '../context/NotificationContext';
 import { useWallet } from '../context/WalletContext';
 import { useUser } from '../context/UserContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { CreditCard, Truck, ShieldCheck, ArrowLeft, ChevronRight, CheckCircle, Smartphone, MapPin, Wallet as WalletIcon } from 'lucide-react';
-import { createOrder } from '../services/api';
+import { CreditCard, Truck, ShieldCheck, ArrowLeft, ChevronRight, CheckCircle, Smartphone, MapPin, Wallet as WalletIcon, Tag } from 'lucide-react';
+import { createOrder, validateCoupon } from '../services/api';
 
 import { usePaystackPayment } from 'react-paystack';
 
@@ -19,6 +19,10 @@ export default function Checkout() {
   const [step, setStep] = useState(1); // 1: Shipping, 2: Payment, 3: Review
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [loading, setLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name && user.name !== 'Guest User' ? user.name : '',
     email: user?.email || '',
@@ -79,7 +83,33 @@ export default function Checkout() {
 
   const shippingFee = calculateShipping();
   const tax = subtotal * 0.1;
-  const total = subtotal + tax + shippingFee;
+  const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+  const total = Math.max(0, subtotal - discount + tax + shippingFee);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsApplyingCoupon(true);
+    setCouponError('');
+    try {
+        const result = await validateCoupon(couponCode, subtotal);
+        if (result.success) {
+            setAppliedCoupon(result.coupon);
+            addNotification('Coupon applied successfully', 'success');
+            setCouponCode('');
+        } else {
+            setCouponError(result.error || 'Invalid coupon code');
+        }
+    } catch {
+        setCouponError('Error validating coupon. Please try again.');
+    } finally {
+        setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError('');
+  };
 
   // Paystack Configuration
   const config = {
@@ -106,7 +136,9 @@ export default function Checkout() {
             })),
             shipping_address: `${formData.address}, ${formData.city}, ${GHANA_REGIONS.find(r => r.code === formData.region)?.label || ''} ${formData.zip}`,
             payment_method: `${paymentMethod === 'momo' ? 'Mobile Money' : 'Card'}`,
-            payment_reference: reference.reference // Secure reference
+            payment_reference: reference.reference, // Secure reference
+            coupon_code: appliedCoupon ? appliedCoupon.code : null,
+            discount_amount: discount
         };
 
         const response = await createOrder(orderData);
@@ -529,8 +561,22 @@ export default function Checkout() {
                 <span style={{ color: 'var(--text-muted)' }}>Estimated Tax</span>
                 <span>${tax.toFixed(2)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Shipping</span>
+              {appliedCoupon && (
+                <div className="animate-fade-in" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--danger)', background: 'var(--danger-bg)', padding: '8px 12px', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Tag size={14} />
+                    <span>Discount ({appliedCoupon.code})</span>
+                  </div>
+                  <span>-${discount.toFixed(2)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Shipping</span>
+                  <span style={{ fontSize: '10px', color: 'var(--primary-blue)', fontWeight: 600 }}>
+                    {subtotal > 1000 ? 'Free Shipping (Special Promo)' : (formData.region ? `Standard Rate (${GHANA_REGIONS.find(r => r.code === formData.region)?.label.split('(')[0].trim()})` : 'Base delivery rate')}
+                  </span>
+                </div>
                 <span style={{ color: shippingFee === 0 ? '#22c55e' : 'var(--text-main)', fontWeight: shippingFee === 0 ? 700 : 500 }}>
                    {shippingFee === 0 ? 'Free' : `$${shippingFee.toFixed(2)}`}
                 </span>
@@ -540,6 +586,37 @@ export default function Checkout() {
                 <span style={{ color: 'var(--primary-blue)' }}>${total.toFixed(2)}</span>
               </div>
             </div>
+
+            {/* Promo Code Input */}
+            {!appliedCoupon ? (
+              <div style={{ marginTop: '20px', paddingop: '20px', borderTop: '1px dashed var(--border-light)' }}>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+                  <input 
+                    type="text" 
+                    value={couponCode} 
+                    onChange={(e) => setCouponCode(e.target.value)} 
+                    placeholder="Enter Promo Code" 
+                    className="input-premium" 
+                    style={{ flex: 1, padding: '10px 14px' }} 
+                  />
+                  <button 
+                    onClick={handleApplyCoupon} 
+                    disabled={isApplyingCoupon || !couponCode.trim()} 
+                    className="btn-secondary" 
+                    style={{ padding: '10px 16px' }}
+                  >
+                    {isApplyingCoupon ? '...' : 'Apply'}
+                  </button>
+                </div>
+                {couponError && <div style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '6px' }}>{couponError}</div>}
+              </div>
+            ) : (
+              <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px dashed var(--border-light)' }}>
+                 <button onClick={handleRemoveCoupon} className="btn-outline" style={{ width: '100%', fontSize: '13px', padding: '10px', color: 'var(--danger)', borderColor: 'var(--danger)' }}>
+                    Remove Coupon
+                 </button>
+              </div>
+            )}
             
             <div style={{ marginTop: '24px', padding: '16px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.1)', color: '#166534', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <ShieldCheck size={18} />

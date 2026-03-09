@@ -1,5 +1,4 @@
 <?php
-require_once 'cors_middleware.php';
 require_once 'db.php';
 require_once 'security.php';
 

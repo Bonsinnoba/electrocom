@@ -102,7 +102,7 @@ if ($method === 'GET') {
         }
     } elseif ($action === 'set_role') {
         $id = $decoded['id'] ?? null;
-        $role = $decoded['role'] ?? 'customer';
+        $newRole = $decoded['role'] ?? 'customer';
 
         if (!$id) {
             http_response_code(400);
@@ -111,12 +111,79 @@ if ($method === 'GET') {
         }
 
         try {
+            // First, find the target user's current role
+            $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+            $stmt->execute([$id]);
+            $targetUser = $stmt->fetch();
+
+            if (!$targetUser) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'User not found']);
+                exit;
+            }
+
+            $currentRole = $targetUser['role'];
+
+            // Security Check: Only a super admin can alter a super admin, 
+            // or assign the super admin role to someone else.
+            if (($currentRole === 'super' || $newRole === 'super') && $role !== 'super') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Permission denied: Super admin privileges required.']);
+                exit;
+            }
+
             $stmt = $pdo->prepare("UPDATE users SET role = ? WHERE id = ?");
-            $stmt->execute([$role, $id]);
+            $stmt->execute([$newRole, $id]);
 
-            logger('info', 'STAFF', "User ID: {$id} role updated to " . strtoupper($role) . " by {$userName}");
+            logger('info', 'STAFF', "User ID: {$id} role updated to " . strtoupper($newRole) . " by {$userName}");
 
-            echo json_encode(['success' => true, 'role' => $role]);
+            echo json_encode(['success' => true, 'role' => $newRole]);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    } elseif ($action === 'approve_verification') {
+        $id = $decoded['id'] ?? null;
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'User ID is required']);
+            exit;
+        }
+
+        try {
+            $stmt = $pdo->prepare("UPDATE users SET id_verified = 1 WHERE id = ?");
+            $stmt->execute([$id]);
+
+            // Notify user
+            $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, 'Identity Verified', 'Your Ghana Card verification has been approved. You can now place orders.', 'security')")
+                ->execute([$id]);
+
+            logger('info', 'STAFF', "User ID: {$id} identity verification APPROVED by {$userName}");
+            echo json_encode(['success' => true]);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    } elseif ($action === 'reject_verification') {
+        $id = $decoded['id'] ?? null;
+        $reason = $decoded['reason'] ?? 'Provided information was unclear or invalid.';
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'User ID is required']);
+            exit;
+        }
+
+        try {
+            // Reset verification data so they can try again
+            $stmt = $pdo->prepare("UPDATE users SET id_verified = 0, id_number = NULL, id_photo = NULL WHERE id = ?");
+            $stmt->execute([$id]);
+
+            // Notify user
+            $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, 'Identity Verification Rejected', ?, 'security')")
+                ->execute([$id, "Your Ghana Card verification was rejected. Reason: {$reason}. Please try again with clear information."]);
+
+            logger('warn', 'STAFF', "User ID: {$id} identity verification REJECTED by {$userName}. Reason: {$reason}");
+            echo json_encode(['success' => true]);
         } catch (PDOException $e) {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);

@@ -7,7 +7,11 @@ import {
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchSuperDashboard as getDashboard } from '../../services/api';
+import { fetchSuperDashboard as getDashboard, fetchAnalytics } from '../../services/api';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  BarChart, Bar, PieChart, Pie, Cell, Legend
+} from 'recharts';
 
 // ── Fix Leaflet default icon paths broken by Vite bundling ───────────────────
 delete L.Icon.Default.prototype._getIconUrl;
@@ -61,6 +65,7 @@ const BRANCH_COORDS = {
 
 export default function Dashboard() {
   const [data, setData]     = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
@@ -68,8 +73,14 @@ export default function Dashboard() {
   const load = async () => {
     try {
       setError(null);
-      const res = await getDashboard();
+      const [res, analyticsRes] = await Promise.all([
+         getDashboard(),
+         fetchAnalytics().catch(e => ({ success: false })) // Don't fail the whole dashboard if analytics fails
+      ]);
       setData(res);
+      if (analyticsRes.success) {
+          setAnalytics(analyticsRes.data);
+      }
       setLastUpdate(new Date());
     } catch (e) {
       setError(e.message);
@@ -287,6 +298,95 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* ── Advanced Analytics (Recharts) ─────────────────────────────────── */}
+      {!loading && analytics && (
+        <div style={{ marginBottom: '32px' }}>
+          <h2 style={{ fontSize:'20px', fontWeight:800, marginBottom:'20px', display:'flex', alignItems:'center', gap:'10px' }}>
+            <Activity size={20} color="var(--primary-blue)" /> Advanced Sales Analytics
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '24px' }}>
+            
+            {/* Revenue Area Chart */}
+            <div className="card glass">
+              <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:'16px', color:'var(--text-muted)' }}>Revenue (Last 30 Days)</h3>
+              <div style={{ height: '300px', width: '100%' }}>
+                <ResponsiveContainer>
+                  <AreaChart data={analytics.revenue_chart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis 
+                       dataKey="date" 
+                       tickFormatter={(str) => {
+                          const date = new Date(str);
+                          return `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })}`;
+                       }}
+                       stroke="#64748b" 
+                       fontSize={12} 
+                       tickLine={false} 
+                       axisLine={false} 
+                    />
+                    <YAxis 
+                       tickFormatter={(num) => `GH₵${num >= 1000 ? (num/1000).toFixed(0)+'k' : num}`} 
+                       stroke="#64748b" 
+                       fontSize={12} 
+                       tickLine={false} 
+                       axisLine={false} 
+                    />
+                    <RechartsTooltip 
+                       contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                       formatter={(value) => [`GH₵ ${parseFloat(value).toFixed(2)}`, 'Revenue']}
+                       labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                    />
+                    <Area type="monotone" dataKey="daily_revenue" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Top Products Bar Chart */}
+            <div className="card glass">
+              <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:'16px', color:'var(--text-muted)' }}>Top Selling Products</h3>
+              <div style={{ height: '300px', width: '100%' }}>
+                <ResponsiveContainer>
+                  <BarChart data={analytics.top_products} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={true} vertical={false} />
+                    <XAxis type="number" hide />
+                    <YAxis 
+                       type="category" 
+                       dataKey="name" 
+                       width={100}
+                       stroke="#64748b" 
+                       fontSize={11} 
+                       tickLine={false} 
+                       axisLine={false}
+                       tickFormatter={(str) => str.length > 15 ? str.substring(0, 15) + '...' : str}
+                    />
+                    <RechartsTooltip 
+                       cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                       contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                       formatter={(value) => [`${value} units`, 'Sold']}
+                    />
+                    <Bar dataKey="total_sold" fill="var(--primary-gold)" radius={[0, 4, 4, 0]}>
+                        {
+                            (analytics.top_products || []).map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={index === 0 ? "var(--primary-gold)" : index === 1 ? "#3b82f6" : index === 2 ? "#a855f7" : "#64748b"} />
+                            ))
+                        }
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* ── Recent Orders ──────────────────────────────────────────────────── */}
       <div className="card glass">

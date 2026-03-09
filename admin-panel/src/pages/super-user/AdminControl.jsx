@@ -47,6 +47,8 @@ export default function AdminControl() {
   const [busy, setBusy]       = useState({}); // tracks per-row loading
   const [confirm, setConfirm] = useState(null); // { type, user }
 
+  const currentUser = JSON.parse(localStorage.getItem('ehub_user') || '{}');
+
   const load = async () => {
     setLoading(true); setError(null);
     try {
@@ -202,7 +204,7 @@ export default function AdminControl() {
                         <select 
                           value={user.role} 
                           onChange={(e) => withBusy(user.id, () => updateRole(user.id, e.target.value))}
-                          disabled={isBusy || user.role === 'super'}
+                          disabled={isBusy || (user.role === 'super' && user.id === currentUser?.id)}
                           style={{ 
                             background: roleStyle.bg, border: `1px solid ${roleStyle.border}`, color: roleStyle.color,
                             padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800, cursor: 'pointer', outline: 'none'

@@ -9,6 +9,10 @@ import SliderManager from './pages/SliderManager';
 import StoreLayout from './pages/StoreLayout';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
+import CouponManager from './pages/CouponManager';
+import SystemNotifications from './pages/SystemNotifications';
+import ReviewManager from './pages/ReviewManager';
+import AbandonedCartManager from './pages/AbandonedCartManager';
 import SuperDashboard from './pages/super-user/SuperDashboard';
 import BranchManagement from './pages/super-user/BranchManagement';
 import AdminControl from './pages/super-user/AdminControl';
@@ -17,8 +21,10 @@ import VerificationManager from './pages/super-user/VerificationManager';
 import GlobalSettings from './pages/super-user/GlobalSettings';
 import TrafficControl from './pages/super-user/TrafficControl';
 import { NotificationProvider, useNotifications } from './context/NotificationContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { X } from 'lucide-react';
 
+// ─── Toast Overlay ────────────────────────────────────────────────────────────
 const AdminToasts = () => {
   const { notifications, deleteNotification } = useNotifications();
   
@@ -75,18 +81,84 @@ const AdminToasts = () => {
   );
 };
 
+// ─── Protected Layout (defined OUTSIDE App to stay stable across renders) ─────
+const ProtectedLayout = ({ children, requireSuper = false }) => {
+  const { isAuthenticated, user, logout, loading } = useAuth();
+  const [isMaintenance, setIsMaintenance] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const check = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/super_settings.php', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('ehub_token')}` }
+        });
+        if (res.status === 401 || res.status === 403) {
+          logout();
+          return;
+        }
+        if (res.status === 503) {
+          const data = await res.json();
+          if (data.maintenance && user?.role !== 'super') {
+            setIsMaintenance(true);
+          }
+        }
+      } catch (e) {}
+    };
+    check();
+  }, [isAuthenticated, user, logout]);
+
+  // While auth context is loading from localStorage, show nothing (prevents flash)
+  if (loading) return null;
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  if (isMaintenance) {
+    return (
+      <div style={{ 
+        height: '100vh', display: 'flex', flexDirection: 'column', 
+        alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+        padding: '20px', background: 'var(--bg-main)', color: 'var(--text-main)'
+      }}>
+        <div style={{ fontSize: '64px', marginBottom: '24px' }}>🛠️</div>
+        <h1 style={{ fontSize: '32px', fontWeight: 900, marginBottom: '16px' }}>System Maintenance</h1>
+        <p style={{ color: 'var(--text-muted)', maxWidth: '500px', lineHeight: '1.6' }}>
+          The administration panel is currently undergoing scheduled maintenance. 
+          Only Super Admins can access the dashboard at this time.
+        </p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="btn-primary" 
+          style={{ marginTop: '32px', padding: '12px 24px' }}
+        >
+          Retry Connection
+        </button>
+      </div>
+    );
+  }
+
+  if (requireSuper && user?.role !== 'super') {
+    return <Navigate to="/" replace />;
+  }
+
+  return (
+    <div className="admin-layout">
+      <Sidebar />
+      <main className="admin-main">
+        {children}
+      </main>
+    </div>
+  );
+};
+
+// ─── App ──────────────────────────────────────────────────────────────────────
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved !== null ? JSON.parse(saved) : false;
   });
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!localStorage.getItem('ehub_token');
-  });
-
   useEffect(() => {
-    // Apply dark mode class to body based on saved preference
     if (isDarkMode) {
       document.body.classList.add('dark-mode');
     } else {
@@ -94,145 +166,64 @@ function App() {
     }
   }, [isDarkMode]);
 
-  // Sync theme state with localStorage for multi-tab/same-tab updates
   useEffect(() => {
     const handleStorageChange = () => {
       const saved = localStorage.getItem('darkMode');
-      if (saved !== null) {
-        setIsDarkMode(JSON.parse(saved));
-      }
+      if (saved !== null) setIsDarkMode(JSON.parse(saved));
     };
-    
     window.addEventListener('storage', handleStorageChange);
-    // Also listen for custom events if we dispatch them
     window.addEventListener('themeChange', handleStorageChange);
-    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('themeChange', handleStorageChange);
     };
   }, []);
 
-  // Check auth status periodically
-  useEffect(() => {
-    const checkAuth = () => {
-        setIsAuthenticated(!!localStorage.getItem('ehub_token'));
-    };
-    window.addEventListener('storage', checkAuth);
-    const interval = setInterval(checkAuth, 2000);
-    return () => {
-        window.removeEventListener('storage', checkAuth);
-        clearInterval(interval);
-    };
-  }, []);
-
-  const ProtectedLayout = ({ children, requireSuper = false }) => {
-    const [isMaintenance, setIsMaintenance] = useState(false);
-
-    useEffect(() => {
-        if (!isAuthenticated) return;
-        
-        // Quick check for maintenance mode if not already on a super route
-        const check = async () => {
-            try {
-                const res = await fetch('http://localhost:8000/super_settings.php', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('ehub_token')}` }
-                });
-                if (res.status === 503) {
-                    const data = await res.json();
-                    if (data.maintenance) {
-                        const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
-                        if (user.role !== 'super') {
-                            setIsMaintenance(true);
-                        }
-                    }
-                }
-            } catch (e) {}
-        };
-        check();
-    }, [isAuthenticated]);
-
-    if (!isAuthenticated) return <Navigate to="/login" />;
-
-    if (isMaintenance) {
-        return (
-            <div style={{ 
-                height: '100vh', display: 'flex', flexDirection: 'column', 
-                alignItems: 'center', justifyContent: 'center', textAlign: 'center',
-                padding: '20px', background: 'var(--bg-main)', color: 'var(--text-main)'
-            }}>
-                <div style={{ fontSize: '64px', marginBottom: '24px' }}>🛠️</div>
-                <h1 style={{ fontSize: '32px', fontWeight: 900, marginBottom: '16px' }}>System Maintenance</h1>
-                <p style={{ color: 'var(--text-muted)', maxWidth: '500px', lineHeight: '1.6' }}>
-                    The administration panel is currently undergoing scheduled maintenance. 
-                    Only Super Admins can access the dashboard at this time.
-                </p>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className="btn-primary" 
-                  style={{ marginTop: '32px', padding: '12px 24px' }}
-                >
-                    Retry Connection
-                </button>
-            </div>
-        );
-    }
-    
-    // Check role if super is required
-    if (requireSuper) {
-        const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
-        if (user.role !== 'super') return <Navigate to="/" />;
-    }
-
-    return (
-      <div className="admin-layout">
-        <Sidebar />
-        <main className="admin-main">
-          {children}
-        </main>
-      </div>
-    );
-  };
-
   return (
-    <NotificationProvider>
-      <AdminToasts />
-      <Router>
-        <div className="mobile-restriction">
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🖥️</div>
-          <h2>Desktop or Tablet Required</h2>
-          <p>The Admin Dashboard is optimized for larger screens only.</p>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '8px' }}>Please access this URL from a tablet (landscape), laptop, or desktop computer (min-width: 1024px).</p>
-        </div>
-        
-        <Routes>
-          <Route path="/login" element={<Login />} />
+    <AuthProvider>
+      <NotificationProvider>
+        <AdminToasts />
+        <Router>
+          <div className="mobile-restriction">
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>🖥️</div>
+            <h2>Desktop or Tablet Required</h2>
+            <p>The Admin Dashboard is optimized for larger screens only.</p>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '8px' }}>
+              Please access this URL from a tablet (landscape), laptop, or desktop computer (min-width: 1024px).
+            </p>
+          </div>
           
-          <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
-          <Route path="/products" element={<ProtectedLayout><ProductManager /></ProtectedLayout>} />
-          <Route path="/orders" element={<ProtectedLayout><OrderManager /></ProtectedLayout>} />
-          <Route path="/customers" element={<ProtectedLayout><CustomerManager /></ProtectedLayout>} />
-          <Route path="/slider" element={<ProtectedLayout><SliderManager /></ProtectedLayout>} />
-          <Route path="/inventory" element={<ProtectedLayout><StoreLayout /></ProtectedLayout>} />
-          <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            
+            <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+            <Route path="/products" element={<ProtectedLayout><ProductManager /></ProtectedLayout>} />
+            <Route path="/orders" element={<ProtectedLayout><OrderManager /></ProtectedLayout>} />
+            <Route path="/customers" element={<ProtectedLayout><CustomerManager /></ProtectedLayout>} />
+            <Route path="/slider" element={<ProtectedLayout><SliderManager /></ProtectedLayout>} />
+            <Route path="/coupons" element={<ProtectedLayout><CouponManager /></ProtectedLayout>} />
+            <Route path="/inventory" element={<ProtectedLayout><StoreLayout /></ProtectedLayout>} />
+            <Route path="/notifications" element={<ProtectedLayout><SystemNotifications /></ProtectedLayout>} />
+            <Route path="/reviews" element={<ProtectedLayout><ReviewManager /></ProtectedLayout>} />
+            <Route path="/abandoned-carts" element={<ProtectedLayout><AbandonedCartManager /></ProtectedLayout>} />
+            <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
 
-          {/* Super Admin Routes */}
-          <Route path="/super/dashboard" element={<ProtectedLayout requireSuper><SuperDashboard /></ProtectedLayout>} />
-          <Route path="/super/branches" element={<ProtectedLayout requireSuper><BranchManagement /></ProtectedLayout>} />
-          <Route path="/super/admins" element={<ProtectedLayout requireSuper><AdminControl /></ProtectedLayout>} />
-          <Route path="/super/verification" element={<ProtectedLayout requireSuper><VerificationManager /></ProtectedLayout>} />
-          <Route path="/super/logs" element={<ProtectedLayout requireSuper><SystemLogs /></ProtectedLayout>} />
-          <Route path="/super/traffic" element={<ProtectedLayout requireSuper><TrafficControl /></ProtectedLayout>} />
-          <Route path="/super/settings" element={<ProtectedLayout requireSuper><GlobalSettings /></ProtectedLayout>} />
-          
-          {/* Redirect unknown routes */}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </Router>
-    </NotificationProvider>
+            {/* Super Admin Routes */}
+            <Route path="/super/dashboard" element={<ProtectedLayout requireSuper><SuperDashboard /></ProtectedLayout>} />
+            <Route path="/super/branches" element={<ProtectedLayout requireSuper><BranchManagement /></ProtectedLayout>} />
+            <Route path="/super/admins" element={<ProtectedLayout requireSuper><AdminControl /></ProtectedLayout>} />
+            <Route path="/super/verification" element={<ProtectedLayout requireSuper><VerificationManager /></ProtectedLayout>} />
+            <Route path="/super/logs" element={<ProtectedLayout requireSuper><SystemLogs /></ProtectedLayout>} />
+            <Route path="/super/traffic" element={<ProtectedLayout requireSuper><TrafficControl /></ProtectedLayout>} />
+            <Route path="/super/settings" element={<ProtectedLayout requireSuper><GlobalSettings /></ProtectedLayout>} />
+            
+            {/* Redirect unknown routes */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </NotificationProvider>
+    </AuthProvider>
   );
-
 }
 
 export default App;
-

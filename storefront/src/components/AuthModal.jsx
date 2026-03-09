@@ -210,7 +210,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
 
     } catch (err) {
       console.error(err);
-      setError(err.message || "Authentication failed. Please check your connection.");
+      // Show a friendly message - never expose raw network/JS errors to the user
+      const isNetworkError = err.message === 'Failed to fetch' || err.message?.includes('NetworkError') || err.message?.includes('network');
+      setError(isNetworkError
+        ? "Unable to connect. Please check your internet connection and try again."
+        : "Something went wrong. Please try again.");
+
     } finally {
       setLoading(false);
     }

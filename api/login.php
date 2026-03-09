@@ -2,7 +2,6 @@
 // backend/login.php
 require_once 'db.php';
 require_once 'security.php';
-require_once 'cors_middleware.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

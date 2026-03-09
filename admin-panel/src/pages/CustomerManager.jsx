@@ -141,7 +141,16 @@ export default function CustomerManager() {
   const filteredCustomers = customers.filter(customer => {
     const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          customer.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterStatus === 'All' || customer.status === filterStatus;
+    
+    let matchesFilter = filterStatus === 'All';
+    if (filterStatus === 'Pending Verification') {
+        matchesFilter = customer.id_number && !customer.id_verified;
+    } else if (filterStatus === 'All') {
+        matchesFilter = true;
+    } else {
+        matchesFilter = customer.status === filterStatus;
+    }
+    
     return matchesSearch && matchesFilter;
   });
 
@@ -282,7 +291,7 @@ export default function CustomerManager() {
                   boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
                   zIndex: 100
                 }}>
-                  {['All', 'Active', 'Suspended', 'VIP', 'New'].map(status => (
+                  {['All', 'Active', 'Suspended', 'VIP', 'New', 'Pending Verification'].map(status => (
                     <button
                       key={status}
                       onClick={() => {

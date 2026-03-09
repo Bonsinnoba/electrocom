@@ -1,6 +1,5 @@
 <?php
 // backend/logout.php
-require_once 'cors_middleware.php';
 
 // Clear the HttpOnly session cookie by setting an expiration date in the past
 setcookie('ehub_session', '', [

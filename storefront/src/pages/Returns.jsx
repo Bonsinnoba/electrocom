@@ -34,7 +34,7 @@ export default function Returns() {
          </div>
         <h1 style={{ fontSize: '36px', fontWeight: 800, marginBottom: '12px' }}>Returns & Exchanges</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '16px', maxWidth: '600px', margin: '0 auto' }}>
-          We want you to love your purchase. If you're not completely satisfied, you can return most items within 30 days of delivery.
+          We stand behind every component we sell. If you receive a defective or incorrect item, we'll make it right. Please review our policy below for eligible return conditions.
         </p>
       </div>
 
@@ -56,13 +56,14 @@ export default function Returns() {
        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           <div className="glass" style={{ padding: '24px', borderRadius: '16px', border: '1px solid var(--border-light)' }}>
              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: 700, marginBottom: '12px', color: 'var(--success)' }}>
-                 <CheckCircle size={18} /> Returnable Items
+                 <CheckCircle size={18} /> Eligible for Return
              </h3>
              <ul style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.8', paddingLeft: '20px' }}>
-                 <li>Unworn, unwashed merchandise</li>
-                 <li>Electronics in unopened original packaging</li>
-                 <li>Defective or damaged items upon arrival</li>
-                 <li>Items shipped incorrectly by us</li>
+                 <li>Dead-on-arrival (DOA) components</li>
+                 <li>Items that are clearly defective or damaged upon delivery</li>
+                 <li>Wrong item shipped by ElectroCom</li>
+                 <li>Unopened STEM kits in original sealed packaging</li>
+                 <li>Modules and breakout boards that never powered on</li>
              </ul>
           </div>
           <div className="glass" style={{ padding: '24px', borderRadius: '16px', border: '1px solid var(--border-light)' }}>
@@ -70,10 +71,11 @@ export default function Returns() {
                  <AlertCircle size={18} /> Non-Returnable Items
              </h3>
              <ul style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.8', paddingLeft: '20px' }}>
-                 <li>Perishable goods or custom products</li>
-                 <li>Personal care and hygiene items</li>
-                 <li>Digital downloads or gift cards</li>
-                 <li>Clearance or final sale items</li>
+                 <li>Opened component packs (resistors, capacitors, etc.)</li>
+                 <li>Items damaged by incorrect wiring or ESD mishandling</li>
+                 <li>STEM kits with assembled or soldered parts</li>
+                 <li>Clearance or final sale components</li>
+                 <li>Custom-cut wire spools or bulk orders</li>
              </ul>
           </div>
        </div>

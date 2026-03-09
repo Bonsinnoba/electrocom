@@ -1,13 +1,15 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
-  LayoutDashboard, Package, ShoppingCart, Users, Settings,
-  LogOut, MapPin, ShieldAlert, Database, Globe, Zap, Activity, ShieldCheck 
+  LayoutDashboard, Package, ShoppingCart, Users, Settings, Tag,
+  LogOut, MapPin, ShieldAlert, Database, Globe, Zap, Activity, ShieldCheck,
+  Star, Bell, ShoppingBag
 } from 'lucide-react';
 
 export default function Sidebar() {
-  const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
-  const role = user.role || 'admin';
+  const { user, logout } = useAuth();
+  const role = user?.role || 'admin';
   const isSuper = role === 'super';
   const isAccountant = role === 'accountant';
   const isMarketing = role === 'marketing';
@@ -20,6 +22,10 @@ export default function Sidebar() {
     { icon: <MapPin size={20} />, label: 'Store Layout', path: '/inventory', visible: !isAccountant && !isMarketing },
     { icon: <Users size={20} />, label: isAccountant ? 'Billing List' : 'Customers', path: '/customers', visible: !isMarketing },
     { icon: <LayoutDashboard size={20} />, label: 'Hero Slider', path: '/slider', visible: !isAccountant },
+    { icon: <Tag size={20} />, label: 'Coupons', path: '/coupons', visible: !isAccountant },
+    { icon: <Star size={20} />, label: 'Reviews', path: '/reviews', visible: !isMarketing },
+    { icon: <ShoppingBag size={20} />, label: 'Abandoned Carts', path: '/abandoned-carts', visible: !isMarketing },
+    { icon: <Bell size={20} />, label: 'System Alerts', path: '/notifications', visible: true },
     { icon: <Settings size={20} />, label: 'Settings', path: '/settings', visible: !isMarketing },
   ].filter(item => item.visible);
 
@@ -99,11 +105,7 @@ export default function Sidebar() {
       <div className="sidebar-footer animate-slide-in" style={{ animationDelay: '0.6s', animationFillMode: 'both' }}>
         <button 
           className="btn sidebar-logout"
-          onClick={() => {
-            localStorage.removeItem('ehub_token');
-            localStorage.removeItem('ehub_user');
-            window.location.reload();
-          }}
+          onClick={logout}
           title="Logout"
         >
           <span className="sidebar-icon"><LogOut size={20} /></span>

@@ -53,7 +53,7 @@ export default function ShippingInfo() {
             Shipping Protection Guarantee
          </h2>
          <p style={{ color: 'var(--text-muted)', fontSize: '15px', lineHeight: '1.6' }}>
-            All standard and express deliveries are backed by our Shipping Protection Guarantee. If your package is lost in transit or arrives critically damaged, we will replace the affected items immediately at zero cost to you. 
+            All orders from ElectroCom are packed with care — ICs and sensitive components are shipped in ESD-safe anti-static bags, fragile modules in foam padding, and STEM kit boxes in reinforced packaging. If your package arrives damaged or components are missing, we will replace the affected items at zero cost to you. Simply contact us within 48 hours of delivery with photos of the parcel.
          </p>
       </div>
       

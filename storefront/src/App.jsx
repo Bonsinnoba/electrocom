@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, Component } from 'react'
 import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
 import ProductCard from './components/ProductCard'
@@ -18,7 +18,7 @@ import { UserProvider } from './context/UserContext';
 import { WalletProvider } from './context/WalletContext';
 import { SettingsProvider } from './context/SettingsContext';
 
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import Cart from './pages/Cart';
@@ -42,6 +42,8 @@ import { formatRelativeTime, formatDate } from './utils/dateFormatter';
 import MaintenancePage from './pages/MaintenancePage';
 import Verification from './pages/Verification';
 import ResetPassword from './pages/ResetPassword';
+import TrackOrder from './pages/TrackOrder';
+import CMSPage from './pages/CMSPage';
 
 // Helper function for relative time
 // Moved to utils/dateFormatter.js
@@ -60,6 +62,7 @@ function AppContent() {
   const { user, logout, authModal, openAuthModal, closeAuthModal } = useUser();
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [loginMessage, setLoginMessage] = useState('');
+  const lastFetchRef = React.useRef(0); 
 
   // Check maintenance mode from backend
   useEffect(() => {
@@ -165,6 +168,8 @@ function AppContent() {
             return isDifferent ? mappedProducts : prevProducts;
           });
           
+          lastFetchRef.current = Date.now();
+
           if (data.length === 0 && productsRef.current.length === 0) {
              addNotification("Product catalog is currently empty", "info");
           }
@@ -177,12 +182,10 @@ function AppContent() {
         return; // Silently fail and let the maintenance page handle it
       }
       
-      // Only show error notification if we don't have products locally
-      if (productsRef.current.length === 0) {
-        // Suppress notification if maintenance mode is already known via Ref
-        if (!maintenanceRef.current) {
-            addNotification(`API Error: ${error.message}`, "error");
-        }
+      // Only show error notification if we don't have products locally and it's not a background poll
+      if (productsRef.current.length === 0 && !maintenanceRef.current) {
+          // addNotification(`API Error: ${error.message}`, "error");
+          console.error(`API Error: ${error.message}`);
       }
     } finally {
       if (productsRef.current.length === 0) setLoading(false);
@@ -192,12 +195,14 @@ function AppContent() {
   useEffect(() => {
     loadProducts(); // Initial load
 
-    // Poll every 5 seconds
-    const intervalId = setInterval(loadProducts, 5000);
+    // Poll every 60 seconds (reduced from 5s to prevent excessive blinking/re-renders)
+    const intervalId = setInterval(loadProducts, 60000);
 
-    // Refresh on window focus
+    // Refresh on window focus, but throttle to once every 30s
     const handleFocus = () => {
-        loadProducts();
+        if (Date.now() - lastFetchRef.current > 30000) {
+            loadProducts();
+        }
     };
     
     window.addEventListener('focus', handleFocus);
@@ -331,6 +336,7 @@ function AppContent() {
           onMenuClick={toggleSidebar}
           onThemeToggle={toggleDarkMode}
           onProductClick={setSelectedProduct}
+          onNotificationsClick={() => setActiveDrawer('notifications')}
           isDarkMode={isDarkMode}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -360,6 +366,13 @@ function AppContent() {
             <Route path="/shipping-info" element={<ShippingInfo />} />
             <Route path="/returns" element={<Returns />} />
             <Route path="/faq" element={<FAQ />} />
+            <Route path="/track" element={<TrackOrder />} />
+          
+            {/* Dynamic CMS Page Route - Keep at the bottom to avoid catching specific routes */}
+            <Route path="/p/:slug" element={<CMSPage />} />
+
+            {/* Catch-all route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
 
@@ -480,11 +493,45 @@ const AppProviders = ({ children }) => {
   );
 };
 
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    this.setState({ error, errorInfo });
+    console.error("React Error Boundary Caught:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '50px', background: '#fee2e2', color: '#991b1b', minHeight: '100vh' }}>
+          <h1>Something went wrong.</h1>
+          <details style={{ whiteSpace: 'pre-wrap', marginTop: '20px', background: '#fff', padding: '20px', border: '1px solid #fca5a5' }}>
+            {this.state.error && this.state.error.toString()}
+            <br />
+            {this.state.errorInfo && this.state.errorInfo.componentStack}
+          </details>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
     <UserProvider>
       <AppProviders>
-        <AppContent />
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
       </AppProviders>
     </UserProvider>
   );

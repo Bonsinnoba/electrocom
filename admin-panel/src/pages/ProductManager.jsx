@@ -35,11 +35,11 @@ export default function ProductManager() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({ 
     name: '', category: '', price: '', stock: '', description: '', image: '',
-    colors: '', specs: '', included: '', directions: '', status: 'In Stock',
     rating: 5,
     product_code: '',
     location: '',
-    gallery: ['', '', '', '']
+    gallery: ['', '', '', ''],
+    variants: []
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
@@ -108,12 +108,11 @@ export default function ProductManager() {
         colors: colorsToString(product.colors),
         specs: specsToString(product.specs),
         included: includedToString(product.included),
-        directions: product.directions || '',
-        status: (product.stock <= 0) ? 'Out of Stock' : (product.stock < 10 ? 'Low Stock' : 'In Stock'),
         rating: product.rating || 5,
         product_code: product.product_code || '',
         location: product.location || '',
-        gallery: galleryData
+        gallery: galleryData,
+        variants: product.variants || []
       });
     } else {
       setEditingProduct(null);
@@ -123,7 +122,8 @@ export default function ProductManager() {
         rating: 5,
         product_code: '',
         location: '',
-        gallery: ['', '', '', '']
+        gallery: ['', '', '', ''],
+        variants: []
       });
     }
     setShowModal(true);
@@ -203,7 +203,8 @@ export default function ProductManager() {
         colors: JSON.stringify(stringToColors(formData.colors)),
         included: JSON.stringify(stringToIncluded(formData.included)),
         specs: JSON.stringify(stringToSpecs(formData.specs)),
-        gallery: formData.gallery.filter(img => img !== '')
+        gallery: formData.gallery.filter(img => img !== ''),
+        variants: formData.variants
     };
 
     try {
@@ -954,6 +955,89 @@ export default function ProductManager() {
                   style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none', minHeight: '80px', resize: 'vertical' }}
                   placeholder="Marketing text and general overview..."
                 />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                   <label style={{ display: 'block', fontSize: '14px', fontWeight: 600 }}>Product Variants (SKUs)</label>
+                   <button 
+                     type="button" 
+                     className="btn-outline" 
+                     onClick={() => setFormData({...formData, variants: [...formData.variants, { sku: '', attributes: '', price_modifier: 0, stock_quantity: 0, image_url: '' }]})}
+                     style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                   >
+                     <Plus size={14} /> Add Variant
+                   </button>
+                </div>
+                
+                {formData.variants.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {formData.variants.map((v, idx) => (
+                      <div key={idx} style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', display: 'grid', gap: '12px', position: 'relative' }}>
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            const newV = [...formData.variants];
+                            newV.splice(idx, 1);
+                            setFormData({...formData, variants: newV});
+                          }}
+                          style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '12px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Variant SKU/Code</label>
+                            <input value={v.sku} onChange={e => {
+                                const newV = [...formData.variants];
+                                newV[idx].sku = e.target.value;
+                                setFormData({...formData, variants: newV});
+                            }} style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }} placeholder="e.g. WH1000XM5-BLK" />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Variant Name/Attributes</label>
+                            <input value={v.attributes} onChange={e => {
+                                const newV = [...formData.variants];
+                                newV[idx].attributes = e.target.value;
+                                setFormData({...formData, variants: newV});
+                            }} style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }} placeholder="e.g. 128GB - Red" />
+                          </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Price Modifier ($)</label>
+                            <input type="number" step="0.01" value={v.price_modifier} onChange={e => {
+                                const newV = [...formData.variants];
+                                newV[idx].price_modifier = parseFloat(e.target.value) || 0;
+                                setFormData({...formData, variants: newV});
+                            }} style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }} placeholder="0.00" />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Variant Stock</label>
+                            <input type="number" value={v.stock_quantity} onChange={e => {
+                                const newV = [...formData.variants];
+                                newV[idx].stock_quantity = parseInt(e.target.value) || 0;
+                                setFormData({...formData, variants: newV});
+                            }} style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }} placeholder="0" />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Image URL (Optional)</label>
+                            <input value={v.image_url} onChange={e => {
+                                const newV = [...formData.variants];
+                                newV[idx].image_url = e.target.value;
+                                setFormData({...formData, variants: newV});
+                            }} style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', color: 'var(--text-main)', fontSize: '13px' }} placeholder="https://..." />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '24px', textAlign: 'center', border: '1px dashed var(--border-light)', borderRadius: '12px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    No variants added. The main product details will be used.
+                  </div>
+                )}
               </div>
               
               <div style={{ marginTop: '12px' }}>

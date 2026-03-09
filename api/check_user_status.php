@@ -5,7 +5,6 @@ require_once 'security.php';
 // Specific role check removed to allow all users to check their own status
 // authenticate() below handles basic token validation
 
-require_once 'cors_middleware.php';
 
 header('Content-Type: application/json');
 

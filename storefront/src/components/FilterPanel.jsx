@@ -30,11 +30,18 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
     <div className={`filter-panel ${isMobile ? 'mobile' : ''}`} style={{
       display: 'flex',
       flexDirection: 'column',
-      gap: '24px',
+      gap: isMobile ? '20px' : '24px',
       height: '100%',
-      padding: isMobile ? '0' : '24px'
+      padding: isMobile ? '0 8px' : '24px'
     }}>
-      {isMobile && <div className="drawer-handle" />}
+      {isMobile && <div className="drawer-handle" style={{
+        width: '40px',
+        height: '4px',
+        background: 'var(--border-light)',
+        borderRadius: '2px',
+        margin: '-20px auto 10px',
+        opacity: 0.6
+      }} />}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 800, color: 'var(--text-main)' }}>
@@ -60,13 +67,29 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
       </div>
 
       <div className="filter-group">
-        <label style={{ display: 'block', marginBottom: '14px', fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+        <label style={{ display: 'block', marginBottom: '14px', fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Category</label>
+        <div className="category-scroll-container" style={{ 
+          display: 'flex', 
+          flexDirection: isMobile ? 'row' : 'column',
+          flexWrap: isMobile ? 'nowrap' : 'wrap',
+          overflowX: isMobile ? 'auto' : 'visible',
+          gap: '10px',
+          paddingBottom: isMobile ? '8px' : '0',
+          scrollbarWidth: 'none',
+        }}>
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => handleCategoryChange(cat)}
               className={`filter-pill ${filters.category === cat ? 'active' : ''}`}
+              style={{
+                width: isMobile ? 'max-content' : '100%',
+                padding: isMobile ? '10px 20px' : '8px 18px',
+                textAlign: 'center',
+                fontSize: '14px',
+                flexShrink: 0,
+                borderRadius: '100px'
+              }}
             >
               {cat}
             </button>
@@ -80,10 +103,10 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <span style={{ 
               position: 'absolute', 
-              left: '12px', 
+              left: isMobile ? '16px' : '12px', 
               color: 'var(--primary-blue)', 
               fontWeight: 800,
-              fontSize: '14px',
+              fontSize: isMobile ? '16px' : '14px',
               pointerEvents: 'none'
             }}>$</span>
             <input 
@@ -113,17 +136,18 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
                 }
               }}
               style={{
-                width: '110px',
-                padding: '8px 12px 8px 25px',
-                borderRadius: '10px',
+                width: isMobile ? '130px' : '110px',
+                padding: isMobile ? '12px 16px 12px 30px' : '8px 12px 8px 25px',
+                borderRadius: '12px',
                 border: '1.5px solid var(--border-light)',
                 background: 'var(--bg-surface-secondary)',
-                fontSize: '15px',
+                fontSize: isMobile ? '16px' : '15px',
                 fontWeight: 800,
                 color: 'var(--primary-blue)',
                 textAlign: 'right',
                 outline: 'none',
-                transition: 'border-color 0.2s'
+                transition: 'border-color 0.2s',
+                WebkitAppearance: 'none'
               }}
               className="price-input-manual"
             />
@@ -152,9 +176,9 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
         <label style={{ display: 'block', marginBottom: '14px', fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Min Rating</label>
         <div style={{ 
           display: 'flex', 
-          gap: '4px',
+          gap: isMobile ? '6px' : '4px',
           background: 'var(--bg-surface-secondary)',
-          padding: '12px 8px',
+          padding: isMobile ? '12px' : '12px 8px',
           borderRadius: '16px',
           border: '1.5px solid var(--border-light)',
           justifyContent: 'center'
@@ -167,7 +191,7 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
               style={{
                 background: 'transparent',
                 border: 'none',
-                padding: '6px',
+                padding: isMobile ? '6px' : '6px',
                 cursor: 'pointer',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 transform: filters.minRating >= star ? 'scale(1.1)' : 'scale(1)',
@@ -175,7 +199,7 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
               }}
             >
               <Star 
-                size={22} 
+                size={isMobile ? 24 : 22} 
                 fill={filters.minRating >= star ? "var(--warning)" : "none"} 
                 stroke={filters.minRating >= star ? "var(--warning)" : "var(--text-muted)"}
                 strokeWidth={2.5}
@@ -204,21 +228,45 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
         )}
       </div>
 
-      <button 
-        className="btn-secondary" 
-        onClick={onReset}
-        style={{ 
-          marginTop: 'auto', 
-          width: '100%', 
-          gap: '10px', 
-          padding: '14px',
-          borderRadius: '12px',
-          fontWeight: 700,
-          border: '1.5px solid var(--border-light)'
-        }}
-      >
-        <RotateCcw size={16} /> Reset All Filters
-      </button>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: isMobile ? 'row' : 'column', 
+        gap: '12px', 
+        marginTop: isMobile ? '12px' : 'auto' 
+      }}>
+        <button 
+          className="btn-secondary" 
+          onClick={onReset}
+          style={{ 
+            flex: isMobile ? 1 : 'none',
+            width: isMobile ? 'auto' : '100%', 
+            gap: '8px', 
+            padding: '12px',
+            borderRadius: '16px',
+            fontWeight: 700,
+            border: '1.5px solid var(--border-light)',
+            fontSize: '14px'
+          }}
+        >
+          <RotateCcw size={16} /> Reset
+        </button>
+
+        {isMobile && (
+          <button 
+            className="btn-primary" 
+            onClick={onClose}
+            style={{ 
+              flex: 2,
+              padding: '12px',
+              borderRadius: '16px',
+              fontWeight: 800,
+              fontSize: '14px'
+            }}
+          >
+            Apply Filters
+          </button>
+        )}
+      </div>
     </div>
   );
 }

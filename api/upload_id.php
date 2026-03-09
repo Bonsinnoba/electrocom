@@ -2,7 +2,6 @@
 // backend/upload_id.php
 require_once 'db.php';
 require_once 'security.php';
-require_once 'cors_middleware.php';
 
 header('Content-Type: application/json');
 

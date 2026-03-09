@@ -85,19 +85,58 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
       </aside>
 
       <div className="shop-content-area" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Secondary Mobile Navbar - Sticky filter & count */}
+        <div className="shop-secondary-nav mobile-only" style={{ 
+          display: 'none', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          padding: '12px max(20px, env(safe-area-inset-left))',
+          margin: '16px -4px 24px -4px',
+          borderRadius: '16px',
+          background: 'var(--bg-surface)',
+          borderBottom: '1px solid var(--border-light)',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+        }}>
+          <button 
+            className="btn-primary" 
+            onClick={() => setShowMobileFilters(true)}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              padding: '8px 20px', 
+              fontSize: '14px', 
+              borderRadius: '100px',
+              fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            <FilterIcon size={16} /> Filter & Sort
+          </button>
+          
+          <div style={{ 
+            color: 'var(--text-main)', 
+            fontSize: '13px', 
+            fontWeight: 700,
+            paddingRight: '8px'
+          }}>
+            {loading ? '...' : filteredProducts.length} <span style={{ color: 'var(--text-muted)' }}>Items</span>
+          </div>
+        </div>
+
         <div style={{ padding: '0 0 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
             <h1 style={{ fontSize: '28px', fontWeight: 800, margin: 0 }}>Shop All</h1>
             
             <button 
-              className="btn-secondary mobile-filter-trigger" 
+              className="btn-secondary mobile-filter-trigger desktop-only-flex" 
               onClick={() => setShowMobileFilters(true)}
               style={{ display: 'none', gap: '8px' }}
             >
               <FilterIcon size={18} /> Filters
             </button>
 
-            <div style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 }}>
+            <div className="desktop-only-block" style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 }}>
               Showing {loading ? '...' : filteredProducts.length} Products
             </div>
           </div>
@@ -150,7 +189,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
 
       {/* Mobile Filter Drawer Overlay - Styled in CSS */}
       <div className={`mobile-filter-drawer ${showMobileFilters ? 'active' : ''}`}>
-        <div className="mobile-filter-content card glass">
+        <div className="mobile-filter-content">
           <FilterPanel 
             filters={filters} 
             setFilters={setFilters} 
@@ -165,14 +204,38 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
+        @media (min-width: 1025px) {
+          .mobile-filter-drawer {
+            display: none !important;
+          }
+          .mobile-only {
+            display: none !important;
+          }
+        }
+`}} />
+      <style dangerouslySetInnerHTML={{ __html: `
         @media (max-width: 1024px) {
           .shop-container {
             grid-template-columns: 1fr !important;
+            padding-top: 16px !important;
+          }
+          .product-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+            gap: 16px !important;
           }
           .desktop-filters {
             display: none !important;
           }
-          .mobile-filter-trigger {
+          .desktop-only-flex {
+            display: none !important;
+          }
+          .desktop-only-block {
+            display: none !important;
+          }
+          .mobile-only {
+            display: flex !important;
+          }
+          .shop-secondary-nav {
             display: flex !important;
           }
         }
@@ -192,27 +255,36 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
         }
         .mobile-filter-content {
           position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 100%;
-          max-height: 85vh;
+          bottom: 16px;
+          left: 50%;
+          width: calc(100% - 32px);
+          max-width: 420px;
+          max-height: calc(100vh - 120px);
           overflow-y: auto;
           z-index: 5002;
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(20px) saturate(180%);
-          border-radius: 32px 32px 0 0 !important;
-          padding: 40px 24px 32px;
-          transform: translateY(100%);
-          transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
-          box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+          background: var(--bg-surface);
+          border-radius: 32px !important;
+          padding: 24px 20px 32px;
+          transform: translate(-50%, 120%);
+          transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+          border: 1px solid var(--border-light);
+          will-change: transform;
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+          -webkit-transform: translate3d(-50%, 120%, 0);
+        }
+        .category-scroll-container::-webkit-scrollbar {
+          display: none;
         }
         .dark-mode .mobile-filter-content {
-          background: rgba(15, 23, 42, 0.95);
+          background: rgba(15, 23, 42, 0.98);
           border-top: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
+          box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
         }
         .mobile-filter-drawer.active .mobile-filter-content {
-          transform: translateY(0);
+          transform: translate(-50%, 0);
+          -webkit-transform: translate3d(-50%, 0, 0);
         }
         .mobile-filter-backdrop {
           position: absolute;
@@ -222,9 +294,13 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
           height: 100%;
           background: rgba(0, 0, 0, 0.3);
           backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           opacity: 0;
           transition: opacity 0.4s ease;
           z-index: 5001;
+          will-change: opacity;
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
         }
         .mobile-filter-drawer.active .mobile-filter-backdrop {
           opacity: 1;
