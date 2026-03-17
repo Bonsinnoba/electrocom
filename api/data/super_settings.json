@@ -3,12 +3,12 @@
     "siteEmail": "admin@electrocom.gh",
     "maintenanceMode": false,
     "allowRegistration": true,
-    "maxLoginAttempts": 1,
-    "sessionTimeout": 30,
+    "maxLoginAttempts": 5,
+    "sessionTimeout": 360,
     "twoFactorAdmin": true,
     "emailNotify": true,
     "securityAlerts": true,
-    "apiRateLimit": 100,
-    "debugMode": true,
+    "apiRateLimit": 60,
+    "debugMode": false,
     "backupFrequency": "daily"
 }
