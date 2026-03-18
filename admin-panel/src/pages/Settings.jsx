@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Save, User, Shield, Bell, Moon, Sun, Monitor, Globe, Check } from 'lucide-react';
+import { updateProfile } from '../services/api';
 
 export default function Settings() {
   const [storeName, setStoreName] = useState('ElectroCom');
@@ -36,11 +37,20 @@ export default function Settings() {
     window.dispatchEvent(new Event('themeChange'));
   };
 
-  const changeTheme = (newTheme) => {
+  const changeTheme = async (newTheme) => {
     setTheme(newTheme);
     localStorage.setItem('admin_theme', newTheme);
     window.dispatchEvent(new Event('themeChange'));
-    addToast(`Theme successfully updated`, 'success');
+    
+    // Sync to backend
+    try {
+      const response = await updateProfile({ theme: newTheme });
+      if (response.success && response.data?.user) {
+        localStorage.setItem('ehub_user', JSON.stringify(response.data.user));
+      }
+    } catch (e) {
+      console.error('Failed to sync theme to backend:', e);
+    }
   };
 
   return (

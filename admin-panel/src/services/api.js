@@ -713,6 +713,20 @@ export const updateDispatchStatus = async (id, status) => {
     }
 };
 
+export const updateProfile = async (profileData) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/update_profile.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(profileData),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        return { success: false, message: 'Network error.' };
+    }
+};
+
 // --- Reviews ---
 export const fetchAllReviews = async () => {
     try {

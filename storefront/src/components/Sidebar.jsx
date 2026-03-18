@@ -1,4 +1,4 @@
-import { LayoutGrid, ShoppingBag, Heart, Receipt, Package, Bell, Settings, HelpCircle, User, MapPin, ShoppingCart, X, LogOut } from 'lucide-react';
+import { Home, ShoppingBag, Heart, Receipt, Package, Bell, Settings, HelpCircle, User, MapPin, ShoppingCart, X, LogOut, LayoutGrid } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -21,7 +21,7 @@ export default function Sidebar({ isOpen, onClose, onOrdersClick, onNotification
   const isActive = (path) => location.pathname === path;
 
   const navItems = [
-    { to: "/", icon: <LayoutGrid size={24} />, label: "Dashboard", tooltip: "Dashboard" },
+    { to: "/", icon: <Home size={24} />, label: "Home", tooltip: "Home" },
     { to: "/cart", icon: <ShoppingCart size={24} />, label: "Cart", tooltip: "Cart" },
     { type: 'map', icon: <MapPin size={24} />, label: "Location", tooltip: "Location" },
     { to: "/shop", icon: <ShoppingBag size={24} />, label: "Shop", tooltip: "Shop" },

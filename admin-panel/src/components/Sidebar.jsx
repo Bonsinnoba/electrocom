@@ -44,7 +44,7 @@ export default function Sidebar() {
   return (
     <aside className="admin-sidebar glass">
       <div className="sidebar-logo">
-        Hub<span style={{ color: 'var(--text-main)' }}>Admin</span>
+        <img src="/logo.png" alt="ElectroCom Admin" style={{ height: '45px', width: 'auto', objectFit: 'contain' }} />
       </div>
 
       <nav className="sidebar-nav">

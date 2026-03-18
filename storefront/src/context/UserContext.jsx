@@ -31,6 +31,8 @@ export const UserProvider = ({ children }) => {
 
   const logout = async () => {
     setUser(null);
+    localStorage.setItem('site_theme', 'blue');
+    window.dispatchEvent(new Event('themeChange'));
     await logoutUser();
   };
 

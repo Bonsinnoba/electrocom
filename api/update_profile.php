@@ -88,6 +88,11 @@ try {
         $params[] = $data['two_factor_enabled'] ? 1 : 0;
     }
 
+    if (isset($data['theme'])) {
+        $updates[] = "theme = ?";
+        $params[] = sanitizeInput($data['theme']);
+    }
+
     if (empty($updates)) {
         echo json_encode(['success' => true, 'message' => 'No changes provided.']);
         exit;
@@ -101,7 +106,7 @@ try {
 
     if ($stmt->execute($params)) {
         // Fetch updated user data to return
-        $fetchStmt = $pdo->prepare("SELECT id, name, email, phone, address, level, level_name, avatar_text, profile_image, status, role, email_notif, push_notif, sms_tracking, two_factor_enabled FROM users WHERE id = ?");
+        $fetchStmt = $pdo->prepare("SELECT id, name, email, phone, address, level, level_name, avatar_text, profile_image, status, role, email_notif, push_notif, sms_tracking, two_factor_enabled, theme FROM users WHERE id = ?");
         $fetchStmt->execute([(int)$userId]);
         $user = $fetchStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -131,7 +136,8 @@ try {
                     'email_notif' => (bool)($user['email_notif'] ?? true),
                     'push_notif' => (bool)($user['push_notif'] ?? true),
                     'sms_tracking' => (bool)($user['sms_tracking'] ?? true),
-                    'two_factor_enabled' => (bool)($user['two_factor_enabled'] ?? false)
+                    'two_factor_enabled' => (bool)($user['two_factor_enabled'] ?? false),
+                    'theme' => $user['theme'] ?? 'blue'
                 ]
             ]
         ]);

@@ -45,6 +45,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('ehub_token');
     localStorage.removeItem('ehub_user');
+    localStorage.setItem('admin_theme', 'blue');
+    window.dispatchEvent(new Event('themeChange'));
     setToken(null);
     setUser(null);
   };

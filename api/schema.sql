@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS users (
     two_factor_secret VARCHAR(255) DEFAULT NULL,
     loyalty_points INT DEFAULT 0,
     auth_provider VARCHAR(50) DEFAULT 'local',
-    auth_provider_id VARCHAR(255) DEFAULT NULL
+    auth_provider_id VARCHAR(255) DEFAULT NULL,
+    theme VARCHAR(20) DEFAULT 'blue'
 );
 
 -- Create Products table with categorization and color support

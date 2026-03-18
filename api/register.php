@@ -115,7 +115,8 @@ try {
                 'level' => 1,
                 'levelName' => 'Starter',
                 'loyalty_points' => 0,
-                'role' => 'customer'
+                'role' => 'customer',
+                'theme' => 'blue'
             ]
         ]
     ]);

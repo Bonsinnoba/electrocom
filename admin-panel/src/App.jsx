@@ -192,8 +192,10 @@ const ProtectedLayout = ({ children, requireSuper = false }) => {
   );
 };
 
-// ─── App ──────────────────────────────────────────────────────────────────────
-function App() {
+// ─── App Content ─────────────────────────────────────────────────────────────
+function AppContent() {
+  const { user } = useAuth();
+  
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved !== null ? JSON.parse(saved) : false;
@@ -218,7 +220,15 @@ function App() {
     if (theme !== 'blue') {
       document.body.classList.add(`theme-${theme}`);
     }
+    localStorage.setItem('admin_theme', theme);
   }, [theme]);
+
+  // Sync theme from user profile on login
+  useEffect(() => {
+    if (user && user.theme && user.theme !== theme) {
+      setTheme(user.theme);
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -237,49 +247,56 @@ function App() {
   }, []);
 
   return (
+    <Router>
+      <div className="mobile-restriction">
+        <div style={{ fontSize: '48px', marginBottom: '20px' }}>🖥️</div>
+        <h2>Desktop or Tablet Required</h2>
+        <p>The Admin Dashboard is optimized for larger screens only.</p>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '8px' }}>
+          Please access this URL from a tablet (landscape), laptop, or desktop computer (min-width: 1024px).
+        </p>
+      </div>
+      
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        
+        <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+        <Route path="/products" element={<ProtectedLayout><ProductManager /></ProtectedLayout>} />
+        <Route path="/orders" element={<ProtectedLayout><OrderManager /></ProtectedLayout>} />
+        <Route path="/customers" element={<ProtectedLayout><CustomerManager /></ProtectedLayout>} />
+        <Route path="/slider" element={<ProtectedLayout><SliderManager /></ProtectedLayout>} />
+        <Route path="/coupons" element={<ProtectedLayout><CouponManager /></ProtectedLayout>} />
+        <Route path="/inventory" element={<ProtectedLayout><StoreLayout /></ProtectedLayout>} />
+        <Route path="/notifications" element={<ProtectedLayout><SystemNotifications /></ProtectedLayout>} />
+        <Route path="/reviews" element={<ProtectedLayout><ReviewManager /></ProtectedLayout>} />
+        <Route path="/abandoned-carts" element={<ProtectedLayout><AbandonedCartManager /></ProtectedLayout>} />
+        <Route path="/broadcast" element={<ProtectedLayout><BroadcastManager /></ProtectedLayout>} />
+        <Route path="/returns" element={<ProtectedLayout><ReturnManager /></ProtectedLayout>} />
+        <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
+
+        {/* Super Admin Routes */}
+        <Route path="/super/dashboard" element={<ProtectedLayout requireSuper><SuperDashboard /></ProtectedLayout>} />
+        <Route path="/super/branches" element={<ProtectedLayout requireSuper><BranchManagement /></ProtectedLayout>} />
+        <Route path="/super/admins" element={<ProtectedLayout requireSuper><AdminControl /></ProtectedLayout>} />
+
+        <Route path="/super/logs" element={<ProtectedLayout requireSuper><SystemLogs /></ProtectedLayout>} />
+        <Route path="/super/traffic" element={<ProtectedLayout requireSuper><TrafficControl /></ProtectedLayout>} />
+        <Route path="/super/settings" element={<ProtectedLayout requireSuper><GlobalSettings /></ProtectedLayout>} />
+        
+        {/* Redirect unknown routes */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────────
+function App() {
+  return (
     <AuthProvider>
       <NotificationProvider>
         <AdminToasts />
-        <Router>
-          <div className="mobile-restriction">
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>🖥️</div>
-            <h2>Desktop or Tablet Required</h2>
-            <p>The Admin Dashboard is optimized for larger screens only.</p>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '8px' }}>
-              Please access this URL from a tablet (landscape), laptop, or desktop computer (min-width: 1024px).
-            </p>
-          </div>
-          
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            
-            <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
-            <Route path="/products" element={<ProtectedLayout><ProductManager /></ProtectedLayout>} />
-            <Route path="/orders" element={<ProtectedLayout><OrderManager /></ProtectedLayout>} />
-            <Route path="/customers" element={<ProtectedLayout><CustomerManager /></ProtectedLayout>} />
-            <Route path="/slider" element={<ProtectedLayout><SliderManager /></ProtectedLayout>} />
-            <Route path="/coupons" element={<ProtectedLayout><CouponManager /></ProtectedLayout>} />
-            <Route path="/inventory" element={<ProtectedLayout><StoreLayout /></ProtectedLayout>} />
-            <Route path="/notifications" element={<ProtectedLayout><SystemNotifications /></ProtectedLayout>} />
-            <Route path="/reviews" element={<ProtectedLayout><ReviewManager /></ProtectedLayout>} />
-            <Route path="/abandoned-carts" element={<ProtectedLayout><AbandonedCartManager /></ProtectedLayout>} />
-            <Route path="/broadcast" element={<ProtectedLayout><BroadcastManager /></ProtectedLayout>} />
-            <Route path="/returns" element={<ProtectedLayout><ReturnManager /></ProtectedLayout>} />
-            <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
-
-            {/* Super Admin Routes */}
-            <Route path="/super/dashboard" element={<ProtectedLayout requireSuper><SuperDashboard /></ProtectedLayout>} />
-            <Route path="/super/branches" element={<ProtectedLayout requireSuper><BranchManagement /></ProtectedLayout>} />
-            <Route path="/super/admins" element={<ProtectedLayout requireSuper><AdminControl /></ProtectedLayout>} />
-
-            <Route path="/super/logs" element={<ProtectedLayout requireSuper><SystemLogs /></ProtectedLayout>} />
-            <Route path="/super/traffic" element={<ProtectedLayout requireSuper><TrafficControl /></ProtectedLayout>} />
-            <Route path="/super/settings" element={<ProtectedLayout requireSuper><GlobalSettings /></ProtectedLayout>} />
-            
-            {/* Redirect unknown routes */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
+        <AppContent />
       </NotificationProvider>
     </AuthProvider>
   );

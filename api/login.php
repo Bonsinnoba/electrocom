@@ -23,7 +23,7 @@ if (empty($email) || empty($password)) {
 
 try {
     // Fetch user by email
-    $stmt = $pdo->prepare("SELECT id, name, email, password_hash, phone, address, level, level_name, avatar_text, profile_image, status, role, is_verified, verification_method, email_notif, push_notif, sms_tracking, two_factor_enabled FROM users WHERE email = ?");
+    $stmt = $pdo->prepare("SELECT id, name, email, password_hash, phone, address, level, level_name, avatar_text, profile_image, status, role, is_verified, verification_method, email_notif, push_notif, sms_tracking, two_factor_enabled, theme FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
@@ -159,7 +159,8 @@ try {
                 'email_notif' => (bool)($user['email_notif'] ?? true),
                 'push_notif' => (bool)($user['push_notif'] ?? true),
                 'sms_tracking' => (bool)($user['sms_tracking'] ?? true),
-                'two_factor_enabled' => (bool)($user['two_factor_enabled'] ?? false)
+                'two_factor_enabled' => (bool)($user['two_factor_enabled'] ?? false),
+                'theme' => $user['theme'] ?? 'blue'
             ]
         ]
     ]);

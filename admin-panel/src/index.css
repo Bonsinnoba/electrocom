@@ -190,21 +190,25 @@ body {
 }
 
 .sidebar-logo {
-    font-size: 24px;
-    font-weight: 800;
-    color: var(--primary-blue);
     display: flex;
     align-items: center;
-    gap: 12px;
-    white-space: nowrap;
+    justify-content: center;
+    padding: 0 0 6px; /* Further reduction */
+    width: 100%;
     overflow: hidden;
+}
+
+.sidebar-logo img {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
 }
 
 .sidebar-nav {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 12px; /* Further reduction from 16px to 12px */
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
@@ -217,7 +221,7 @@ body {
 .sidebar-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px; /* Reduced group gap from 8px to 4px */
 }
 
 .sidebar-section-label {
@@ -226,7 +230,7 @@ body {
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 1px;
-    padding: 0 16px 8px 16px;
+    padding: 0 16px 2px 16px; /* Further reduction from 4px to 2px */
     white-space: nowrap;
     overflow: hidden;
     display: flex;

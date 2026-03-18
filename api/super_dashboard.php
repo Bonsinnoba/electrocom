@@ -3,11 +3,11 @@
 /**
  * super_dashboard.php
  * Real aggregate stats for the Super User Dashboard.
- * No auth enforced here — add token check before production.
  *
  * GET → returns: total_revenue, total_orders, total_users,
  *                total_admins, total_products, recent_orders,
- *                orders_by_status, branches
+ *                orders_by_status, branches,
+ *                server_health, auth_origins, error_log_tail
  */
 
 require 'cors_middleware.php';
@@ -67,19 +67,55 @@ try {
     // Dynamic Load Calculation
     foreach ($branches as &$b) {
         if ($b['type'] === 'headquarters') {
-            // HQ Load = (Pending Orders / 50) * 100, capped at 100.
-            // 50 is an arbitrary "High Pressure" threshold.
             $hqLoad = min(100, round(($revenueRow['pending'] / 50) * 100));
             $b['load_level'] = $hqLoad;
         } else {
-            // Warehouse Load = (Pending Dispatches / 10) * 100, capped at 100.
-            // 10 is an arbitrary "High Pressure" threshold per warehouse.
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM warehouse_dispatches WHERE warehouse_id = ? AND status = 'pending'");
             $stmt->execute([$b['id']]);
             $pendingDispatches = $stmt->fetchColumn();
             $whLoad = min(100, round(($pendingDispatches / 10) * 100));
             $b['load_level'] = $whLoad;
         }
+    }
+
+    // ── Auth Origins (social login distribution) ──────────────────────────────
+    $authOrigins = $pdo->query("
+        SELECT
+            COALESCE(NULLIF(auth_provider, ''), 'local') AS provider,
+            COUNT(*) AS count
+        FROM users
+        GROUP BY provider
+        ORDER BY count DESC
+    ")->fetchAll();
+
+    // ── Server Health ─────────────────────────────────────────────────────────
+    $diskTotal  = @disk_total_space(__DIR__) ?: 0;
+    $diskFree   = @disk_free_space(__DIR__)  ?: 0;
+    $diskUsed   = $diskTotal - $diskFree;
+    $diskUsedPct = $diskTotal > 0 ? round(($diskUsed / $diskTotal) * 100) : 0;
+
+    $memUsed    = memory_get_usage(true);
+    $memPeak    = memory_get_peak_usage(true);
+    $memLimit   = ini_get('memory_limit');
+
+    // DB table sizes
+    $dbName   = $pdo->query("SELECT DATABASE()")->fetchColumn();
+    $dbTables = $pdo->query("
+        SELECT table_name AS name,
+               ROUND((data_length + index_length) / 1024, 1) AS size_kb,
+               table_rows AS approx_rows
+        FROM information_schema.tables
+        WHERE table_schema = '$dbName'
+        ORDER BY (data_length + index_length) DESC
+        LIMIT 8
+    ")->fetchAll();
+
+    // ── PHP Error Log Tail (last 40 lines) ────────────────────────────────────
+    $errorLogPath = ini_get('error_log');
+    $errorLogLines = [];
+    if ($errorLogPath && file_exists($errorLogPath) && is_readable($errorLogPath)) {
+        $lines = @file($errorLogPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $errorLogLines = array_slice($lines, -40);
     }
 
     // ── Compose response ──────────────────────────────────────────────────────
@@ -100,6 +136,19 @@ try {
         ],
         'recent_orders'  => $recent,
         'branches'       => $branches,
+        'auth_origins'   => $authOrigins,
+        'server_health'  => [
+            'disk_total_gb'  => round($diskTotal / 1073741824, 1),
+            'disk_used_gb'   => round($diskUsed  / 1073741824, 1),
+            'disk_free_gb'   => round($diskFree  / 1073741824, 1),
+            'disk_used_pct'  => $diskUsedPct,
+            'mem_used_mb'    => round($memUsed / 1048576, 1),
+            'mem_peak_mb'    => round($memPeak / 1048576, 1),
+            'mem_limit'      => $memLimit,
+            'php_version'    => PHP_VERSION,
+            'db_tables'      => $dbTables,
+        ],
+        'error_log_tail' => $errorLogLines,
     ]);
 } catch (Exception $e) {
     http_response_code(500);

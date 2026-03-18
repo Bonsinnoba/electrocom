@@ -1,6 +1,0 @@
-2026-03-17 18:16:14 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-17 18:42:18 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as CUSTOMER
-2026-03-17 18:43:06 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
-2026-03-17 18:43:20 [INFO] [STAFF] User ID: 14 role updated to BRANCH_ADMIN by Super User
-2026-03-17 18:43:44 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as BRANCH_ADMIN
-2026-03-17 20:32:36 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER

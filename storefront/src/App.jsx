@@ -142,6 +142,13 @@ function AppContent() {
     localStorage.setItem('site_theme', theme);
   }, [theme]);
 
+  // Sync theme from user profile on login
+  useEffect(() => {
+    if (user && user.theme && user.theme !== theme) {
+      setTheme(user.theme);
+    }
+  }, [user]);
+
   const productsRef = useRef(products);
 
   useEffect(() => {

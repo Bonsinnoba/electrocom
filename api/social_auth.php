@@ -52,16 +52,6 @@ $providers = [
         'urlAccessToken' => 'https://github.com/login/oauth/access_token',
         'urlResourceOwnerDetails' => 'https://api.github.com/user',
     ]),
-    'linkedin' => new GenericProvider([
-        'clientId' => $config['LINKEDIN_CLIENT_ID'] ?? '',
-        'clientSecret' => $config['LINKEDIN_CLIENT_SECRET'] ?? '',
-        'redirectUri' => $config['LINKEDIN_REDIRECT'] ?? '',
-        'urlAuthorize' => 'https://www.linkedin.com/oauth/v2/authorization',
-        'urlAccessToken' => 'https://www.linkedin.com/oauth/v2/accessToken',
-        'urlResourceOwnerDetails' => 'https://api.linkedin.com/v2/me',
-        'scopes' => ['r_emailaddress', 'r_liteprofile'],
-        'scopeSeparator' => ' ',
-    ]),
 ];
 
 if (!isset($providers[$provider])) {
@@ -75,7 +65,6 @@ $requiredKeys = [
     'google'   => ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT'],
     'facebook' => ['FACEBOOK_CLIENT_ID', 'FACEBOOK_CLIENT_SECRET', 'FACEBOOK_REDIRECT'],
     'github'   => ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'GITHUB_REDIRECT'],
-    'linkedin' => ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET', 'LINKEDIN_REDIRECT'],
 ];
 foreach ($requiredKeys[$provider] as $key) {
     if (empty($config[$key]) || !trim((string) $config[$key])) {
@@ -98,9 +87,31 @@ foreach ($requiredKeys[$provider] as $key) {
 $oauthProvider = $providers[$provider];
 
 if (!$code) {
-    // redirect to provider's authorization page
+    // Build the base authorization URL from the provider
     $authorizationUrl = $oauthProvider->getAuthorizationUrl();
     $_SESSION['oauth_state'] = $oauthProvider->getState();
+
+    // Force account selection screen — prevent silent re-auth on every provider.
+    // GenericProvider sends 'approval_prompt' by default; Google rejects it
+    // alongside 'prompt', so we strip it out and inject only 'prompt'.
+    $parsed = parse_url($authorizationUrl);
+    parse_str($parsed['query'] ?? '', $queryParams);
+
+    if ($provider === 'google') {
+        // Remove GenericProvider's 'approval_prompt' and use 'prompt' instead
+        unset($queryParams['approval_prompt']);
+        $queryParams['prompt'] = 'select_account';
+    } elseif ($provider === 'github') {
+        // GitHub supports 'prompt=select_account' to force the account chooser
+        $queryParams['prompt'] = 'select_account';
+        // Also clear any cached login hint
+        unset($queryParams['login']);
+    } elseif ($provider === 'facebook') {
+        $queryParams['auth_type'] = 'rerequest';
+    }
+
+    $authorizationUrl = $parsed['scheme'] . '://' . $parsed['host'] . $parsed['path'] . '?' . http_build_query($queryParams);
+
     header('Location: ' . $authorizationUrl);
     exit;
 }
@@ -131,15 +142,34 @@ try {
         case 'github':
             $email = $userInfo['email'] ?? null;
             $name = $userInfo['name'] ?? $userInfo['login'] ?? null;
-            break;
-        case 'linkedin':
-            $email = $userInfo['email'] ?? null;
-            $name = trim(($userInfo['localizedFirstName'] ?? '') . ' ' . ($userInfo['localizedLastName'] ?? ''));
+            // GitHub users can set their email to private; fetch from /user/emails API as fallback
+            if (!$email) {
+                $emailsResponse = @file_get_contents(
+                    'https://api.github.com/user/emails',
+                    false,
+                    stream_context_create(['http' => [
+                        'header' => [
+                            'Authorization: Bearer ' . $accessToken->getToken(),
+                            'User-Agent: ElectroCom-App',
+                            'Accept: application/vnd.github+json'
+                        ]
+                    ]])
+                );
+                if ($emailsResponse) {
+                    $emails = json_decode($emailsResponse, true);
+                    foreach ($emails as $emailEntry) {
+                        if ($emailEntry['primary'] && $emailEntry['verified']) {
+                            $email = $emailEntry['email'];
+                            break;
+                        }
+                    }
+                }
+            }
             break;
     }
 
     if (!$email) {
-        throw new Exception('No email returned by provider');
+        throw new Exception('No email returned by provider. If using GitHub, please make your email public in GitHub settings.');
     }
 
     // --- Self-healing Schema ---
@@ -193,8 +223,27 @@ try {
     // if front-end URL configured, redirect there with token instead of dumping JSON
     $frontend = $config['FRONTEND_URL'] ?? '';
     if ($frontend) {
-        // attach token and user details (base64 encoded) so frontend can update state
-        $encodedUser = urlencode(base64_encode(json_encode($user)));
+        // Only encode the minimal fields the frontend needs.
+        // NEVER include password_hash, two_factor_secret, profile_image (base64 LONGTEXT), etc.
+        // Those cause ERR_RESPONSE_HEADERS_TOO_BIG.
+        $minimalUser = [
+            'id'                 => (int)$user['id'],
+            'name'               => $user['name'],
+            'email'              => $user['email'],
+            'phone'              => $user['phone'] ?? '',
+            'address'            => $user['address'] ?? '',
+            'level'              => (int)($user['level'] ?? 1),
+            'level_name'         => $user['level_name'] ?? 'Starter',
+            'avatar_text'        => $user['avatar_text'] ?? strtoupper(substr($user['name'] ?? 'U', 0, 2)),
+            'profile_image'      => null, // omit — can be fetched later from profile
+            'role'               => $user['role'] ?? 'customer',
+            'email_notif'        => (bool)($user['email_notif'] ?? true),
+            'push_notif'         => (bool)($user['push_notif'] ?? true),
+            'sms_tracking'       => (bool)($user['sms_tracking'] ?? true),
+            'two_factor_enabled' => (bool)($user['two_factor_enabled'] ?? false),
+            'theme'              => $user['theme'] ?? 'blue',
+        ];
+        $encodedUser = urlencode(base64_encode(json_encode($minimalUser)));
         $location = rtrim($frontend, '/') . '/?social_token=' . urlencode($token) . '&social_user=' . $encodedUser;
         header('Location: ' . $location);
         exit;

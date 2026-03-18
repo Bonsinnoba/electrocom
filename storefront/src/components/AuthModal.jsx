@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Lock, Mail, LogIn, UserPlus, Phone, Loader, Globe, Eye, EyeOff, Facebook, Linkedin, Chrome, Github, ArrowLeft } from 'lucide-react';
+import { X, User, Lock, Mail, LogIn, UserPlus, Phone, Loader, Globe, Eye, EyeOff, Facebook, Chrome, Github, ArrowLeft } from 'lucide-react';
 import { loginUser, registerUser, verifyUser, forgotPassword } from '../services/api';
 import { useUser } from '../context/UserContext';
 
@@ -33,7 +33,25 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
       // Do NOT store it in localStorage (XSS risk). Only update the user context.
       if (encodedUser) {
         try {
-          const userObj = JSON.parse(atob(encodedUser));
+          const rawUser = JSON.parse(atob(encodedUser));
+          // Normalize field names from PHP snake_case to match local user model
+          const userObj = {
+            id: rawUser.id,
+            name: rawUser.name,
+            email: rawUser.email,
+            phone: rawUser.phone || '',
+            address: rawUser.address || '',
+            level: rawUser.level || 1,
+            levelName: rawUser.level_name || 'Starter',
+            avatar: rawUser.avatar_text || (rawUser.name ? rawUser.name.slice(0, 2).toUpperCase() : '??'),
+            profileImage: rawUser.profile_image || null,
+            role: rawUser.role || 'customer',
+            email_notif: rawUser.email_notif !== undefined ? Boolean(rawUser.email_notif) : true,
+            push_notif: rawUser.push_notif !== undefined ? Boolean(rawUser.push_notif) : true,
+            sms_tracking: rawUser.sms_tracking !== undefined ? Boolean(rawUser.sms_tracking) : true,
+            two_factor_enabled: Boolean(rawUser.two_factor_enabled),
+            theme: rawUser.theme || 'blue',
+          };
           updateUser(userObj);
         } catch (e) {
           console.warn('Failed to parse social user', e);
@@ -348,7 +366,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
                 <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=facebook`} className="social" title="Sign in with Facebook"><Facebook size={20} /></a>
                 <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=google`} className="social" title="Sign in with Google"><Chrome size={20} /></a>
                 <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=github`} className="social" title="Sign in with GitHub" style={{ color: '#333' }}><Github size={20} /></a>
-                <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/social_auth.php?provider=linkedin`} className="social" title="Sign in with LinkedIn"><Linkedin size={20} /></a>
               </div>
               <span>or use your account</span>
               

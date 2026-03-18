@@ -468,9 +468,19 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode, them
               ].map((t) => (
                 <div 
                   key={t.id}
-                  onClick={() => {
+                  onClick={async () => {
                     setTheme(t.id);
                     addToast(`Theme switched to ${t.label}`, 'success');
+                    if (user) {
+                      try {
+                        const res = await updateProfile({ theme: t.id });
+                        if (res.success && res.data && res.data.user) {
+                          updateUser(res.data.user);
+                        }
+                      } catch (e) {
+                        console.error('Failed to sync theme:', e);
+                      }
+                    }
                   }}
                   style={{ 
                     width: '40px', 

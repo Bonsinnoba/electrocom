@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   TrendingUp, Activity, Globe, ShieldCheck,
   AlertTriangle, RefreshCw, ArrowUpRight,
-  Package, Users, ShoppingCart, Zap
+  Package, Users, ShoppingCart, Zap, Server, Database,
+  HardDrive, Cpu, FileText, Github, Facebook, Chrome, Mail
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import L from 'leaflet';
@@ -435,6 +436,133 @@ export default function Dashboard() {
           </table>
         )}
       </div>
+
+      {/* ── Monitoring Row: Auth Origins + Server Health ─────────────────────── */}
+      {!loading && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+
+          {/* Auth Origins */}
+          <div className="card glass">
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px' }}>
+              <Globe size={18} color="#3b82f6" />
+              <h2 style={{ fontSize:'18px', fontWeight:800 }}>Auth Origins</h2>
+              <span style={{ marginLeft:'auto', fontSize:'12px', color:'var(--text-muted)', fontWeight:700 }}>How users sign in</span>
+            </div>
+            {data?.auth_origins?.length ? (
+              <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+                {data.auth_origins.map((o, i) => {
+                  const COLORS = { local:'#3b82f6', google:'#ef4444', github:'#6366f1', facebook:'#1877f2' };
+                  const ICONS  = { local:<Mail size={14}/>, google:<Chrome size={14}/>, github:<Github size={14}/>, facebook:<Facebook size={14}/> };
+                  const total  = data.auth_origins.reduce((s, r) => s + parseInt(r.count), 0) || 1;
+                  const pct    = Math.round((parseInt(o.count) / total) * 100);
+                  const col    = COLORS[o.provider] || '#64748b';
+                  return (
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                      <div style={{ width:'28px', height:'28px', borderRadius:'8px', background:`${col}20`, border:`1px solid ${col}44`, display:'flex', alignItems:'center', justifyContent:'center', color:col, flexShrink:0 }}>
+                        {ICONS[o.provider] || <Globe size={14}/>}
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'4px' }}>
+                          <span style={{ fontSize:'13px', fontWeight:700, textTransform:'capitalize' }}>{o.provider}</span>
+                          <span style={{ fontSize:'12px', fontWeight:800, color:col }}>{o.count} ({pct}%)</span>
+                        </div>
+                        <div style={{ height:'5px', background:'rgba(255,255,255,0.06)', borderRadius:'3px', overflow:'hidden' }}>
+                          <div style={{ width:`${pct}%`, height:'100%', background:col, borderRadius:'3px', transition:'width 1s' }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ textAlign:'center', padding:'32px', color:'var(--text-muted)' }}>No auth data yet.</div>
+            )}
+          </div>
+
+          {/* Server Health */}
+          <div className="card glass">
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px' }}>
+              <Server size={18} color="#22c55e" />
+              <h2 style={{ fontSize:'18px', fontWeight:800 }}>Server Health</h2>
+              <span style={{ marginLeft:'auto', fontSize:'11px', fontFamily:'monospace', color:'var(--text-muted)' }}>PHP {data?.server_health?.php_version}</span>
+            </div>
+            {data?.server_health && (() => {
+              const h = data.server_health;
+              const diskCol = h.disk_used_pct > 80 ? '#ef4444' : h.disk_used_pct > 60 ? '#f59e0b' : '#22c55e';
+              return (
+                <div style={{ display:'flex', flexDirection:'column', gap:'16px' }}>
+                  <div>
+                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:'12px', fontWeight:700, marginBottom:'6px' }}>
+                      <span style={{ display:'flex', alignItems:'center', gap:'6px', color:'var(--text-muted)' }}><HardDrive size={13}/> Disk</span>
+                      <span style={{ color:diskCol }}>{h.disk_used_gb} GB / {h.disk_total_gb} GB ({h.disk_used_pct}%)</span>
+                    </div>
+                    <div style={{ height:'7px', background:'rgba(255,255,255,0.06)', borderRadius:'4px', overflow:'hidden' }}>
+                      <div style={{ width:`${h.disk_used_pct}%`, height:'100%', background:diskCol, borderRadius:'4px', transition:'width 1s' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:'12px', fontWeight:700, marginBottom:'6px' }}>
+                      <span style={{ display:'flex', alignItems:'center', gap:'6px', color:'var(--text-muted)' }}><Cpu size={13}/> PHP Memory</span>
+                      <span style={{ color:'#3b82f6' }}>{h.mem_used_mb} MB used · peak {h.mem_peak_mb} MB / {h.mem_limit}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize:'12px', fontWeight:800, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'8px', display:'flex', alignItems:'center', gap:'6px' }}>
+                      <Database size={12}/> Largest Tables
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:'4px' }}>
+                      {(h.db_tables || []).slice(0,5).map((t, i) => (
+                        <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:'11px', padding:'4px 8px', background:'rgba(255,255,255,0.03)', borderRadius:'6px' }}>
+                          <span style={{ fontFamily:'monospace', color:'var(--text-muted)' }}>{t.name}</span>
+                          <span style={{ fontWeight:700 }}>{t.size_kb} KB · {t.approx_rows} rows</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* ── PHP Error Log Viewer ─────────────────────────────────────────────── */}
+      {!loading && (
+        <div className="card glass" style={{ marginBottom: '32px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px' }}>
+            <FileText size={18} color="#f59e0b" />
+            <h2 style={{ fontSize:'18px', fontWeight:800 }}>PHP Error Log</h2>
+            <span style={{ marginLeft:'auto', fontSize:'12px', color:'var(--text-muted)', fontWeight:700 }}>Last 40 entries (newest first)</span>
+          </div>
+          {data?.error_log_tail?.length ? (
+            <div style={{
+              background:'rgba(0,0,0,0.35)',
+              borderRadius:'10px',
+              border:'1px solid rgba(255,255,255,0.06)',
+              maxHeight:'300px',
+              overflowY:'auto',
+              padding:'14px 16px',
+              fontFamily:'monospace',
+              fontSize:'11.5px',
+              lineHeight:'1.7',
+            }}>
+              {[...data.error_log_tail].reverse().map((line, i) => {
+                const isError = /\[error\]|\[fatal\]|Fatal error/i.test(line);
+                const isWarn  = /\[warn\]/i.test(line);
+                return (
+                  <div key={i} style={{ color: isError ? '#f87171' : isWarn ? '#fbbf24' : 'rgba(148,163,184,0.85)', borderBottom:'1px solid rgba(255,255,255,0.03)', paddingBottom:'2px', wordBreak:'break-all' }}>
+                    {line}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ textAlign:'center', padding:'32px', color:'#22c55e', fontFamily:'monospace', fontSize:'13px' }}>
+              ✓ No error log found or log is empty — your server is clean!
+            </div>
+          )}
+        </div>
+      )}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
