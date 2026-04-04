@@ -1,6 +1,6 @@
 <?php
 if (!isset($config) || !is_array($config)) {
-    $config = require __DIR__ . '/.env.php';
+    $config = require_once __DIR__ . '/config.php';
 }
 $appEnv = $config['APP_ENV'] ?? 'production';
 $allowedOrigins = $config['ALLOWED_ORIGINS'] ?? [];

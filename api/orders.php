@@ -200,8 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Internal/POS EC- references were not processed via Paystack and should skip this.
     // verify_payment.php already verified Paystack payments before order creation.
     if ($isExternalPayment) {
-        $config = require '.env.php';
-        $secretKey = $config['PAYSTACK_SECRET'] ?? "sk_test_ReplaceWithYourSecretKeyHere";
+        $secretKey = $config['PAYSTACK_SECRET'] ?? "";
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, "https://api.paystack.co/transaction/verify/" . rawurlencode($paymentReference));

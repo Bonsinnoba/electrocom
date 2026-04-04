@@ -16,7 +16,7 @@ class NotificationService
 
     public function __construct()
     {
-        $this->config = require '.env.php';
+        $this->config = require_once 'config.php';
     }
 
     /**

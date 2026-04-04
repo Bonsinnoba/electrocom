@@ -13,7 +13,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 header('Content-Type: application/json');
 
-$config = require __DIR__ . '/.env.php';
+$config = require_once __DIR__ . '/config.php';
 $provider = $_GET['provider'] ?? '';
 $code = $_GET['code'] ?? null;
 $state = $_GET['state'] ?? null;

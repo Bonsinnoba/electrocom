@@ -5,8 +5,8 @@
 ob_start();
 date_default_timezone_set('GMT');
 
-// Include CORS middleware EARLY before any processing
-$config = require '.env.php';
+// Include centralized configuration loader
+$config = require_once 'config.php';
 require_once 'cors_middleware.php';
 
 $host = $config['DB_HOST'];

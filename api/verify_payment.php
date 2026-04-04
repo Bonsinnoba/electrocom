@@ -19,7 +19,6 @@ try {
     $type = isset($data['type']) ? sanitizeInput($data['type']) : 'wallet_topup'; // 'wallet_topup' or 'order_payment'
 
     // 3. Verify with Paystack
-    $config = require '.env.php';
     $secretKey = $config['PAYSTACK_SECRET'] ?? "";
 
     if (!$secretKey) {

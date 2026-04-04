@@ -18,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // 1. Validate Paystack Signature
-$config = require '.env.php';
 $secretKey = $config['PAYSTACK_SECRET'] ?? "";
 
 if (!$secretKey) {

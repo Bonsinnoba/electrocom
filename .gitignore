@@ -1,5 +1,7 @@
 # Credentials and Secrets
 api/.env.php
+api/.env
+api/vendor/
 api/logs/
 api/uploads/
 api/backups/
@@ -11,6 +13,7 @@ dist/
 .env
 .env.local
 .env.*.local
+*.log
 
 # OS Files
 .DS_Store
