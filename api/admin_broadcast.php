@@ -43,7 +43,8 @@ if ($method === 'POST') {
             $query .= " AND is_verified = 1";
         }
         
-        $stmt = $pdo->query($query);
+        $stmt = $pdo->prepare($query);
+        $stmt->execute();
         $users = $stmt->fetchAll();
         
         require_once 'notifications.php';
@@ -57,7 +58,7 @@ if ($method === 'POST') {
             if (($type === 'email' || $type === 'both') && !empty($user['email'])) {
                 // We honor the general email preference for marketing broadcasts
                 if ($user['email_notif']) {
-                    $notifier->sendEmail($user['email'], $title, $message);
+                    $notifier->queueNotification('email', $user['email'], $message, $title);
                     $emailCount++;
                 }
             }
@@ -67,7 +68,7 @@ if ($method === 'POST') {
                 // For SMS, we check either sms_tracking or a general push preference 
                 // Since this is a promo, we check if they have any notifications on
                 if ($user['sms_tracking']) {
-                    $notifier->sendSMS($user['phone'], $message);
+                    $notifier->queueNotification('sms', $user['phone'], $message);
                     $smsCount++;
                 }
             }

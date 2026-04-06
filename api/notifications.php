@@ -16,7 +16,41 @@ class NotificationService
 
     public function __construct()
     {
-        $this->config = require_once 'config.php';
+        $this->config = require 'config.php';
+    }
+
+    public function queueNotification($type, $recipient, $message, $subject = null, $payload = [])
+    {
+        global $pdo;
+        if (!isset($pdo)) {
+            require_once 'db.php';
+        }
+
+        // If in development mode, we revert to synchronous sending for easier debugging.
+        if (($this->config['APP_ENV'] ?? 'production') === 'development') {
+            logger('info', 'NOTIF_SYNC', "Dev Mode: Sending $type immediately for $recipient");
+            if ($type === 'email') {
+                return $this->sendEmail($recipient, $subject, $message);
+            } elseif ($type === 'sms') {
+                return $this->sendSMS($recipient, $message);
+            }
+        }
+
+        try {
+            $stmt = $pdo->prepare("INSERT INTO notification_queue (type, recipient, subject, message, payload) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $type, 
+                $recipient, 
+                $subject, 
+                $message, 
+                !empty($payload) ? json_encode($payload) : null
+            ]);
+            logger('info', 'NOTIF_QUEUE', "Queued $type for $recipient: " . substr($message, 0, 50) . "...");
+            return true;
+        } catch (Exception $e) {
+            logger('error', 'NOTIF_QUEUE', "Failed to queue notification: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**

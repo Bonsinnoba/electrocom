@@ -50,17 +50,13 @@ try {
     // 2. Calculate dynamic fee based on region and subtotal
     $shippingInfo = calculateRegionalShipping($normalizedRegion, $sourceBranchId, $subtotal, $pdo);
 
-    echo json_encode([
-        'success' => true,
-        'data' => [
-            'region_detected' => $normalizedRegion,
-            'fee' => $shippingInfo['fee'],
-            'city' => $shippingInfo['city'],
-            'is_discounted' => ($subtotal >= 1500),
-            'discount_threshold' => 1500
-        ]
+    sendResponse(true, 'Shipping estimate calculated', [
+        'region_detected' => $normalizedRegion,
+        'fee' => $shippingInfo['fee'],
+        'city' => $shippingInfo['city'],
+        'is_discounted' => ($subtotal >= 1500),
+        'discount_threshold' => 1500
     ]);
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Estimation failed: ' . $e->getMessage()]);
+    sendResponse(false, 'Estimation failed: ' . $e->getMessage(), null, 500);
 }

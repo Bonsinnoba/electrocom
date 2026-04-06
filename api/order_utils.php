@@ -100,12 +100,12 @@ function completeOrder($orderId, $pdo) {
                     . "IMPORTANT: Please provide the Delivery Code ({$order['delivery_otp']}) to the agent upon arrival.\n\n"
                     . "— The ElectroCom Team";
 
-                $notifier->sendEmail($order['email'], $subject, $msg);
+                $notifier->queueNotification('email', $order['email'], $msg, $subject);
             }
 
             if ($order['phone'] && ($order['sms_tracking'] ?? true)) {
                 $smsMsg = "ElectroCom Order {$paymentRef}: Your order for GHS " . number_format($order['total_amount'], 2) . " has been received! Delivery Code: {$order['delivery_otp']}.";
-                $notifier->sendSMS($order['phone'], $smsMsg);
+                $notifier->queueNotification('sms', $order['phone'], $smsMsg);
             }
         } catch (Exception $commErr) {
             error_log("Order completion communication failed: " . $commErr->getMessage());

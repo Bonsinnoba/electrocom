@@ -1,0 +1,373 @@
+Array
+(
+    [0] => Array
+        (
+            [Field] => id
+            [Type] => int
+            [Null] => NO
+            [Key] => PRI
+            [Default] => 
+            [Extra] => auto_increment
+        )
+
+    [1] => Array
+        (
+            [Field] => name
+            [Type] => varchar(255)
+            [Null] => NO
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [2] => Array
+        (
+            [Field] => email
+            [Type] => varchar(255)
+            [Null] => NO
+            [Key] => UNI
+            [Default] => 
+            [Extra] => 
+        )
+
+    [3] => Array
+        (
+            [Field] => password_hash
+            [Type] => varchar(255)
+            [Null] => NO
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [4] => Array
+        (
+            [Field] => phone
+            [Type] => varchar(20)
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [5] => Array
+        (
+            [Field] => address
+            [Type] => text
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [6] => Array
+        (
+            [Field] => region
+            [Type] => varchar(100)
+            [Null] => YES
+            [Key] => 
+            [Default] => Greater Accra
+            [Extra] => 
+        )
+
+    [7] => Array
+        (
+            [Field] => role
+            [Type] => enum('customer','admin','branch_admin','marketing','accountant','super','store_manager')
+            [Null] => YES
+            [Key] => 
+            [Default] => customer
+            [Extra] => 
+        )
+
+    [8] => Array
+        (
+            [Field] => status
+            [Type] => enum('Active','Suspended')
+            [Null] => YES
+            [Key] => 
+            [Default] => Active
+            [Extra] => 
+        )
+
+    [9] => Array
+        (
+            [Field] => level
+            [Type] => int
+            [Null] => YES
+            [Key] => 
+            [Default] => 1
+            [Extra] => 
+        )
+
+    [10] => Array
+        (
+            [Field] => level_name
+            [Type] => varchar(50)
+            [Null] => YES
+            [Key] => 
+            [Default] => Starter
+            [Extra] => 
+        )
+
+    [11] => Array
+        (
+            [Field] => avatar_text
+            [Type] => varchar(10)
+            [Null] => YES
+            [Key] => 
+            [Default] => U
+            [Extra] => 
+        )
+
+    [12] => Array
+        (
+            [Field] => profile_image
+            [Type] => longtext
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [13] => Array
+        (
+            [Field] => created_at
+            [Type] => timestamp
+            [Null] => YES
+            [Key] => 
+            [Default] => CURRENT_TIMESTAMP
+            [Extra] => DEFAULT_GENERATED
+        )
+
+    [14] => Array
+        (
+            [Field] => updated_at
+            [Type] => timestamp
+            [Null] => YES
+            [Key] => 
+            [Default] => CURRENT_TIMESTAMP
+            [Extra] => DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+        )
+
+    [15] => Array
+        (
+            [Field] => branch_id
+            [Type] => int
+            [Null] => YES
+            [Key] => MUL
+            [Default] => 
+            [Extra] => 
+        )
+
+    [16] => Array
+        (
+            [Field] => verification_code
+            [Type] => varchar(10)
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [17] => Array
+        (
+            [Field] => is_verified
+            [Type] => tinyint(1)
+            [Null] => YES
+            [Key] => 
+            [Default] => 0
+            [Extra] => 
+        )
+
+    [18] => Array
+        (
+            [Field] => verification_method
+            [Type] => enum('email','sms')
+            [Null] => YES
+            [Key] => 
+            [Default] => email
+            [Extra] => 
+        )
+
+    [19] => Array
+        (
+            [Field] => login_attempts
+            [Type] => int
+            [Null] => YES
+            [Key] => 
+            [Default] => 0
+            [Extra] => 
+        )
+
+    [20] => Array
+        (
+            [Field] => lockout_until
+            [Type] => timestamp
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [21] => Array
+        (
+            [Field] => id_number
+            [Type] => varchar(50)
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [22] => Array
+        (
+            [Field] => id_photo
+            [Type] => longtext
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [23] => Array
+        (
+            [Field] => id_verified
+            [Type] => tinyint(1)
+            [Null] => YES
+            [Key] => 
+            [Default] => 0
+            [Extra] => 
+        )
+
+    [24] => Array
+        (
+            [Field] => id_verified_at
+            [Type] => datetime
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [25] => Array
+        (
+            [Field] => wallet_balance
+            [Type] => decimal(10,2)
+            [Null] => YES
+            [Key] => 
+            [Default] => 0.00
+            [Extra] => 
+        )
+
+    [26] => Array
+        (
+            [Field] => id_verification_reason
+            [Type] => varchar(255)
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [27] => Array
+        (
+            [Field] => id_verifier_id
+            [Type] => int
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [28] => Array
+        (
+            [Field] => email_notif
+            [Type] => tinyint(1)
+            [Null] => YES
+            [Key] => 
+            [Default] => 1
+            [Extra] => 
+        )
+
+    [29] => Array
+        (
+            [Field] => push_notif
+            [Type] => tinyint(1)
+            [Null] => YES
+            [Key] => 
+            [Default] => 1
+            [Extra] => 
+        )
+
+    [30] => Array
+        (
+            [Field] => sms_tracking
+            [Type] => tinyint(1)
+            [Null] => YES
+            [Key] => 
+            [Default] => 1
+            [Extra] => 
+        )
+
+    [31] => Array
+        (
+            [Field] => two_factor_enabled
+            [Type] => tinyint(1)
+            [Null] => YES
+            [Key] => 
+            [Default] => 0
+            [Extra] => 
+        )
+
+    [32] => Array
+        (
+            [Field] => two_factor_secret
+            [Type] => varchar(255)
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [33] => Array
+        (
+            [Field] => loyalty_points
+            [Type] => int
+            [Null] => YES
+            [Key] => 
+            [Default] => 0
+            [Extra] => 
+        )
+
+    [34] => Array
+        (
+            [Field] => auth_provider
+            [Type] => varchar(50)
+            [Null] => YES
+            [Key] => 
+            [Default] => local
+            [Extra] => 
+        )
+
+    [35] => Array
+        (
+            [Field] => auth_provider_id
+            [Type] => varchar(255)
+            [Null] => YES
+            [Key] => 
+            [Default] => 
+            [Extra] => 
+        )
+
+    [36] => Array
+        (
+            [Field] => theme
+            [Type] => varchar(20)
+            [Null] => YES
+            [Key] => 
+            [Default] => blue
+            [Extra] => 
+        )
+
+)

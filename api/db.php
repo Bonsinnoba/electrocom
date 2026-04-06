@@ -6,7 +6,9 @@ ob_start();
 date_default_timezone_set('GMT');
 
 // Include centralized configuration loader
-$config = require_once 'config.php';
+if (!isset($config) || !is_array($config)) {
+    $config = require_once __DIR__ . '/config.php';
+}
 require_once 'cors_middleware.php';
 
 $host = $config['DB_HOST'];
@@ -38,7 +40,7 @@ try {
         }
         // -----------------------------
 
-        // checkRateLimit($pdo);
+        checkRateLimit($pdo, 300, 60, 'global');
         checkMaintenanceMode($pdo);
 
         // Include traffic monitor now that $pdo is ready

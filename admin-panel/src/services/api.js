@@ -476,6 +476,20 @@ export const clearLogs = async () => {
     }
 };
 
+export const deleteLogDay = async (dateStr) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/super_logs.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'delete_day', date: dateStr }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting log day:', error);
+        throw error;
+    }
+};
+
 export const fetchSuperSettings = async () => {
     try {
         const response = await fetch(`${API_BASE_URL}/super_settings.php`, {

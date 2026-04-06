@@ -13,7 +13,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 header('Content-Type: application/json');
 
-$config = require_once __DIR__ . '/config.php';
+if (!isset($config) || !is_array($config)) {
+    $config = require_once __DIR__ . '/config.php';
+}
 $provider = $_GET['provider'] ?? '';
 $code = $_GET['code'] ?? null;
 $state = $_GET['state'] ?? null;
@@ -181,7 +183,7 @@ try {
         $providerId = $userInfo['id'] ?? $userInfo['sub'] ?? null;
         $randomPassword = password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT);
         
-        $insertStmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, id_verified, auth_provider, auth_provider_id, avatar_text, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, NOW(), NOW())");
+        $insertStmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, is_verified, auth_provider, auth_provider_id, avatar_text, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?, NOW(), NOW())");
         $insertStmt->execute([$name ?: 'New User', $email, $randomPassword, $provider, $providerId, generateInitials($name ?: 'New User')]);
         
         $newUserId = $pdo->lastInsertId();

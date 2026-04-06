@@ -60,7 +60,9 @@ CREATE TABLE IF NOT EXISTS orders (
     review_requested_at DATETIME DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status)
 );
 
 -- Create Order Items table
@@ -72,7 +74,9 @@ CREATE TABLE IF NOT EXISTS order_items (
     price_at_purchase DECIMAL(10, 2) NOT NULL,
     selected_color VARCHAR(50),
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
+    INDEX idx_order_id (order_id),
+    INDEX idx_product_id (product_id)
 );
 
 -- Create Notifications table
@@ -84,7 +88,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     type ENUM('order', 'promo', 'security', 'info', 'system') DEFAULT 'info',
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_notifications_user_read (user_id, is_read)
 );
 
 -- Create Wallet & Transactions table
@@ -98,7 +103,8 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
     details TEXT,
     status ENUM('completed', 'pending', 'failed') DEFAULT 'completed',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_wallet_user_created (user_id, created_at)
 );
 
 CREATE TABLE IF NOT EXISTS slider_images (
@@ -139,7 +145,8 @@ CREATE TABLE IF NOT EXISTS coupons (
     current_uses INT DEFAULT 0,
     valid_until DATETIME DEFAULT NULL,
     is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_coupons_is_active (is_active)
 );
 
 -- Wishlists table
@@ -172,7 +179,8 @@ CREATE TABLE IF NOT EXISTS abandoned_carts (
     cart_data JSON NOT NULL,
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     status ENUM('active', 'recovered', 'abandoned') DEFAULT 'active',
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_abandoned_carts_user_status (user_id, status)
 );
 
 -- CMS Pages table
@@ -200,4 +208,21 @@ CREATE TABLE IF NOT EXISTS saved_payment_methods (
     is_primary BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- CREATE notification_queue table for background processing
+CREATE TABLE IF NOT EXISTS notification_queue (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    type ENUM('email', 'sms') NOT NULL,
+    recipient VARCHAR(255) NOT NULL,
+    subject VARCHAR(255),
+    message TEXT NOT NULL,
+    payload JSON, -- For any extra data
+    status ENUM('pending', 'sent', 'failed') DEFAULT 'pending',
+    attempts INT DEFAULT 0,
+    last_error TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    scheduled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at DATETIME DEFAULT NULL,
+    INDEX idx_status_scheduled (status, scheduled_at)
 );

@@ -65,14 +65,14 @@ try {
         if ($method === 'sms' && !empty($user['phone'])) {
             // Send SMS
             $msg = "ElectroCom: Your password reset code is {$token}. It expires in 10 minutes.";
-            $notifier->sendSMS($user['phone'], $msg);
-            logger('ok', 'AUTH_FORGOT_SMS', "Password reset code sent via SMS to {$user['phone']}");
+            $notifier->queueNotification('sms', $user['phone'], $msg);
+            logger('ok', 'AUTH_FORGOT_SMS', "Password reset code queued/sent via SMS to {$user['phone']}");
             $actualMethod = 'sms';
         } else {
             // Default to Email
             $subject = "Your ElectroCom Password Reset Code";
             $msg = "Hello {$user['name']},\n\nWe received a request to reset your password. Your 6-digit reset code is:\n\n{$token}\n\nThis code will expire in 10 minutes. If you didn't request this, please safely ignore this email.";
-            $notifier->sendEmail($email, $subject, $msg);
+            $notifier->queueNotification('email', $email, $msg, $subject);
             logger('ok', 'AUTH_FORGOT_EMAIL', "Password reset code sent to {$email}");
             $actualMethod = 'email';
         }

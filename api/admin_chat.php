@@ -145,7 +145,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($receiver_id === null && ($send_email || $send_sms)) {
                 if (function_exists('logApp')) logApp('info', 'CHAT', "Starting staff broadcast (Email: $send_email, SMS: $send_sms)");
                 $notifier = new NotificationService();
-                $staffStmt = $pdo->query("SELECT name, email, phone FROM users WHERE role IN ('super', 'admin', 'manager', 'pos_cashier') AND id != " . (int)$user['id']);
+                $staffStmt = $pdo->prepare("SELECT name, email, phone FROM users WHERE role IN ('super', 'admin', 'manager', 'pos_cashier') AND id != ?");
+                $staffStmt->execute([$user['id']]);
                 $staffList = $staffStmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 $emailsSent = 0;
@@ -155,24 +156,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $prefix = $is_pinned ? "⚠️ URGENT PINNED UPDATE" : "📢 STAFF BROADCAST";
                     
                     if ($send_email && !empty($staffMem['email'])) {
-                        try {
-                            $subject = $is_pinned ? "Urgent Staff Broadcast" : "New Staff Broadcast";
-                            $emailMsg = "Hello {$staffMem['name']},\n\n{$user['name']} posted: \"{$message}\"\n\nLog in: " . $config['APP_URL'] . "/staff-chat";
-                            $notifier->sendEmail($staffMem['email'], $subject, $emailMsg);
-                            $emailsSent++;
-                        } catch (Exception $ee) {
-                            if (function_exists('logApp')) logApp('error', 'CHAT', "Email failed for {$staffMem['email']}: " . $ee->getMessage());
-                        }
+                        $subject = $is_pinned ? "Urgent Staff Broadcast" : "New Staff Broadcast";
+                        $emailMsg = "Hello {$staffMem['name']},\n\n{$user['name']} posted: \"{$message}\"\n\nLog in: " . $config['APP_URL'] . "/staff-chat";
+                        $notifier->queueNotification('email', $staffMem['email'], $emailMsg, $subject);
+                        $emailsSent++;
                     }
 
                     if ($send_sms && !empty($staffMem['phone'])) {
-                        try {
-                            $smsMsg = "ElectroCom {$prefix}: \"{$message}\" - From: {$user['name']}";
-                            $notifier->sendSMS($staffMem['phone'], substr($smsMsg, 0, 160));
-                            $smsSent++;
-                        } catch (Exception $es) {
-                            if (function_exists('logApp')) logApp('error', 'CHAT', "SMS failed for {$staffMem['phone']}: " . $es->getMessage());
-                        }
+                        $smsMsg = "ElectroCom {$prefix}: \"{$message}\" - From: {$user['name']}";
+                        $notifier->queueNotification('sms', $staffMem['phone'], substr($smsMsg, 0, 160));
+                        $smsSent++;
                     }
                 }
                 $broadcastResult = "Broadcast complete. Emails: $emailsSent, SMS: $smsSent";

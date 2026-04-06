@@ -74,9 +74,8 @@ const apiFetch = async (url, options = {}) => {
 
 export const fetchProducts = async (category = null) => {
     const url = category
-        ? `${API_BASE_URL}/get_products.php?category=${encodeURIComponent(category)}&_t=${Date.now()}`
-        : `${API_BASE_URL}/get_products.php?_t=${Date.now()}`;
-
+        ? `${API_BASE_URL}/get_products.php?category=${encodeURIComponent(category)}`
+        : `${API_BASE_URL}/get_products.php`;
 
     const response = await apiFetch(url, getFetchOptions());
     if (response.status === 503) {
@@ -286,7 +285,7 @@ export const verifyPayment = async (reference, type = 'wallet_topup', orderId = 
 };
 
 export const fetchSlides = async () => {
-    const response = await apiFetch(`${API_BASE_URL}/get_slider.php?_t=${Date.now()}`);
+    const response = await apiFetch(`${API_BASE_URL}/get_slider.php`);
 
     if (response.status === 503) return [];
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);

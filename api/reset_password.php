@@ -42,9 +42,9 @@ try {
         exit;
     }
 
-    // Update user password
+    // Update user password and mark as verified since they proved ownership
     $newHash = hashPassword($newPassword);
-    $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, login_attempts = 0, lockout_until = NULL WHERE email = ?");
+    $stmt = $pdo->prepare("UPDATE users SET password_hash = ?, login_attempts = 0, lockout_until = NULL, is_verified = 1, verification_code = NULL WHERE email = ?");
     $stmt->execute([$newHash, $email]);
 
     // Delete used token

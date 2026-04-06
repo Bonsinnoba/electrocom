@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $rawData = file_get_contents('php://input');
 $data = json_decode($rawData, true);
 
-$email = sanitizeInput($data['email'] ?? '');
+$email = trim($data['email'] ?? '');
 $password = $data['password'] ?? '';
 
 if (empty($email) || empty($password)) {
@@ -22,6 +22,9 @@ if (empty($email) || empty($password)) {
 }
 
 try {
+    // 1. Apply Rate Limiting (10 attempts / 1 minute)
+    checkRateLimit($pdo, 10, 60, 'login');
+
     // Fetch user by email
     $stmt = $pdo->prepare("SELECT id, name, email, password_hash, phone, address, region, level, level_name, avatar_text, profile_image, status, role, is_verified, verification_method, email_notif, push_notif, sms_tracking, theme, branch_id, login_attempts, lockout_until FROM users WHERE email = ?");
     $stmt->execute([$email]);
@@ -39,8 +42,16 @@ try {
         }
     }
 
-    $needsRehash = false;
-    if (!$user || !verifyPassword($password, $user['password_hash'], $needsRehash)) {
+    // Timing-attack safe login verification
+    // $needsRehash will be true if the user's password was hashed without a pepper (legacy)
+    $passwordValid = $user && verifyPassword($password, $user['password_hash'], $needsRehash);
+
+    if (!$passwordValid) {
+        // If user not found, perform dummy verification to match timing
+        if (!$user) {
+            // A generic Argon2id hash for "dummy_salt"
+            verifyPassword($password, '$argon2id$v=19$m=65536,t=4,p=1$MmdMckp4N1YwS3B2bU51eQ$RkR0...', $needsRehash);
+        }
         // 2. Handle Failed Attempt
         if ($user) {
             $attempts = ($user['login_attempts'] ?? 0) + 1;
@@ -79,7 +90,8 @@ try {
 
     if (!$user['is_verified'] && !in_array($user['role'], RBAC_ALL_ADMINS)) {
         // Generate a new code for the login attempt if one doesn't exist
-        $newCode = str_pad(rand(100000, 999999), 6, '0', STR_PAD_LEFT);
+        // Generate a new code using cryptographically secure randomness
+        $newCode = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
         $stmt = $pdo->prepare("UPDATE users SET verification_code = ? WHERE id = ?");
         $stmt->execute([$newCode, $user['id']]);
 
@@ -90,9 +102,9 @@ try {
         $msg = "Your verification code is: {$newCode}. Please enter this code to activate your account.";
 
         if ($user['verification_method'] === 'sms') {
-            $notifier->sendSMS($user['phone'], $msg);
+            $notifier->queueNotification('sms', $user['phone'], $msg);
         } else {
-            $notifier->sendEmail($user['email'], $subject, $msg);
+            $notifier->queueNotification('email', $user['email'], $msg, $subject);
         }
 
         http_response_code(403);
@@ -119,7 +131,7 @@ try {
         'expires' => time() + (60 * 60 * 24), // 24 hours
         'path' => '/',
         'domain' => '', // Current domain
-        'secure' => false, // Set to true if using HTTPS
+        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
         'httponly' => true,
         'samesite' => 'Strict'
     ]);
@@ -132,25 +144,7 @@ try {
         'message' => 'Login successful!',
         'data' => [
             'token' => $token,
-            'user' => [
-                'id' => $user['id'],
-                'name' => $user['name'],
-                'email' => $user['email'],
-                'phone' => $user['phone'],
-                'address' => $user['address'],
-                'region' => $user['region'] ?? 'Greater Accra',
-                'level' => $user['level'],
-                'levelName' => $user['level_name'],
-                'avatar' => $user['avatar_text'],
-                'profileImage' => (strlen($user['profile_image'] ?? '') > 50000) ? null : $user['profile_image'],
-                'role'             => $user['role'],
-                'branch_id'        => $user['branch_id'] ?? null,
-                'email_notif'      => (bool)($user['email_notif'] ?? true),
-                'push_notif' => (bool)($user['push_notif'] ?? true),
-                'sms_tracking' => (bool)($user['sms_tracking'] ?? true),
-                'two_factor_enabled' => (bool)($user['two_factor_enabled'] ?? false),
-                'theme' => $user['theme'] ?? 'blue'
-            ]
+            'user' => scrubUser($user)
         ]
     ]);
 } catch (PDOException $e) {

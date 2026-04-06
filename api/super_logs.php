@@ -23,19 +23,51 @@ try {
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
-$logFile = __DIR__ . '/logs/app.log';
+$logDir = __DIR__ . '/logs';
 
-// Ensure log directory and file exist
-if (!is_dir(__DIR__ . '/logs')) {
-    mkdir(__DIR__ . '/logs', 0755, true);
+// Ensure log directory exists
+if (!is_dir($logDir)) {
+    mkdir($logDir, 0755, true);
 }
-if (!file_exists($logFile)) {
-    file_put_contents($logFile, '');
+
+// Ensure at least today's log exists
+$todayLog = $logDir . '/app-' . date('Y-m-d') . '.log';
+if (!file_exists($todayLog)) {
+    file_put_contents($todayLog, '');
 }
 
 if ($method === 'GET') {
     try {
-        $raw   = file_exists($logFile) ? file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
+        $files = glob($logDir . '/app-*.log');
+        rsort($files); // Read newest files first
+        $raw = [];
+        foreach ($files as $file) {
+            $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if ($lines) {
+                // Prepend to maintain correct order if we were reading them historically,
+                // actually we want latest first? The frontend array_reverses the slice!
+                // Wait, frontend does array_reverse(array_slice($raw, -200)). That means it expects chronological order.
+                // So if we read older files first, it works out.
+                // Let's sort ascending.
+            }
+        }
+        
+        // Actually, ascending sort:
+        sort($files); 
+        $raw = [];
+        foreach ($files as $file) {
+            $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if ($lines) {
+                $raw = array_merge($raw, $lines);
+            }
+            // Optimization: if $raw is extremely huge, we only need last 200 lines total.
+            // But doing it this way is simple and robust.
+            // We can just keep the last 500 lines to avoid memory limits if many huge log files.
+            if (count($raw) > 1000) {
+                $raw = array_slice($raw, -500);
+            }
+        }
+
         $lines = array_reverse(array_slice($raw, -200));
         $parsed = [];
         foreach ($lines as $i => $line) {
@@ -74,8 +106,24 @@ if ($method === 'GET') {
     $action = $body['action'] ?? '';
 
     if ($action === 'clear') {
-        file_put_contents($logFile, '');
-        echo json_encode(['success' => true, 'message' => 'Log cleared.']);
+        $files = glob($logDir . '/app-*.log');
+        foreach ($files as $file) {
+            unlink($file);
+        }
+        // If there is an old app.log, remove it
+        if (file_exists($logDir . '/app.log')) unlink($logDir . '/app.log');
+        file_put_contents($todayLog, '');
+        echo json_encode(['success' => true, 'message' => 'All logs cleared.']);
+    } elseif ($action === 'delete_day') {
+        $date = $body['date'] ?? '';
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            $file = $logDir . '/app-' . $date . '.log';
+            if (file_exists($file)) unlink($file);
+            echo json_encode(['success' => true, 'message' => "Logs for $date deleted."]);
+        } else {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid date format.']);
+        }
     } else {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Unknown action.']);

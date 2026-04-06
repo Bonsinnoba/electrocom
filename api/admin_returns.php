@@ -35,7 +35,8 @@ if ($method === 'GET') {
             $stmt = $pdo->prepare($sql . " WHERE o.branch_id = ? ORDER BY r.created_at DESC");
             $stmt->execute([$managerBranchId]);
         } else {
-            $stmt = $pdo->query($sql . " ORDER BY r.created_at DESC");
+            $stmt = $pdo->prepare($sql . " ORDER BY r.created_at DESC");
+            $stmt->execute();
         }
         
         $returns = $stmt->fetchAll();

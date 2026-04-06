@@ -1,0 +1,12 @@
+Array
+(
+    [0] => Array
+        (
+            [email] => ivenbalika123@gmail.com
+            [is_verified] => 0
+            [auth_provider] => google
+            [status] => Active
+            [verification_code] => 193330
+        )
+
+)

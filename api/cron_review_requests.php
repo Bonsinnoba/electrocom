@@ -23,7 +23,8 @@ try {
           AND o.updated_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)
     ";
 
-    $stmt = $pdo->query($query);
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
     $ordersToRequest = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $requestsSent = 0;
@@ -55,7 +56,7 @@ try {
 
         // Send Email
         try {
-            if ($notifier->sendEmail($order['email'], $subject, $message)) {
+            if ($notifier->queueNotification('email', $order['email'], $message, $subject)) {
                 $requestsSent++;
                 // Mark as sent
                 $updateStmt = $pdo->prepare("UPDATE orders SET review_requested_at = NOW() WHERE id = ?");

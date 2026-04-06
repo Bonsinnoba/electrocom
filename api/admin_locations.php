@@ -38,7 +38,8 @@ if ($method === 'GET') {
             $stmt = $pdo->prepare($sql . " WHERE wd.warehouse_id = ? ORDER BY wd.dispatched_at DESC");
             $stmt->execute([$warehouseId]);
         } else {
-            $stmt = $pdo->query($sql . " ORDER BY wd.dispatched_at DESC");
+            $stmt = $pdo->prepare($sql . " ORDER BY wd.dispatched_at DESC");
+            $stmt->execute();
         }
 
         echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]);
@@ -46,7 +47,9 @@ if ($method === 'GET') {
     }
 
     // For Warehouse Manager: warehouses with dispatch stats
-    $warehouses = $pdo->query("SELECT * FROM store_branches ORDER BY type DESC, name ASC")->fetchAll();
+    $stmt = $pdo->prepare("SELECT * FROM store_branches ORDER BY type DESC, name ASC");
+    $stmt->execute();
+    $warehouses = $stmt->fetchAll();
 
     foreach ($warehouses as &$w) {
         $stats = $pdo->prepare("SELECT 
@@ -68,7 +71,7 @@ if ($method === 'GET') {
     }
 
     // For Store Layout: products mapped to shelves/bins
-    $locations = $pdo->query("
+    $locationStmt = $pdo->prepare("
         SELECT pl.*, 
                p.name AS product_name, p.product_code, p.image_url,
                sb.name AS branch_name, sb.branch_code
@@ -76,7 +79,9 @@ if ($method === 'GET') {
         JOIN products p ON pl.product_id = p.id
         JOIN store_branches sb ON pl.branch_id = sb.id
         ORDER BY pl.updated_at DESC
-    ")->fetchAll();
+    ");
+    $locationStmt->execute();
+    $locations = $locationStmt->fetchAll();
 
     echo json_encode([
         'success'   => true,

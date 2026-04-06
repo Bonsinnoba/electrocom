@@ -90,9 +90,9 @@ try {
     $msg = "Welcome to ElectroCom! Your verification code is: {$verificationCode}. Please enter this code to activate your account.";
 
     if ($verificationMethod === 'sms') {
-        $notifier->sendSMS($phone, $msg);
+        $notifier->queueNotification('sms', $phone, $msg);
     } else {
-        $notifier->sendEmail($email, $subject, $msg);
+        $notifier->queueNotification('email', $email, $msg, $subject);
     }
 
     $userId = $pdo->lastInsertId();

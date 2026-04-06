@@ -22,7 +22,7 @@ if (!defined('RBAC_ALL_ADMINS')) {
 if (!function_exists('hashPassword')) {
     function hashPassword($password)
     {
-        $config = require '.env.php';
+        $config = $GLOBALS['config'] ?? require_once 'config.php';
         $pepper = $config['PASSWORD_PEPPER'] ?? '';
         return password_hash($password . $pepper, PASSWORD_ARGON2ID);
     }
@@ -34,7 +34,7 @@ if (!function_exists('hashPassword')) {
 if (!function_exists('verifyPassword')) {
     function verifyPassword($password, $hash, &$needsRehash = false)
     {
-        $config = require '.env.php';
+        $config = $GLOBALS['config'] ?? require_once 'config.php';
         $pepper = $config['PASSWORD_PEPPER'] ?? '';
         if (password_verify($password . $pepper, $hash)) {
             $needsRehash = false;
@@ -77,7 +77,7 @@ if (!function_exists('isValidEmail')) {
 if (!function_exists('encryptData')) {
     function encryptData($plaintext)
     {
-        $config = require '.env.php';
+        $config = $GLOBALS['config'] ?? require_once 'config.php';
         $key = $config['DATA_ENCRYPTION_KEY'] ?? '';
         if (!$key) return $plaintext;
         $iv = openssl_random_pseudo_bytes(16);
@@ -102,7 +102,7 @@ if (!function_exists('getClientIP')) {
 if (!function_exists('decryptData')) {
     function decryptData($ciphertext)
     {
-        $config = require '.env.php';
+        $config = $GLOBALS['config'] ?? require_once 'config.php';
         $key = $config['DATA_ENCRYPTION_KEY'] ?? '';
         if (!$key) return $ciphertext;
         $data = base64_decode($ciphertext);
@@ -120,7 +120,7 @@ if (!function_exists('decryptData')) {
 if (!function_exists('generateToken')) {
     function generateToken($userId)
     {
-        $config = require '.env.php';
+        $config = $GLOBALS['config'] ?? require_once 'config.php';
         $secret = $config['JWT_SECRET'];
         $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
         $payload = json_encode([
@@ -199,7 +199,7 @@ if (!function_exists('authenticate')) {
         }
 
         // SECURITY FIX: Verify Signature
-        $config = require '.env.php';
+        $config = $GLOBALS['config'] ?? require_once 'config.php';
         $secret = $config['JWT_SECRET'];
         $headerAndPayload = $parts[0] . '.' . $parts[1];
         
@@ -419,7 +419,8 @@ if (!function_exists('logger')) {
         }
 
         $line = date('Y-m-d H:i:s') . " [" . strtoupper($level) . "] [" . strtoupper($source) . "]$userIdCtx $message" . PHP_EOL;
-        file_put_contents($logDir . '/app.log', $line, FILE_APPEND);
+        $dailyFile = $logDir . '/app-' . date('Y-m-d') . '.log';
+        file_put_contents($dailyFile, $line, FILE_APPEND);
         
         $isLogging = false;
     }
@@ -431,21 +432,23 @@ if (!function_exists('logger')) {
  * $window: time window in seconds (e.g., 60 for minute, 3600 for hour)
  */
 if (!function_exists('checkRateLimit')) {
-    function checkRateLimit($pdo, $limit = 300, $window = 60)
+    function checkRateLimit($pdo, $limit = 300, $window = 60, $action = 'default')
     {
         // Self-heal table if needed
         try {
             $pdo->exec("CREATE TABLE IF NOT EXISTS api_rate_limits (
-                ip_address VARCHAR(45) PRIMARY KEY,
+                ip_address VARCHAR(45),
+                action VARCHAR(50) DEFAULT 'default',
                 request_count INT DEFAULT 1,
-                last_request TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                last_request TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (ip_address, action)
             )");
         } catch (Exception $e) {}
 
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $ip = getClientIP();
         try {
-            $stmt = $pdo->prepare("SELECT request_count, last_request FROM api_rate_limits WHERE ip_address = ?");
-            $stmt->execute([$ip]);
+            $stmt = $pdo->prepare("SELECT request_count, last_request FROM api_rate_limits WHERE ip_address = ? AND action = ?");
+            $stmt->execute([$ip, $action]);
             $row = $stmt->fetch();
             
             if ($row) {
@@ -455,23 +458,26 @@ if (!function_exists('checkRateLimit')) {
                     if ($row['request_count'] >= $limit) {
                         header('Content-Type: application/json');
                         http_response_code(429);
-                        $timeRemaining = ceil(($window - (time() - $lastTime)) / 60);
+                        $remainingSeconds = max(0, $window - (time() - $lastTime));
+                        $unit = ($window >= 3600) ? 'hour' : 'minute';
+                        $waitLabel = ($remainingSeconds >= 60) ? ceil($remainingSeconds / 60) . ' minutes' : $remainingSeconds . ' seconds';
+                        
                         echo json_encode([
                             'success' => false, 
-                            'message' => "Too many attempts ($limit per hour). Please wait about $timeRemaining minutes."
+                            'message' => "Too many attempts ($limit per $unit). Please wait about $waitLabel."
                         ]);
                         exit;
                     }
-                    $pdo->prepare("UPDATE api_rate_limits SET request_count = request_count + 1, last_request = CURRENT_TIMESTAMP WHERE ip_address = ?")->execute([$ip]);
+                    $pdo->prepare("UPDATE api_rate_limits SET request_count = request_count + 1, last_request = CURRENT_TIMESTAMP WHERE ip_address = ? AND action = ?")->execute([$ip, $action]);
                 } else {
                     // Reset if the window has passed since the last attempt
-                    $pdo->prepare("UPDATE api_rate_limits SET request_count = 1, last_request = CURRENT_TIMESTAMP WHERE ip_address = ?")->execute([$ip]);
+                    $pdo->prepare("UPDATE api_rate_limits SET request_count = 1, last_request = CURRENT_TIMESTAMP WHERE ip_address = ? AND action = ?")->execute([$ip, $action]);
                 }
             } else {
-                $pdo->prepare("INSERT INTO api_rate_limits (ip_address, request_count, last_request) VALUES (?, 1, CURRENT_TIMESTAMP)")->execute([$ip]);
+                $pdo->prepare("INSERT INTO api_rate_limits (ip_address, action, request_count, last_request) VALUES (?, ?, 1, CURRENT_TIMESTAMP)")->execute([$ip, $action]);
             }
         } catch (Exception $e) {
-            logger('error', 'SECURITY', "Rate limit error: " . $e->getMessage());
+            if (function_exists('logger')) logger('error', 'SECURITY', "Rate limit error: " . $e->getMessage());
         }
     }
 }
@@ -619,7 +625,7 @@ if (!function_exists('updateUserLevel')) {
             $totalSpend = (float)$stmt->fetchColumn() ?: 0;
 
             // 2. Determine Level based on spend
-            $config = $GLOBALS['config'] ?? require '.env.php';
+            $config = $GLOBALS['config'] ?? require_once 'config.php';
             $eliteThreshold = $config['ELITE_THRESHOLD'] ?? 500;
             $vipThreshold = $config['VIP_THRESHOLD'] ?? 2000;
 
@@ -647,4 +653,33 @@ if (!function_exists('updateUserLevel')) {
         }
     }
 }
-?>
+/**
+ * Centrally scrub user object for safe API transmission.
+ * Strips password hashes, secrets, and other sensitive metadata.
+ */
+if (!function_exists('scrubUser')) {
+    function scrubUser($user)
+    {
+        if (!$user || !is_array($user)) return null;
+        
+        $sensitiveFields = [
+            'password_hash', 
+            'two_factor_secret', 
+            'temp_otp', 
+            'reset_token', 
+            'profile_image_raw', // Large binary data
+            'auth_provider_id'
+        ];
+
+        foreach ($sensitiveFields as $field) {
+            unset($user[$field]);
+        }
+
+        // Cast numeric types for consistency
+        if (isset($user['id'])) $user['id'] = (int)$user['id'];
+        if (isset($user['level'])) $user['level'] = (int)$user['level'];
+        if (isset($user['id_verified'])) $user['id_verified'] = (bool)$user['id_verified'];
+        
+        return $user;
+    }
+}

@@ -87,7 +87,7 @@ function AppContent() {
       } catch {}
     };
     checkMaintenance();
-    const intervalId = setInterval(checkMaintenance, 60000); // re-check every minute
+    const intervalId = setInterval(checkMaintenance, 300000); // re-check every 5 minutes
     return () => clearInterval(intervalId);
   }, []);
 
@@ -224,7 +224,6 @@ function AppContent() {
 
   useEffect(() => {
     loadProducts(); 
-    const intervalId = setInterval(loadProducts, 60000);
     const handleFocus = () => {
         if (Date.now() - lastFetchRef.current > 30000) {
             loadProducts();
@@ -232,7 +231,6 @@ function AppContent() {
     };
     window.addEventListener('focus', handleFocus);
     return () => {
-        clearInterval(intervalId);
         window.removeEventListener('focus', handleFocus);
     };
   }, []);

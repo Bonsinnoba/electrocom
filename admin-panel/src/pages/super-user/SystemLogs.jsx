@@ -4,7 +4,7 @@ import {
   AlertTriangle, Info, CheckCircle, XCircle, Search,
   ChevronDown, Clock, Database, FileText, Plus, User
 } from 'lucide-react';
-import { fetchLogs, clearLogs, fetchBackups, createBackup, deleteBackup, API_BASE_URL } from '../../services/api';
+import { fetchLogs, clearLogs, deleteLogDay, fetchBackups, createBackup, deleteBackup, API_BASE_URL } from '../../services/api';
 import { useConfirm } from '../../context/ConfirmContext';
 
 
@@ -70,6 +70,21 @@ export default function SystemLogs() {
     setLogs([]);
     try {
       await clearLogs();
+      load();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteDay = async (dateStr) => {
+    if (!(await confirm(`Are you sure you want to delete logs for ${dateStr}?`))) return;
+    try {
+      const res = await deleteLogDay(dateStr);
+      if (res.success) {
+        load();
+      } else {
+        alert(res.message);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -117,7 +132,7 @@ export default function SystemLogs() {
 
   const groupedLogs = (filtered || []).reduce((acc, log) => {
     if (!log || !log.ts) return acc;
-    const dateStr = new Date(log.ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const dateStr = log.ts.split(' ')[0]; // Group by YYYY-MM-DD
     if (!acc[dateStr]) acc[dateStr] = [];
     acc[dateStr].push(log);
     return acc;
@@ -230,8 +245,10 @@ export default function SystemLogs() {
               <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>No matching log entries.</div>
             ) : (
               <div style={{ maxHeight: '560px', overflowY: 'auto', padding: '8px 0' }}>
-                {Object.entries(groupedLogs).map(([date, dateLogs], groupIndex) => (
-                  <div key={date}>
+                {Object.entries(groupedLogs).map(([dateKey, dateLogs], groupIndex) => {
+                  const displayDate = new Date(dateKey).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  return (
+                  <div key={dateKey}>
                     <div style={{
                       padding: '8px 20px',
                       background: 'var(--bg-card)',
@@ -244,9 +261,19 @@ export default function SystemLogs() {
                       borderTop: groupIndex > 0 ? '1px solid rgba(255,255,255,0.02)' : 'none',
                       position: 'sticky',
                       top: '-8px',
-                      zIndex: 10
+                      zIndex: 10,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
                     }}>
-                      {date}
+                      <span>{displayDate}</span>
+                      <button 
+                        onClick={() => deleteDay(dateKey)}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        title={`Delete logs for ${displayDate}`}
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                     {dateLogs.map((log, i) => {
                       const s = LEVEL_STYLE[log.level] || LEVEL_STYLE.info;
@@ -297,7 +324,8 @@ export default function SystemLogs() {
                       );
                     })}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

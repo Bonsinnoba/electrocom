@@ -165,7 +165,7 @@ if ($method === 'GET') {
 
             $msg = "Hello {$order['name']},\n\nHere is your receipt for order #{$idStr}.\n\nItems:\n{$itemsList}\nTotal: GHS " . number_format($order['total_amount'], 2) . "\n\nThank you for shopping with ElectroCom!";
 
-            $notifier->sendEmail($order['email'], $subject, $msg);
+            $notifier->queueNotification('email', $order['email'], $msg, $subject);
 
             logger('info', 'ORDERS', "Receipt for order {$idStr} manually re-sent by {$userName}");
             echo json_encode(['success' => true, 'message' => 'Receipt re-sent successfully']);

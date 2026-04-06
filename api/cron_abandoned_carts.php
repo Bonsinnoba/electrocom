@@ -22,14 +22,17 @@ try {
           AND last_updated > DATE_SUB(NOW(), INTERVAL 48 HOUR)
           AND JSON_LENGTH(cart_data) > 0
     ";
-
-    $markedRows = $pdo->exec($markQuery);
+    $stmt = $pdo->prepare($markQuery);
+    $stmt->execute();
+    $markedRows = $stmt->rowCount();
     $output[] = "Marked $markedRows active carts as abandoned.";
 
     // 2. Fetch all newly abandoned carts to send emails
     // We only want to send ONE email per abandoned session, so we add an 'email_sent' flag
     // First, let's ensure the column exists (Self-healing schema)
-    $cols = $pdo->query("DESCRIBE abandoned_carts")->fetchAll(PDO::FETCH_COLUMN);
+    $stmt = $pdo->prepare("DESCRIBE abandoned_carts");
+    $stmt->execute();
+    $cols = $stmt->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('email_sent_at', $cols)) {
         $pdo->exec("ALTER TABLE abandoned_carts ADD COLUMN email_sent_at DATETIME DEFAULT NULL");
     }
@@ -42,7 +45,8 @@ try {
           AND a.email_sent_at IS NULL
     ";
 
-    $stmt = $pdo->query($fetchQuery);
+    $stmt = $pdo->prepare($fetchQuery);
+    $stmt->execute();
     $cartsToRecover = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $emailsSent = 0;
@@ -73,7 +77,7 @@ try {
 
         // Send Email
         try {
-            if ($notifier->sendEmail($cart['email'], $subject, $message)) {
+            if ($notifier->queueNotification('email', $cart['email'], $message, $subject)) {
                 $emailsSent++;
                 // Mark as sent
                 $updateStmt = $pdo->prepare("UPDATE abandoned_carts SET email_sent_at = NOW() WHERE id = ?");

@@ -23,15 +23,12 @@ export default function HeroSlider() {
   useEffect(() => {
     loadSlides();
 
-    const interval = setInterval(loadSlides, 20000); // Check every 20 seconds
-    
     const handleFocus = () => {
         loadSlides();
     };
 
     window.addEventListener('focus', handleFocus);
     return () => {
-        clearInterval(interval);
         window.removeEventListener('focus', handleFocus);
     };
   }, []);

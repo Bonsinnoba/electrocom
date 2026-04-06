@@ -14889,3 +14889,269 @@ BEGIN
 2026-04-04 03:55:48 [ERROR] [AUTH] [UID:8] AUTH FAIL: Token expired.
 2026-04-04 03:55:48 [ERROR] [AUTH] [UID:8] AUTH FAIL: Token expired.
 2026-04-04 09:05:06 [OK] [AUTH] User test_super@example.com logged in successfully as SUPER
+2026-04-04 14:33:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:34:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:34:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:35:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:35:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:36:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:36:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:37:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:37:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:38:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:38:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:39:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:39:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:40:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:40:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:41:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:41:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:42:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:42:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:43:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:43:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:44:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:44:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:45:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:45:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:46:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:46:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:47:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:47:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:48:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:48:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:49:29 [OK] [MIGRATION] [UID:8] Successfully executed 006_phase2_performance_and_queue.sql
+2026-04-04 14:49:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:49:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:50:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:50:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:51:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:51:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:52:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:52:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:53:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:53:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:54:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:54:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:55:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:55:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:56:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:56:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:57:29 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:58:00 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:58:30 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 14:59:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:00:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:01:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:02:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:03:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:04:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:05:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:06:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:07:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:08:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:09:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:10:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:11:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:12:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:13:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:14:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:15:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:16:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:17:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:18:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:19:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:20:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:21:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:22:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:23:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:24:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:25:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:26:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:27:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:28:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:29:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:30:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:31:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:32:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:33:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:34:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:35:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:36:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:37:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:38:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:39:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:40:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:41:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:42:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:43:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:44:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:45:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:46:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:47:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:48:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:49:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:50:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:51:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:52:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:53:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:54:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:55:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:56:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:57:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:58:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 15:59:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:00:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:01:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:02:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:03:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:04:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:05:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:06:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:07:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:08:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:09:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:10:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:11:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:12:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:13:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:14:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:15:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:16:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:17:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:18:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:19:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:20:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:21:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:22:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:23:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:24:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:25:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:26:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:27:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:28:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:29:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:30:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:31:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:32:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:33:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:34:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:35:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:36:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:37:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:38:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:39:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:40:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:41:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:42:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:43:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:44:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:45:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:46:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:47:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:48:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:49:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:50:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:51:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:52:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:53:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:55:00 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:55:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:56:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:57:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:58:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 16:59:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:00:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:01:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:02:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:03:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:04:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:05:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:06:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:07:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:08:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:09:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:10:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:11:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:12:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:14:00 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:14:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:15:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:17 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:17 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:45 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:45 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:47 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:51 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:51 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:51 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:51 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:16:59 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:17:04 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:17:04 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:17:04 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:17:04 [ERROR] [AUTH] [UID:8] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJleHAiOjE3NzUzNzk5MDYsImlhdCI6MTc3NTI5MzUwNiwiaXAiOiIxMjcuMC4wLjEifQ
+2026-04-04 17:49:02 [ERROR] [AUTH] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxNCwiZXhwIjoxNzc1Mjk3NDUwLCJpYXQiOjE3NzUyMTEwNTAsImlwIjoiMTI3LjAuMC4xIn0
+2026-04-04 17:49:02 [ERROR] [AUTH] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxNCwiZXhwIjoxNzc1Mjk3NDUwLCJpYXQiOjE3NzUyMTEwNTAsImlwIjoiMTI3LjAuMC4xIn0
+2026-04-04 17:49:02 [ERROR] [AUTH] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxNCwiZXhwIjoxNzc1Mjk3NDUwLCJpYXQiOjE3NzUyMTEwNTAsImlwIjoiMTI3LjAuMC4xIn0
+2026-04-04 17:49:02 [ERROR] [AUTH] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxNCwiZXhwIjoxNzc1Mjk3NDUwLCJpYXQiOjE3NzUyMTEwNTAsImlwIjoiMTI3LjAuMC4xIn0
+2026-04-05 23:02:06 [ERROR] [AUTH] [UID:4] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0LCJleHAiOjE3NzE0NTYyNTIsImlhdCI6MTc3MTM2OTg1Mn0
+2026-04-05 23:02:06 [ERROR] [AUTH] [UID:4] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0LCJleHAiOjE3NzE0NTYyNTIsImlhdCI6MTc3MTM2OTg1Mn0
+2026-04-05 23:02:06 [ERROR] [AUTH] [UID:4] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0LCJleHAiOjE3NzE0NTYyNTIsImlhdCI6MTc3MTM2OTg1Mn0
+2026-04-05 23:02:06 [ERROR] [AUTH] [UID:4] AUTH FAIL: Invalid token signature. Header+Payload: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0LCJleHAiOjE3NzE0NTYyNTIsImlhdCI6MTc3MTM2OTg1Mn0
+2026-04-05 23:21:28 [OK] [AUTH_SOCIAL] User automatically registered via google: ivenbalika123@gmail.com
+2026-04-05 23:27:34 [INFO] [NOTIF_SYNC] Dev Mode: Sending sms immediately for 0536683393
+2026-04-05 23:27:38 [INFO] [SMS_SERVICE] Successfully sent SMS to 0536683393 via Hubtel
+2026-04-05 23:27:38 [OK] [AUTH_FORGOT_SMS] Password reset code queued/sent via SMS to 0536683393
+2026-04-05 23:30:33 [INFO] [AUTH_SOCIAL] User logged in via google: ivenbalika123@gmail.com
+2026-04-05 23:31:25 [INFO] [NOTIF_SYNC] Dev Mode: Sending sms immediately for 0506408074
+2026-04-05 23:31:29 [INFO] [SMS_SERVICE] Successfully sent SMS to 0506408074 via Hubtel
+2026-04-05 23:31:29 [OK] [AUTH_FORGOT_SMS] Password reset code queued/sent via SMS to 0506408074
+2026-04-05 23:33:15 [OK] [AUTH_RESET] Password successfully reset for ivenbalika123@gmail.com
+2026-04-05 23:34:05 [INFO] [NOTIF_SYNC] Dev Mode: Sending email immediately for ivenbalika123@gmail.com
+2026-04-05 23:34:08 [INFO] [EMAIL_SERVICE] SMTP configured, attempting to send to ivenbalika123@gmail.com
+2026-04-05 23:34:12 [ERROR] [EMAIL_SERVICE] Failed to send email to ivenbalika123@gmail.com: SMTP Error: Could not authenticate. SMTP server error: QUIT command failed
+2026-04-05 23:34:12 [INFO] [EMAIL_SERVICE] SIMULATED EMAIL (Fell back due to error) to ivenbalika123@gmail.com: Your verification code is: 251380. Please enter this code to activate your account.
+2026-04-05 23:35:13 [INFO] [NOTIF_SYNC] Dev Mode: Sending email immediately for ivenbalika123@gmail.com
+2026-04-05 23:35:13 [INFO] [EMAIL_SERVICE] SMTP configured, attempting to send to ivenbalika123@gmail.com
+2026-04-05 23:35:18 [ERROR] [EMAIL_SERVICE] Failed to send email to ivenbalika123@gmail.com: SMTP Error: Could not authenticate. SMTP server error: QUIT command failed
+2026-04-05 23:35:18 [INFO] [EMAIL_SERVICE] SIMULATED EMAIL (Fell back due to error) to ivenbalika123@gmail.com: Your verification code is: 318154. Please enter this code to activate your account.
+2026-04-05 23:37:59 [INFO] [NOTIF_SYNC] Dev Mode: Sending sms immediately for 0506408074
+2026-04-05 23:38:05 [INFO] [SMS_SERVICE] Successfully sent SMS to 0506408074 via Hubtel
+2026-04-05 23:38:05 [OK] [AUTH_FORGOT_SMS] Password reset code queued/sent via SMS to 0506408074
+2026-04-05 23:38:47 [OK] [AUTH_RESET] Password successfully reset for ivenbalika123@gmail.com
+2026-04-05 23:38:57 [INFO] [NOTIF_SYNC] Dev Mode: Sending email immediately for ivenbalika123@gmail.com
+2026-04-05 23:38:57 [INFO] [EMAIL_SERVICE] SMTP configured, attempting to send to ivenbalika123@gmail.com
+2026-04-05 23:39:03 [ERROR] [EMAIL_SERVICE] Failed to send email to ivenbalika123@gmail.com: SMTP Error: Could not authenticate. SMTP server error: QUIT command failed
+2026-04-05 23:39:03 [INFO] [EMAIL_SERVICE] SIMULATED EMAIL (Fell back due to error) to ivenbalika123@gmail.com: Your verification code is: 822632. Please enter this code to activate your account.
+2026-04-05 23:39:25 [INFO] [NOTIF_SYNC] Dev Mode: Sending email immediately for ivenbalika123@gmail.com
+2026-04-05 23:39:25 [INFO] [EMAIL_SERVICE] SMTP configured, attempting to send to ivenbalika123@gmail.com
+2026-04-05 23:39:32 [ERROR] [EMAIL_SERVICE] Failed to send email to ivenbalika123@gmail.com: SMTP Error: Could not authenticate. SMTP server error: QUIT command failed
+2026-04-05 23:39:32 [INFO] [EMAIL_SERVICE] SIMULATED EMAIL (Fell back due to error) to ivenbalika123@gmail.com: Your verification code is: 462006. Please enter this code to activate your account.
+2026-04-05 23:46:15 [INFO] [NOTIF_SYNC] Dev Mode: Sending email immediately for ivenbalika123@gmail.com
+2026-04-05 23:46:15 [INFO] [EMAIL_SERVICE] SMTP configured, attempting to send to ivenbalika123@gmail.com
+2026-04-05 23:46:18 [ERROR] [EMAIL_SERVICE] Failed to send email to ivenbalika123@gmail.com: SMTP Error: Could not authenticate. SMTP server error: QUIT command failed
+2026-04-05 23:46:18 [INFO] [EMAIL_SERVICE] SIMULATED EMAIL (Fell back due to error) to ivenbalika123@gmail.com: Your verification code is: 393903. Please enter this code to activate your account.
+2026-04-05 23:46:44 [INFO] [NOTIF_SYNC] Dev Mode: Sending email immediately for ivenbalika123@gmail.com
+2026-04-05 23:46:44 [INFO] [EMAIL_SERVICE] SMTP configured, attempting to send to ivenbalika123@gmail.com
+2026-04-05 23:46:49 [ERROR] [EMAIL_SERVICE] Failed to send email to ivenbalika123@gmail.com: SMTP Error: Could not authenticate. SMTP server error: QUIT command failed
+2026-04-05 23:46:49 [INFO] [EMAIL_SERVICE] SIMULATED EMAIL (Fell back due to error) to ivenbalika123@gmail.com: Your verification code is: 193330. Please enter this code to activate your account.
+2026-04-05 23:54:45 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as CUSTOMER
+2026-04-05 23:59:35 [OK] [AUTH] User ivenbalika123@gmail.com logged in successfully as SUPER
+2026-04-06 00:01:33 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 03:00:00 cleared by Balika Iven (20 entries)
+2026-04-06 00:01:40 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 04:00:00 cleared by Balika Iven (240 entries)
+2026-04-06 00:01:45 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 10:00:00 cleared by Balika Iven (120 entries)
+2026-04-06 00:01:49 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 06:00:00 cleared by Balika Iven (240 entries)
+2026-04-06 00:01:53 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 08:00:00 cleared by Balika Iven (240 entries)
+2026-04-06 00:01:58 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 09:00:00 cleared by Balika Iven (256 entries)
+2026-04-06 00:02:03 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 05:00:00 cleared by Balika Iven (240 entries)
+2026-04-06 00:02:07 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 07:00:00 cleared by Balika Iven (238 entries)
+2026-04-06 00:02:17 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 13:00:00 cleared by Balika Iven (364 entries)
+2026-04-06 00:02:19 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 13:00:00 cleared by Balika Iven (0 entries)
+2026-04-06 00:02:25 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 11:00:00 cleared by Balika Iven (168 entries)
+2026-04-06 00:02:27 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 12:00:00 cleared by Balika Iven (364 entries)
+2026-04-06 00:02:31 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 14:00:00 cleared by Balika Iven (418 entries)
+2026-04-06 00:02:36 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 15:00:00 cleared by Balika Iven (360 entries)
+2026-04-06 00:02:40 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 16:00:00 cleared by Balika Iven (360 entries)
+2026-04-06 00:02:45 [INFO] [SECURITY] [UID:1] Traffic logs for 2026-04-04 17:00:00 cleared by Balika Iven (454 entries)
