@@ -22,8 +22,16 @@ if (empty($email) || empty($password)) {
 }
 
 try {
-    // 1. Apply Rate Limiting (10 attempts / 1 minute)
-    checkRateLimit($pdo, 10, 60, 'login');
+    // Load security settings
+    $settingsFile = __DIR__ . '/data/super_settings.json';
+    $settings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+    
+    $maxAttempts = (int)($settings['maxLoginAttempts'] ?? 5);
+    $lockoutMins = (int)($settings['lockoutDuration'] ?? 60);
+    $rateLimit = (int)($settings['apiRateLimit'] ?? 10); // Specific to login rate limit if desired, or use global
+
+    // 1. Apply Rate Limiting
+    checkRateLimit($pdo, $rateLimit, 60, 'login');
 
     // Fetch user by email
     $stmt = $pdo->prepare("SELECT id, name, email, password_hash, phone, address, region, level, level_name, avatar_text, profile_image, status, role, is_verified, verification_method, email_notif, push_notif, sms_tracking, theme, branch_id, login_attempts, lockout_until FROM users WHERE email = ?");
@@ -43,22 +51,20 @@ try {
     }
 
     // Timing-attack safe login verification
-    // $needsRehash will be true if the user's password was hashed without a pepper (legacy)
     $passwordValid = $user && verifyPassword($password, $user['password_hash'], $needsRehash);
 
     if (!$passwordValid) {
         // If user not found, perform dummy verification to match timing
         if (!$user) {
-            // A generic Argon2id hash for "dummy_salt"
             verifyPassword($password, '$argon2id$v=19$m=65536,t=4,p=1$MmdMckp4N1YwS3B2bU51eQ$RkR0...', $needsRehash);
         }
         // 2. Handle Failed Attempt
         if ($user) {
             $attempts = ($user['login_attempts'] ?? 0) + 1;
             $lockout = null;
-            if ($attempts >= 5) {
-                $lockout = date('Y-m-d H:i:s', time() + 3600); // 1 hour lockout
-                logger('warn', 'SECURITY', "Account locked for {$user['email']} after 5 failed attempts.");
+            if ($attempts >= $maxAttempts) {
+                $lockout = date('Y-m-d H:i:s', time() + ($lockoutMins * 60)); 
+                logger('warn', 'SECURITY', "Account locked for {$user['email']} after $maxAttempts failed attempts.");
             }
             $stmt = $pdo->prepare("UPDATE users SET login_attempts = ?, lockout_until = ? WHERE id = ?");
             $stmt->execute([$attempts, $lockout, $user['id']]);
@@ -125,12 +131,16 @@ try {
     // Generate token
     $token = generateToken($user['id']);
 
+    // Identify target application for cookie naming
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
+    $appId = $headers['X-App-ID'] ?? $headers['x-app-id'] ?? ($data['app_source'] ?? 'storefront');
+    $cookieName = ($appId === 'admin') ? 'ehub_admin_session' : 'ehub_store_session';
+
     // Set HttpOnly Cookie for security
-    // In production, secure should be true. For local dev (no HTTPS), we keep it false.
-    setcookie('ehub_session', $token, [
+    setcookie($cookieName, $token, [
         'expires' => time() + (60 * 60 * 24), // 24 hours
         'path' => '/',
-        'domain' => '', // Current domain
+        'domain' => '',
         'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
         'httponly' => true,
         'samesite' => 'Strict'

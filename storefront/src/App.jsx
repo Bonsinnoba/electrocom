@@ -57,8 +57,8 @@ const ScrollToTop = () => {
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, updateUser, logout, authModal, openAuthModal, closeAuthModal } = useUser();
-  const { formatPrice } = useSettings();
+  const { user, updateUser, login: handleContextLogin, logout, authModal, openAuthModal, closeAuthModal } = useUser();
+  const { siteSettings, formatPrice } = useSettings();
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const lastFetchRef = React.useRef(0); 
 
@@ -74,8 +74,11 @@ function AppContent() {
           const data = await res.json();
           // Even if 503, Super Admins should bypass
           if (data.maintenance === true) {
-            const ehub_user = secureStorage.getItem('user', 'shared') || {};
-            if (ehub_user.role === 'super') {
+            // Check for bypass using the last active user ID
+            const lastId = localStorage.getItem('ehub_last_user_id');
+            const ehub_user = lastId ? secureStorage.getItem('user', lastId) : null;
+            
+            if (ehub_user && ehub_user.role === 'super') {
               setIsMaintenanceMode(false);
             } else {
               setIsMaintenanceMode(true);
@@ -96,9 +99,6 @@ function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
-  });
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('site_theme') || 'blue';
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -138,9 +138,8 @@ function AppContent() {
           sms_tracking: rawUser.sms_tracking !== undefined ? Boolean(rawUser.sms_tracking) : true,
           theme: rawUser.theme || 'blue',
         };
-        // Persist token so `checkUserStatus` and protected routes remain authenticated
-        secureStorage.setItem('token', token, 'shared');
-        updateUser(userObj);
+        // Pass both user and token to the centralized login handler
+        handleContextLogin(userObj, token);
         addToast("Login successful!", "success");
         // Clear the URL immediately to prevent re-processing and clean history
         navigate('/', { replace: true });
@@ -163,25 +162,47 @@ function AppContent() {
     document.body.classList.toggle('dark-mode', isDarkMode);
   }, [isDarkMode]);
 
+  // Apply dynamic site branding
   useEffect(() => {
-    // Remove existing theme classes
-    document.documentElement.classList.remove('theme-yellow', 'theme-green', 'theme-purple');
-    document.body.classList.remove('theme-yellow', 'theme-green', 'theme-purple');
+    const { primaryColor, accentColor, headerBg, fontFamily, siteName, faviconUrl, maintenanceMode } = siteSettings;
     
-    // Add new one if not blue
-    if (theme !== 'blue') {
-      document.documentElement.classList.add(`theme-${theme}`);
-      document.body.classList.add(`theme-${theme}`);
+    if (primaryColor) {
+      document.documentElement.style.setProperty('--primary-blue', primaryColor);
+      document.documentElement.style.setProperty('--primary-blue-hover', `${primaryColor}CC`);
+      const hexToRgb = (hex) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '59, 130, 246';
+      };
+      document.documentElement.style.setProperty('--primary-rgb', hexToRgb(primaryColor));
     }
-    localStorage.setItem('site_theme', theme);
-  }, [theme]);
 
-  // Sync theme from user profile on login
-  useEffect(() => {
-    if (user && user.theme && user.theme !== theme) {
-      setTheme(user.theme);
+    if (accentColor) {
+      document.documentElement.style.setProperty('--primary-gold', accentColor);
     }
-  }, [user]);
+
+    if (headerBg) {
+      document.documentElement.style.setProperty('--top-nav-bg', headerBg);
+    }
+    
+    if (fontFamily) {
+      document.documentElement.style.setProperty('--font-main', fontFamily);
+      document.body.style.fontFamily = `'${fontFamily}', sans-serif`;
+    }
+
+    if (siteName && !location.pathname.includes('/settings')) {
+       document.title = `${siteName} | Your Tech Partner`;
+    }
+    
+    if (faviconUrl) {
+      let link = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+      }
+      link.href = faviconUrl;
+    }
+  }, [siteSettings, location.pathname]);
 
   const productsRef = useRef(products);
 
@@ -203,7 +224,7 @@ function AppContent() {
           
           lastFetchRef.current = Date.now();
 
-          if (data.length === 0 && productsRef.current.length === 0) {
+          if (mappedProducts.length === 0 && productsRef.current.length === 0) {
              addToast("Product catalog is currently empty", "info");
           }
       } else {
@@ -320,7 +341,7 @@ function AppContent() {
     );
   };
 
-  if (isMaintenanceMode) return <MaintenancePage />;
+  if (isMaintenanceMode || siteSettings.maintenanceMode) return <MaintenancePage />;
 
   return (
     <div className={`app-root ${isDarkMode ? 'dark-mode' : ''}`}>
@@ -357,7 +378,7 @@ function AppContent() {
             <Route path="/orders" element={<Orders searchQuery={searchQuery} />} />
             <Route path="/notifications" element={<Notifications searchQuery={searchQuery} />} />
             <Route path="/support" element={<Support searchQuery={searchQuery} />} />
-            <Route path="/settings" element={<Settings searchQuery={searchQuery} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} theme={theme} setTheme={setTheme} />} />
+            <Route path="/settings" element={<Settings searchQuery={searchQuery} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success" element={<OrderSuccess />} />

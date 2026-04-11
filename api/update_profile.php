@@ -116,44 +116,32 @@ try {
 
         if (!$user) {
             clearSession(); // Wipe the stale cookie
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'User profile not found. Please log in again.']);
-            exit;
+            sendResponse(false, 'User profile not found. Please log in again.', null, 404);
         }
 
-        echo json_encode([
-            'success' => true,
-            'message' => 'Profile updated successfully',
-            'data' => [
-                'user' => [
-                    'id' => (int)$user['id'],
-                    'name' => $user['name'],
-                    'email' => $user['email'],
-                    'phone' => $user['phone'] ?? '',
-                    'address' => $user['address'] ?? '',
-                    'region' => $user['region'] ?? 'Greater Accra',
-                    'level' => $user['level'] ?? 1,
-                    'levelName' => $user['level_name'] ?? 'Starter',
-                    'avatar' => $user['avatar_text'] ?? '',
-                    'profileImage' => (strlen($user['profile_image'] ?? '') > 50000) ? null : ($user['profile_image'] ?? null),
-                    'status' => $user['status'],
-                    'role' => $user['role'],
-                    'email_notif' => (bool)($user['email_notif'] ?? true),
-                    'push_notif' => (bool)($user['push_notif'] ?? true),
-                    'sms_tracking' => (bool)($user['sms_tracking'] ?? true),
-                    'theme' => $user['theme'] ?? 'blue'
-                ]
-            ]
-        ]);
+        $userData = [
+            'id' => (int)$user['id'],
+            'name' => $user['name'],
+            'email' => $user['email'],
+            'phone' => $user['phone'] ?? '',
+            'address' => $user['address'] ?? '',
+            'region' => $user['region'] ?? 'Greater Accra',
+            'level' => $user['level'] ?? 1,
+            'levelName' => $user['level_name'] ?? 'Starter',
+            'avatar' => $user['avatar_text'] ?? '',
+            'profileImage' => (strlen($user['profile_image'] ?? '') > 50000) ? null : ($user['profile_image'] ?? null),
+            'status' => $user['status'],
+            'role' => $user['role'],
+            'email_notif' => (bool)($user['email_notif'] ?? true),
+            'push_notif' => (bool)($user['push_notif'] ?? true),
+            'sms_tracking' => (bool)($user['sms_tracking'] ?? true),
+            'theme' => $user['theme'] ?? 'blue'
+        ];
+
+        sendResponse(true, 'Profile updated successfully', ['user' => $userData]);
     } else {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Failed to apply profile updates.']);
+        sendResponse(false, 'Failed to apply profile updates.', null, 500);
     }
 } catch (\Throwable $e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false, 
-        'message' => 'System error during profile update.',
-        'debug' => (isset($config['DEBUG_MODE']) && $config['DEBUG_MODE']) || (function_exists('isDebugEnabled') && isDebugEnabled()) ? $e->getMessage() : null
-    ]);
+    sendResponse(false, 'System error during profile update.', null, 500);
 }

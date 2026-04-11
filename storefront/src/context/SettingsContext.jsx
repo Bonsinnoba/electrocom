@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { updateProfile } from '../services/api';
+import { updateProfile, formatImageUrl } from '../services/api';
 import { useUser } from './UserContext';
 
 const SettingsContext = createContext();
@@ -15,12 +15,39 @@ export const useSettings = () => {
 export const SettingsProvider = ({ children }) => {
   const { user, updateUser } = useUser();
   const [siteSettings, setSiteSettings] = useState({
-    siteName: 'ElectroCom',
-    phone1: '0536683393',
-    phone2: '0506408074',
-    whatsapp: '233536683393',
-    siteEmail: 'support@electrocom.com',
-    maintenanceMode: false
+    // Identity
+    siteName:     'ElectroCom',
+    siteEmail:    'support@electrocom.com',
+    phone1:       '0536683393',
+    phone2:       '0506408074',
+    whatsapp:     '233536683393',
+    maintenanceMode: false,
+    // Assets
+    siteLogoUrl:  '',
+    faviconUrl:   '',
+    // Location
+    storeAddress: '',
+    businessHours:'Mon–Fri, 8am–6pm',
+    // Social
+    socialInstagram: '',
+    socialTwitter:   '',
+    socialFacebook:  '',
+    socialTikTok:    '',
+    socialYoutube:   '',
+    // Branding
+    primaryColor:      '#3b82f6',
+    accentColor:       '#f59e0b',
+    headerBg:          '#0f172a',
+    fontFamily:        'Inter',
+    heroBannerTagline: '',
+    heroBannerSubtext: '',
+    heroCTAText:       'Shop Now',
+    heroCTAUrl:        '/products',
+    // Storefront behaviour
+    defaultItemsPerPage:      12,
+    homepageSectionTitle:     'New Arrivals',
+    homepageFeaturedCategory: '',
+    vatRate:                  0,
   });
 
   const [settings, setSettings] = useState(() => {
@@ -31,7 +58,7 @@ export const SettingsProvider = ({ children }) => {
       sms_tracking: true,
       currency: 'GHS',
       language: 'English (UK)',
-      currencySymbol: 'GH₵',
+      currencySymbol: '₵',
       currencyRate: 1
     };
   });
@@ -42,7 +69,14 @@ export const SettingsProvider = ({ children }) => {
       try {
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/get_site_settings.php`);
         const result = await response.json();
-        if (result.success) setSiteSettings(result.data);
+        if (result.success) {
+          const data = result.data || {};
+          // Ensure branding URLs are absolute
+          if (data.siteLogoUrl) data.siteLogoUrl = formatImageUrl(data.siteLogoUrl);
+          if (data.faviconUrl) data.faviconUrl = formatImageUrl(data.faviconUrl);
+          
+          setSiteSettings(prev => ({ ...prev, ...data }));
+        }
       } catch (error) {
         console.error('Error loading site settings:', error);
       }
@@ -92,14 +126,14 @@ export const SettingsProvider = ({ children }) => {
     setSettings(prev => ({
       ...prev,
       currency: 'GHS',
-      currencySymbol: 'GH₵',
+      currencySymbol: '₵',
       currencyRate: 1
     }));
   };
 
   const formatPrice = (price) => {
     const amount = Number(price) || 0;
-    return `GH₵${amount.toFixed(2)}`;
+    return `₵${amount.toFixed(2)}`;
   };
 
   return (

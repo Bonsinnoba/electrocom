@@ -38,9 +38,9 @@ export default function OrderTrackingModal({ orderId, isOpen, onClose }) {
 
   const getStatusIndex = (status) => {
     const s = (status || 'pending').toLowerCase();
-    if (s === 'delivered' || s === 'completed') return 3;
-    if (s === 'shipped') return 2;
-    if (s === 'processing') return 1;
+    if (s === 'delivered') return 3;
+    if (s === 'shipped' || s === 'completed') return 2;
+    if (['processing', 'received', 'picking', 'picked'].includes(s)) return 1;
     return 0;
   };
 
@@ -149,28 +149,36 @@ export default function OrderTrackingModal({ orderId, isOpen, onClose }) {
               <div className="space-y-4">
                  <h3 className="text-sm font-extrabold text-[var(--text-muted)] uppercase tracking-widest pl-1">Order Activity</h3>
                  <div className="bg-[var(--bg-main)] rounded-2xl p-5 border border-[var(--border-light)] space-y-6">
-                    <div className="flex gap-4 relative">
-                       <div className="w-2 h-2 rounded-full bg-[var(--primary-blue)] mt-1.5 z-10 ring-4 ring-blue-500/20"></div>
-                       <div className="absolute left-[3.5px] top-4 bottom-[-24px] w-0.5 bg-[var(--border-light)]"></div>
-                       <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                             <div className="text-sm font-bold text-[var(--text-main)]">Status Updated: {order?.status?.toUpperCase()}</div>
-                             <div className="text-[10px] text-[var(--text-muted)] font-bold">{formatRelativeTime(order?.updated_at)}</div>
+                    {order?.logs && order.logs.length > 0 ? (
+                      [...order.logs].reverse().map((log, index) => (
+                        <div key={index} className="flex gap-4 relative">
+                          <div className={`w-2 h-2 rounded-full mt-1.5 z-10 ${index === 0 ? 'bg-[var(--primary-blue)] ring-4 ring-blue-500/20' : 'bg-[var(--border-light)]'}`}></div>
+                          {index !== order.logs.length - 1 && (
+                            <div className="absolute left-[3.5px] top-4 bottom-[-24px] w-0.5 bg-[var(--border-light)]"></div>
+                          )}
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                              <div className={`text-sm font-bold ${index === 0 ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}`}>
+                                {log.status_key.charAt(0).toUpperCase() + log.status_key.slice(1)}: {log.message}
+                              </div>
+                              <div className="text-[10px] text-[var(--text-muted)] font-bold">{formatRelativeTime(log.created_at)}</div>
+                            </div>
+                            <div className="text-[10px] text-[var(--text-muted)] mt-1">{formatDate(log.created_at)}</div>
                           </div>
-                          <p className="text-xs text-[var(--text-muted)] mt-1">{steps[currentIndex].desc}</p>
-                       </div>
-                    </div>
-
-                    <div className="flex gap-4">
-                       <div className="w-2 h-2 rounded-full bg-[var(--border-light)] mt-1.5 z-10"></div>
-                       <div className="flex-1">
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex gap-4 relative">
+                        <div className="w-2 h-2 rounded-full bg-[var(--primary-blue)] mt-1.5 z-10 ring-4 ring-blue-500/20"></div>
+                        <div className="flex-1">
                           <div className="flex justify-between items-start">
-                             <div className="text-sm font-bold text-[var(--text-muted)]">Order Placed Successfully</div>
+                             <div className="text-sm font-bold text-[var(--text-main)]">Order Placed Successfully</div>
                              <div className="text-[10px] text-[var(--text-muted)] font-bold">{formatDate(order?.created_at)}</div>
                           </div>
-                          <p className="text-xs text-[var(--text-muted)] mt-1">Your order # {orderId} was confirmed</p>
-                       </div>
-                    </div>
+                          <p className="text-xs text-[var(--text-muted)] mt-1">Your order # {orderId} was confirmed and is awaiting pickup.</p>
+                        </div>
+                      </div>
+                    )}
                  </div>
               </div>
 

@@ -3,6 +3,11 @@ require 'cors_middleware.php';
 require 'db.php';
 require 'security.php';
 
+require_once 'inventory_utils.php';
+
+// Lazy-sync pending orders to cancelled if they expired
+lazyCancelOrders($pdo);
+
 header('Content-Type: application/json');
 
 // Authenticate User
@@ -33,13 +38,6 @@ if ($method === 'GET') {
         $params = [];
 
         // FIX #10: was o.branch_id (wrong), corrected to o.source_branch_id
-        if ($role === 'store_manager' || $role === 'branch_admin') {
-            $managerBranchId = getManagerBranchId($userId, $pdo);
-            if ($managerBranchId) {
-                $filterSql = " WHERE o.source_branch_id = ? ";
-                $params[] = $managerBranchId;
-            }
-        }
 
         $stmt = $pdo->prepare("
             SELECT 
@@ -52,35 +50,36 @@ if ($method === 'GET') {
                 u.region as user_region,
                 o.shipping_address as address,
                 'Delivery' as type,
-                o.source_branch_id as branch_id,
-                b.name as branch_name,
-                b.type as branch_type
             FROM orders o
             JOIN users u ON o.user_id = u.id
-            LEFT JOIN store_branches b ON o.source_branch_id = b.id
             $filterSql
             ORDER BY o.created_at DESC
         ");
         $stmt->execute($params);
         $orders = $stmt->fetchAll();
 
-        // Fetch items for each order
-        foreach ($orders as &$order) {
+        if (!empty($orders)) {
+            $orderIds = array_column($orders, 'id');
+            $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
+            
             $itemStmt = $pdo->prepare("
-                SELECT p.name, p.location, oi.quantity as qty, oi.price_at_purchase as price
+                SELECT oi.order_id, p.name, p.location, oi.quantity as qty, oi.price_at_purchase as price
                 FROM order_items oi
                 JOIN products p ON oi.product_id = p.id
-                WHERE oi.order_id = ?
+                WHERE oi.order_id IN ($placeholders)
             ");
-            $itemStmt->execute([$order['id']]);
-            $order['items'] = $itemStmt->fetchAll();
-            $order['id'] = 'ORD-' . $order['id']; // Add prefix for display
+            $itemStmt->execute($orderIds);
+            $allItems = $itemStmt->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
+
+            foreach ($orders as &$order) {
+                $order['items'] = $allItems[$order['id']] ?? [];
+                $order['id'] = 'ORD-' . $order['id']; // Add prefix for display
+            }
         }
 
-        echo json_encode(['success' => true, 'data' => $orders]);
+        sendResponse(true, 'Orders fetched successfully', $orders);
     } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        sendResponse(false, 'Database error: ' . $e->getMessage(), null, 500);
     }
 } elseif ($method === 'POST') {
     $content = trim(file_get_contents("php://input"));
@@ -100,8 +99,35 @@ if ($method === 'GET') {
         $id = str_replace('ORD-', '', $idStr);
 
         try {
-            $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
-            $stmt->execute([$status, $id]);
+            $pdo->beginTransaction();
+
+            $currStmt = $pdo->prepare("SELECT status FROM orders WHERE id = ? FOR UPDATE");
+            $currStmt->execute([$id]);
+            $currentStatus = $currStmt->fetchColumn();
+
+            if (!$currentStatus) {
+                throw new Exception("Order not found.");
+            }
+
+            if ($currentStatus !== $status) {
+                $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
+                $stmt->execute([$status, $id]);
+
+                // Stock Replenishment Logic
+                $deductedStatuses = ['processing', 'shipped', 'delivered'];
+                $restoredStatuses = ['cancelled', 'returned'];
+                
+                if (in_array($currentStatus, $deductedStatuses) && in_array($status, $restoredStatuses)) {
+                    $itemStmt = $pdo->prepare("SELECT product_id, quantity FROM order_items WHERE order_id = ?");
+                    $itemStmt->execute([$id]);
+                    $items = $itemStmt->fetchAll();
+                    
+                    $restoreStmt = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?");
+                    foreach ($items as $item) {
+                        $restoreStmt->execute([$item['quantity'], $item['product_id']]);
+                    }
+                }
+            }
 
             // Notify User of status change
             $userStmt = $pdo->prepare("SELECT user_id FROM orders WHERE id = ?");
@@ -120,8 +146,10 @@ if ($method === 'GET') {
                 updateUserLevel($order['user_id'], $pdo);
             }
 
+            $pdo->commit();
             echo json_encode(['success' => true]);
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }

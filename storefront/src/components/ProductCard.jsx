@@ -51,6 +51,7 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
           onClick={handleWishlistClick}
           className={`wishlist-btn ${inWishlist ? 'active' : ''}`}
           title={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+          aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
         >
           <Heart 
             size={18} 
@@ -66,6 +67,7 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
           onClick={handleAddToCart}
           className="add-to-cart-btn"
           title="Add to cart"
+          aria-label="Add to cart"
         >
           <ShoppingCart size={18} />
         </button>
@@ -80,6 +82,7 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
           }}
           className="wishlist-btn" 
           title="Remove from favorites"
+          aria-label="Remove from favorites"
         >
           <X size={18} />
         </button>

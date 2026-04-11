@@ -89,7 +89,7 @@ export default function Support({ searchQuery = '' }) {
       }}>
         <div>
           <h1 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1px' }}>Help & Support</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginTop: '4px' }}>Dedicated support to ensure your success with ElectroCom.</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginTop: '4px' }}>Dedicated support to ensure your success with {siteSettings.siteName}.</p>
         </div>
       </div>
 
@@ -270,7 +270,7 @@ export default function Support({ searchQuery = '' }) {
           <span style={{ fontWeight: 800, fontSize: '18px' }}>We're here for you</span>
         </div>
         <p style={{ color: 'var(--text-muted)', fontSize: '15px', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>
-          Our mission is to provide the best electronics with world-class support. ElectroCom is community-driven and always ready to help.
+          Our mission is to provide the best electronics with world-class support. {siteSettings.siteName} is community-driven and always ready to help.
         </p>
       </div>
     </div>

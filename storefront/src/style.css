@@ -330,6 +330,43 @@ body {
     display: flex;
 }
 
+/* Accessibility utilities */
+:focus-visible {
+    outline: 3px solid rgba(var(--primary-blue-rgb), 0.22);
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    box-shadow: 0 0 0 4px rgba(var(--primary-blue-rgb), 0.08);
+    border-color: var(--accent-blue);
+}
+
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* Respect user's motion preference */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 #root {
     width: 100%;
     flex: 1;

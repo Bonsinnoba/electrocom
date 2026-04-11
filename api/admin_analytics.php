@@ -5,20 +5,31 @@ require_once 'security.php';
 
 header('Content-Type: application/json');
 
-// Only Admins/Super Admins
-requireRole(RBAC_ALL_ADMINS, $pdo);
+// Only Admins/Super Admins and Accountants/Pickers/BranchAdmins
+$userId = requireRole(['super', 'admin', 'accountant', 'picker'], $pdo);
+// No branch scope - single warehouse system
+$branchId = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
         $data = [];
+        $whereClause = "1=1";
+        $params = [];
 
-        // 1. Total Revenue Breakdown (Handle NULL order_type as 'online' for legacy data)
-        $revStmt = $pdo->query("
+        if ($branchId) {
+            $whereClause = "(assigned_branch_id = ? OR source_branch_id = ?)";
+            $params = [$branchId, $branchId];
+        }
+
+        // 1. Total Revenue Breakdown
+        $revStmt = $pdo->prepare("
             SELECT COALESCE(order_type, 'online') as type, SUM(total_amount) as total 
             FROM orders 
             WHERE status IN ('delivered', 'shipped', 'completed') 
+            AND $whereClause
             GROUP BY COALESCE(order_type, 'online')
         ");
+        $revStmt->execute($params);
         $revData = $revStmt->fetchAll(PDO::FETCH_KEY_PAIR);
         $data['revenue_online'] = (float)($revData['online'] ?? 0);
         $data['revenue_pos'] = (float)($revData['pos'] ?? 0);
@@ -29,7 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $data['total_customers'] = (int)$usersStmt->fetchColumn();
 
         // 3. New Orders (Pending Online)
-        $ordersStmt = $pdo->query("SELECT COUNT(id) FROM orders WHERE status = 'pending' AND (order_type = 'online' OR order_type IS NULL)");
+        $ordersStmt = $pdo->prepare("SELECT COUNT(id) FROM orders WHERE status = 'pending' AND (order_type = 'online' OR order_type IS NULL) AND $whereClause");
+        $ordersStmt->execute($params);
         $data['pending_orders'] = (int)$ordersStmt->fetchColumn();
 
         // 4. Low Stock Products
@@ -37,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $data['low_stock_count'] = (int)$stockStmt->fetchColumn();
 
         // 5. Revenue by Day & Type (Last 30 Days) - Pivoted
-        $chartStmt = $pdo->query("
+        $chartStmt = $pdo->prepare("
             SELECT 
                 DATE(created_at) as date,
                 SUM(CASE WHEN order_type = 'online' OR order_type IS NULL THEN total_amount ELSE 0 END) as online_revenue,
@@ -46,23 +58,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             FROM orders 
             WHERE status IN ('delivered', 'shipped', 'completed', 'processing')
               AND created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+              AND $whereClause
             GROUP BY DATE(created_at)
             ORDER BY DATE(created_at) ASC
         ");
+        $chartStmt->execute($params);
         $data['revenue_chart'] = $chartStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // 5b. Revenue by Branch (Using LEFT JOIN to avoid missing data)
-        $branchStmt = $pdo->query("
-            SELECT COALESCE(sb.name, 'Main Warehouse') as branch_name, SUM(o.total_amount) as revenue
-            FROM orders o
-            LEFT JOIN store_branches sb ON o.source_branch_id = sb.id
-            WHERE o.status != 'cancelled'
-            GROUP BY o.source_branch_id
-        ");
-        $data['branch_revenue'] = $branchStmt->fetchAll(PDO::FETCH_ASSOC);
 
         // 6. Top Selling Products
-        $topProdsStmt = $pdo->query("
+        $topProdsStmt = $pdo->prepare("
             SELECT p.name, SUM(oi.quantity) as total_sold
             FROM order_items oi
             JOIN products p ON oi.product_id = p.id
@@ -72,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             ORDER BY total_sold DESC
             LIMIT 5
         ");
+        $topProdsStmt->execute([]);
         $data['top_products'] = $topProdsStmt->fetchAll(PDO::FETCH_ASSOC);
 
         // 7. Inventory Status Breakdown
@@ -129,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $data['avg_order_value'] = $data['total_orders'] > 0 ? round($data['total_revenue'] / $data['total_orders'], 2) : 0;
 
         // 9. Sales by Category
-        $catStmt = $pdo->query("
+        $catStmt = $pdo->prepare("
             SELECT p.category, SUM(oi.quantity * oi.price_at_purchase) as revenue
             FROM order_items oi
             JOIN products p ON oi.product_id = p.id
@@ -137,18 +143,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             WHERE o.status != 'cancelled'
             GROUP BY p.category
             ORDER BY revenue DESC
+            LIMIT 10
         ");
+        $catStmt->execute([]);
         $data['sales_by_category'] = $catStmt->fetchAll(PDO::FETCH_ASSOC);
 
         // 10. Recent Activity
-        $recentStmt = $pdo->query("
+        $recentStmt = $pdo->prepare("
             SELECT o.id, o.total_amount, o.status, o.created_at, o.order_type,
                    u.name as customer_name
             FROM orders o
             LEFT JOIN users u ON o.user_id = u.id
+            WHERE $whereClause
             ORDER BY o.created_at DESC
-            LIMIT 6
+            LIMIT 10
         ");
+        $recentStmt->execute($params);
         $data['recent_activity'] = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
 
         echo json_encode(['success' => true, 'data' => $data]);

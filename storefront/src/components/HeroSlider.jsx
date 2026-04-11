@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { fetchSlides } from '../services/api';
+import { useSettings } from '../context/SettingsContext';
 
 export default function HeroSlider() {
+  const { siteSettings } = useSettings();
   const [slides, setSlides] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -119,11 +121,19 @@ export default function HeroSlider() {
                 boxSizing: 'border-box'
               }}>
                 <div className="slide-content animate-fade-in" style={{ maxWidth: '600px', color: 'white', textAlign: styles.textAlign }}>
-                  {slide.title && <h2 style={{ fontSize: '48px', fontWeight: 800, marginBottom: '16px', lineHeight: 1.1 }}>{slide.title}</h2>}
-                  {slide.subtitle && <p style={{ fontSize: '18px', marginBottom: '24px', opacity: 0.9 }}>{slide.subtitle}</p>}
+                  {(slide.title || siteSettings.heroBannerTagline) && (
+                    <h2 style={{ fontSize: '48px', fontWeight: 800, marginBottom: '16px', lineHeight: 1.1 }}>
+                      {slide.title || siteSettings.heroBannerTagline}
+                    </h2>
+                  )}
+                  {(slide.subtitle || siteSettings.heroBannerSubtext) && (
+                    <p style={{ fontSize: '18px', marginBottom: '24px', opacity: 0.9 }}>
+                      {slide.subtitle || siteSettings.heroBannerSubtext}
+                    </p>
+                  )}
                   
-                  <Link to={slide.button_link} className="btn-primary" style={{ padding: '12px 32px', fontSize: '16px', marginTop: '16px', display: 'inline-block' }}>
-                    {slide.button_text}
+                  <Link to={slide.button_link || siteSettings.heroCTAUrl || '/shop'} className="btn-primary" style={{ padding: '12px 32px', fontSize: '16px', marginTop: '16px', display: 'inline-block' }}>
+                    {slide.button_text || siteSettings.heroCTAText || 'Shop Now'}
                   </Link>
                 </div>
   

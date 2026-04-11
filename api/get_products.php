@@ -1,16 +1,56 @@
 <?php
 // backend/get_products.php
 require_once 'db.php';
+require_once 'inventory_utils.php';
+
+// Lazy Cleanup: Clear expired reservations before listing products
+lazyCancelOrders($pdo);
+
 header('Content-Type: application/json');
 
 try {
     $category = $_GET['category'] ?? null;
 
     if ($category) {
-        $stmt = $pdo->prepare("SELECT * FROM products WHERE category = ? ORDER BY created_at DESC");
+        $stmt = $pdo->prepare("
+            SELECT p.*, 
+                   p.stock_quantity as physical_stock,
+                   (p.stock_quantity - (
+                       SELECT IFNULL(SUM(oi.quantity), 0)
+                       FROM order_items oi
+                       JOIN orders o ON oi.order_id = o.id
+                       WHERE oi.product_id = p.id
+                       AND o.status = 'pending'
+                       AND (
+                           (p.stock_quantity < 10 AND COALESCE(o.reserved_at, o.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 5 MINUTE))
+                           OR
+                           (p.stock_quantity >= 10 AND COALESCE(o.reserved_at, o.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 20 MINUTE))
+                       )
+                   )) as stock_quantity
+            FROM products p 
+            WHERE p.category = ? 
+            ORDER BY p.created_at DESC
+        ");
         $stmt->execute([$category]);
     } else {
-        $stmt = $pdo->query("SELECT * FROM products ORDER BY created_at DESC");
+        $stmt = $pdo->query("
+            SELECT p.*, 
+                   p.stock_quantity as physical_stock,
+                   (p.stock_quantity - (
+                       SELECT IFNULL(SUM(oi.quantity), 0)
+                       FROM order_items oi
+                       JOIN orders o ON oi.order_id = o.id
+                       WHERE oi.product_id = p.id
+                       AND o.status = 'pending'
+                       AND (
+                           (p.stock_quantity < 10 AND COALESCE(o.reserved_at, o.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 5 MINUTE))
+                           OR
+                           (p.stock_quantity >= 10 AND COALESCE(o.reserved_at, o.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 20 MINUTE))
+                       )
+                   )) as stock_quantity
+            FROM products p 
+            ORDER BY p.created_at DESC
+        ");
     }
 
     $products = $stmt->fetchAll();
@@ -40,12 +80,8 @@ try {
         $product['variants'] = $variantsByProduct[$product['id']] ?? [];
     }
 
-    echo json_encode([
-        'success' => true,
-        'data' => $products
-    ]);
+    sendResponse(true, 'Products fetched successfully', $products);
 } catch (PDOException $e) {
     error_log("Fetch products error: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Failed to fetch products.']);
+    sendResponse(false, 'Failed to fetch products.', null, 500);
 }

@@ -3,9 +3,7 @@ import { MapPin, Navigation, ExternalLink, ChevronRight, Building2 } from 'lucid
 
 export default function MapCard() {
   const branches = [
-    { id: 'accra', city: 'Accra', address: 'Madina, Accra, Ghana', label: 'Main Hub' },
-    { id: 'kumasi', city: 'Kumasi', address: 'Adum, Kumasi, Ghana', label: 'Warehouse' },
-    { id: 'wa', city: 'Wa', address: 'Wa Central, Upper West Region, Ghana', label: 'Warehouse' }
+    { id: 'accra', city: 'Accra', address: 'Madina, Accra, Ghana', label: 'Main Hub' }
   ];
 
   const [activeBranch, setActiveBranch] = useState(branches[0]);

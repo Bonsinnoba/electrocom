@@ -7,17 +7,17 @@ header('Content-Type: application/json');
 /**
  * POS Checkout Handler
  * High-speed endpoint for physical store sales.
+ * Refactored for Single Warehouse (Branching removed).
  */
 
-// 1. Authenticate Cashier (Admin/Branch Admin/Super)
+// 1. Authenticate Staff
 try {
     $cashierId = authenticate($pdo);
-    // Fetch branch info and role
-    $stmt = $pdo->prepare("SELECT role, branch_id, name FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT role, name FROM users WHERE id = ?");
     $stmt->execute([$cashierId]);
     $cashier = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$cashier || !in_array($cashier['role'], ['super', 'admin', 'branch_admin', 'store_manager'])) {
+    if (!$cashier || !in_array($cashier['role'], ['super', 'admin', 'store_manager'])) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Forbidden: Only authorized staff can perform POS sales.']);
         exit;
@@ -45,14 +45,13 @@ if (!$data || empty($data['items'])) {
 
 $items = $data['items'];
 $totalAmount = (float)($data['total_amount'] ?? 0);
-$paymentMethod = sanitizeInput($data['payment_method'] ?? 'cash'); // 'cash', 'momo'
-$customerEmail = sanitizeInput($data['customer_email'] ?? ''); // Optional loyalty link
-$branchId = $cashier['branch_id'] ?? 1; // Fallback to HQ if not assigned
+$paymentMethod = sanitizeInput($data['payment_method'] ?? 'cash');
+$customerEmail = sanitizeInput($data['customer_email'] ?? '');
 
 try {
     $pdo->beginTransaction();
 
-    // 2. Identify/Link Customer if provided
+    // 2. Identify/Link Customer
     $customerId = null;
     if ($customerEmail) {
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
@@ -60,52 +59,59 @@ try {
         $customerId = $stmt->fetchColumn() ?: null;
     }
 
-    // 3. Create POS Order
+    // 3. Create POS Order (Fixed branch ID 1 logic)
     $stmt = $pdo->prepare("
         INSERT INTO orders (
             user_id, total_amount, status, payment_method, 
             order_type, source_branch_id, cashier_id
-        ) VALUES (?, ?, 'delivered', ?, 'pos', ?, ?)
+        ) VALUES (?, ?, 'delivered', ?, 'pos', 1, ?)
     ");
-    $stmt->execute([$customerId, $totalAmount, $paymentMethod, $branchId, $cashierId]);
+    $stmt->execute([$customerId, $totalAmount, $paymentMethod, $cashierId]);
     $orderId = $pdo->lastInsertId();
 
     // 4. Process Items & Deduct Stock
+    require_once 'inventory_utils.php';
     $insertItem = $pdo->prepare("INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?)");
     $updateStock = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?");
-    $checkProduct = $pdo->prepare("SELECT name, stock_quantity FROM products WHERE id = ?");
 
     foreach ($items as $item) {
         $pId = (int)$item['id'];
         $qty = (int)$item['quantity'];
 
-        // FIX #9: Fetch price from DB — never trust client-submitted price
-        $priceStmt = $pdo->prepare("SELECT name, price, discount_percent, sale_ends_at, stock_quantity FROM products WHERE id = ?");
-        $priceStmt->execute([$pId]);
-        $prod = $priceStmt->fetch(PDO::FETCH_ASSOC);
+        // Lock row
+        $lockStmt = $pdo->prepare("SELECT name, stock_quantity FROM products WHERE id = ? FOR UPDATE");
+        $lockStmt->execute([$pId]);
+        $prod = $lockStmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$prod) {
-            throw new Exception("Product ID {$pId} not found.");
+        if (!$prod) throw new Exception("Product ID {$pId} not found.");
+
+        // Check availability
+        $available = getAvailableStock($pId, $pdo);
+        if ($available < $qty) {
+            throw new Exception("Insufficient stock for '{$prod['name']}'. Requested: {$qty}, Available: {$available}.");
         }
 
-        // Use server-side effective price
-        require_once 'order_utils.php'; // getEffectivePrice may live here or security.php
-        $price = function_exists('getEffectivePrice') ? getEffectivePrice($prod) : (float)$prod['price'];
+        // Price logic
+        $priceStmt = $pdo->prepare("SELECT price, discount_percent, sale_ends_at FROM products WHERE id = ?");
+        $priceStmt->execute([$pId]);
+        $priceData = $priceStmt->fetch(PDO::FETCH_ASSOC);
+
+        require_once 'order_utils.php'; 
+        $price = function_exists('getEffectivePrice') ? getEffectivePrice($priceData) : (float)$priceData['price'];
 
         $insertItem->execute([$orderId, $pId, $qty, $price]);
         $updateStock->execute([$qty, $pId]);
 
-        // Low stock alerts logic
-        $newStock = $prod['stock_quantity'] - $qty;
-        if ($newStock <= 10) {
+        // Low stock alerts
+        if (($prod['stock_quantity'] - $qty) <= 10) {
             $notifTitle = "Low Stock: " . $prod['name'];
-            $notifMsg = "Physical sale (ORD-{$orderId}) reduced stock to {$newStock}. Please restock.";
+            $notifMsg = "Physical sale (ORD-{$orderId}) reduced stock to " . ($prod['stock_quantity'] - $qty);
             $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) SELECT id, ?, ?, 'system' FROM users WHERE role IN ('admin', 'super')")
                 ->execute([$notifTitle, $notifMsg]);
         }
     }
 
-    // 5. Loyalty Points (1 point per 10 currency units)
+    // 5. Loyalty Points
     if ($customerId) {
         $points = floor($totalAmount / 10);
         if ($points > 0) {
@@ -114,19 +120,16 @@ try {
     }
 
     $pdo->commit();
-
-    logger('ok', 'POS', "Physical sale completed: ORD-{$orderId} (Amt: {$totalAmount}) by {$cashier['name']} at Branch ID {$branchId}");
+    logger('ok', 'POS', "Physical sale completed: ORD-{$orderId} by {$cashier['name']}");
 
     echo json_encode([
         'success' => true,
         'message' => 'Sale completed successfully',
-        'order_id' => $orderId,
-        'points_earned' => $customerId ? floor($totalAmount / 10) : 0
+        'order_id' => $orderId
     ]);
 
 } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
-    error_log("POS Sale failed: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Transaction failed. ' . $e->getMessage()]);
 }

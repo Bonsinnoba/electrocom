@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, X, Upload, Save, CheckCircle, Image as ImageIcon, Loader, Star, Download, UploadCloud, ShieldAlert } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, X, Upload, Save, CheckCircle, Image as ImageIcon, Loader, Star, Download, UploadCloud, ShieldAlert, FileText } from 'lucide-react';
 import Papa from 'papaparse';
 import { fetchProducts, createProduct, updateProduct, deleteProduct, fetchStoreData, formatImageUrl } from '../services/api';
 import { useNotifications } from '../context/NotificationContext';
@@ -41,6 +41,9 @@ export default function ProductManager() {
     rating: 5,
     product_code: '',
     location: '',
+    aisle: '',
+    rack: '',
+    bin: '',
     gallery: ['', '', '', ''],
     variants: [],
     discount_percent: 0,
@@ -77,14 +80,19 @@ export default function ProductManager() {
   const loadProducts = async () => {
     setLoading(true);
     const data = await fetchProducts();
-    // Map stock_quantity to stock for consistency with frontend and calculate status
+    // Map stock_quantity (available) and physical_stock for auditing
     const mapped = data.map(p => {
-        const stock = parseInt(p.stock_quantity || 0);
+        const available = parseInt(p.stock_quantity || 0);
+        const physical = parseInt(p.physical_stock || available);
+        const reserved = physical - available;
+        
         return {
             ...p,
-            stock: stock,
+            stock: available,
+            physical_stock: physical,
+            reserved: reserved,
             image: formatImageUrl(p.image_url || p.image),
-            status: stock <= 0 ? 'Out of Stock' : (stock < 10 ? 'Low Stock' : 'In Stock')
+            status: available <= 0 ? 'Out of Stock' : (available < 10 ? 'Low Stock' : 'In Stock')
         };
     });
     setProducts(mapped);
@@ -111,6 +119,9 @@ export default function ProductManager() {
         rating: product.rating || 5,
         product_code: product.product_code || '',
         location: product.location || '',
+        aisle: product.aisle || '',
+        rack: product.rack || '',
+        bin: product.bin || '',
         gallery: galleryData,
         variants: product.variants || [],
         discount_percent: product.discount_percent ? parseInt(product.discount_percent) : 0,
@@ -126,6 +137,9 @@ export default function ProductManager() {
         rating: 5,
         product_code: '',
         location: '',
+        aisle: '',
+        rack: '',
+        bin: '',
         gallery: ['', '', '', ''],
         variants: [],
         discount_percent: 0,
@@ -212,7 +226,10 @@ export default function ProductManager() {
         gallery: formData.gallery.filter(img => img !== ''),
         variants: formData.variants,
         discount_percent: parseInt(formData.discount_percent) || 0,
-        sale_ends_at: formData.sale_ends_at || null
+        sale_ends_at: formData.sale_ends_at || null,
+        aisle: formData.aisle || '',
+        rack: formData.rack || '',
+        bin: formData.bin || ''
     };
 
     console.log("Saving Product - ID:", editingProduct?.id, "Payload:", apiData);
@@ -263,7 +280,9 @@ export default function ProductManager() {
       Code: p.product_code || '',
       Category: p.category,
       Price: p.price,
-      Stock: p.stock,
+      AvailableStock: p.stock,
+      PhysicalStock: p.physical_stock || p.stock,
+      Reserved: p.reserved || 0,
       Location: p.location || '',
       Status: p.status,
       Rating: p.rating || 5,
@@ -586,22 +605,39 @@ export default function ProductManager() {
                       )}
                     </div>
                   </td>
-                  <td style={{ padding: '16px 24px' }}>{p.stock}</td>
                   <td style={{ padding: '16px 24px' }}>
-                    {p.location ? (
-                      <span style={{ 
-                        fontSize: '12px', 
-                        fontWeight: 700, 
-                        color: 'var(--accent-blue)',
-                        background: 'rgba(59, 130, 246, 0.1)',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        textTransform: 'uppercase'
-                      }}>
-                        {p.location}
-                      </span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontWeight: 700 }}>{p.stock}</span>
+                      {p.reserved > 0 && (
+                        <span style={{ fontSize: '11px', color: 'var(--accent-blue)', fontWeight: 600 }}>
+                          ({p.reserved} reserved)
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                    {p.aisle || p.rack || p.bin ? (
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {p.aisle && <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>A:{p.aisle}</span>}
+                        {p.rack && <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>R:{p.rack}</span>}
+                        {p.bin && <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>B:{p.bin}</span>}
+                      </div>
                     ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
+                      (p.location ? (
+                        <span style={{ 
+                          fontSize: '12px', 
+                          fontWeight: 700, 
+                          color: 'var(--accent-blue)',
+                          background: 'rgba(59, 130, 246, 0.1)',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          textTransform: 'uppercase'
+                        }}>
+                          {p.location}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
+                      ))
                     )}
                   </td>
                   <td style={{ padding: '16px 24px' }}>
@@ -665,7 +701,7 @@ export default function ProductManager() {
             </button>
             <h2 style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 800 }}>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Product Name</label>
                     <input 
@@ -678,7 +714,7 @@ export default function ProductManager() {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Code</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Part Code</label>
                     <input 
                       type="text" 
                       value={formData.product_code}
@@ -687,15 +723,41 @@ export default function ProductManager() {
                       placeholder="e.g. NE555"
                     />
                   </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Location (Shelf)</label>
-                    <input 
-                      type="text" 
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none' }}
-                      placeholder="e.g. A1-S4"
-                    />
+                </div>
+
+                <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+                  <label style={{ display: 'block', marginBottom: '12px', fontSize: '12px', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase' }}>Shelving Location (Global Warehouse)</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Aisle</label>
+                      <input 
+                        type="text" 
+                        value={formData.aisle}
+                        onChange={(e) => setFormData({ ...formData, aisle: e.target.value })}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'white', color: 'var(--text-main)', outline: 'none' }}
+                        placeholder="e.g. A1"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Rack</label>
+                      <input 
+                        type="text" 
+                        value={formData.rack}
+                        onChange={(e) => setFormData({ ...formData, rack: e.target.value })}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'white', color: 'var(--text-main)', outline: 'none' }}
+                        placeholder="e.g. S4"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Bin</label>
+                      <input 
+                        type="text" 
+                        value={formData.bin}
+                        onChange={(e) => setFormData({ ...formData, bin: e.target.value })}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'white', color: 'var(--text-main)', outline: 'none' }}
+                        placeholder="e.g. 102"
+                      />
+                    </div>
                   </div>
                 </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>

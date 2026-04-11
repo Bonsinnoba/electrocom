@@ -4,15 +4,22 @@ import {
   ShoppingBag, 
   Users, 
   ArrowUpRight, 
-  TrendingUp, 
+  ArrowDownRight, 
+  ShoppingCart, 
   Package, 
-  AlertTriangle,
-  Calendar,
-  Activity,
+  TrendingUp, 
+  Calendar, 
+  Search, 
+  Bell, 
+  Clock, 
+  Activity, 
+  ExternalLink,
   Zap,
-  Layers
+  Layers,
+  AlertTriangle
 } from 'lucide-react';
 import { fetchAnalytics } from '../services/api';
+import { useAdminSettings } from '../context/AdminSettingsContext';
 import { 
   AreaChart, 
   Area, 
@@ -20,10 +27,7 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip as RechartsTooltip, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie,
-  Cell
+  ResponsiveContainer 
 } from 'recharts';
 
 const StatCard = ({ icon, label, value, trend, trendLabel, color = 'var(--primary-blue)', loading }) => (
@@ -66,6 +70,7 @@ const StatCard = ({ icon, label, value, trend, trendLabel, color = 'var(--primar
 );
 
 export default function Dashboard() {
+  const { siteName } = useAdminSettings();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -115,10 +120,12 @@ export default function Dashboard() {
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
         <div>
-          <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Dashboard</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Real-time business performance overview.</p>
+          <h1 style={{ fontSize: '36px', fontWeight: 900, letterSpacing: '-0.02em' }}>{siteName || 'Dashboard'}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 }}>
+            Real-time business performance overview.
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
            <div className="glass" style={{ padding: '8px 16px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -134,7 +141,7 @@ export default function Dashboard() {
         <StatCard 
           icon={<DollarSign size={24} />} 
           label="Total Revenue" 
-          value={`GH₵ ${data.total_revenue.toLocaleString()}`} 
+          value={`GH₵ ${Number(data?.total_revenue || 0).toLocaleString()}`} 
           trend="+15.4%" 
           trendLabel="Combined Growth"
           color="var(--primary-blue)"
@@ -142,34 +149,34 @@ export default function Dashboard() {
         <StatCard 
           icon={<ShoppingBag size={24} />} 
           label="Online Sales" 
-          value={`GH₵ ${data.revenue_online.toLocaleString()}`} 
+          value={`GH₵ ${Number(data?.revenue_online || 0).toLocaleString()}`} 
           trendLabel="Platform Revenue"
         />
         <StatCard 
           icon={<Zap size={24} />} 
           label="POS Sales" 
-          value={`GH₵ ${data.revenue_pos.toLocaleString()}`} 
+          value={`GH₵ ${Number(data?.revenue_pos || 0).toLocaleString()}`} 
           color="var(--accent-gold)"
           trendLabel="Store Revenue"
         />
         <StatCard 
           icon={<Layers size={24} />} 
           label="Total Orders" 
-          value={data.total_orders.toString()} 
+          value={String(data?.total_orders || 0)} 
           color="var(--primary-blue)"
           trendLabel="Completed Volume"
         />
         <StatCard 
           icon={<Activity size={24} />} 
           label="Avg Order" 
-          value={`GH₵ ${data.avg_order_value.toLocaleString()}`} 
+          value={`GH₵ ${Number(data?.avg_order_value || 0).toLocaleString()}`} 
           color="var(--info)"
           trendLabel="Per Transaction"
         />
         <StatCard 
           icon={<Users size={24} />} 
           label="Customers" 
-          value={data.total_customers.toString()} 
+          value={String(data?.total_customers || 0)} 
           color="var(--success)"
           trendLabel="Direct Reach"
         />
@@ -215,29 +222,29 @@ export default function Dashboard() {
            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ borderLeft: '4px solid var(--primary-blue)', paddingLeft: '16px' }}>
                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Fulfillment Efficiency</div>
-                 <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '4px' }}>{data.strategic_insights.ship_efficiency} Hours</div>
+                 <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '4px' }}>{data?.strategic_insights?.ship_efficiency ?? '—'} Hours</div>
                  <div style={{ fontSize: '10px', color: 'var(--success)', marginTop: '4px' }}>Avg time to dispatch</div>
               </div>
 
               <div style={{ borderLeft: '4px solid var(--accent-gold)', paddingLeft: '16px' }}>
                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Revenue Peak</div>
-                 <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '4px' }}>GH₵ {data.strategic_insights.revenue_peak.toLocaleString()}</div>
+                 <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '4px' }}>GH₵ {Number(data?.strategic_insights?.revenue_peak || 0).toLocaleString()}</div>
                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Highest daily volume</div>
               </div>
 
               <div style={{ borderLeft: '4px solid var(--danger)', paddingLeft: '16px' }}>
                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Low Stock Alert</div>
-                 <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '4px' }}>{data.low_stock_count} Products</div>
+                 <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '4px' }}>{data?.low_stock_count ?? 0} Products</div>
                  <div style={{ fontSize: '10px', color: 'var(--danger)', marginTop: '4px' }}>Requires immediate restocking</div>
               </div>
            </div>
 
             <div className="glass" style={{ marginTop: 'auto', padding: '16px', borderRadius: '12px', background: 'rgba(var(--accent-blue-rgb), 0.05)' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>
-                 <TrendingUp size={16} color={data.strategic_insights.health_score > 80 ? 'var(--success)' : data.strategic_insights.health_score > 60 ? 'var(--accent-gold)' : 'var(--danger)'} /> Business Health ({data.strategic_insights.health_score}%)
+                 <TrendingUp size={16} color={(data?.strategic_insights?.health_score || 0) > 80 ? 'var(--success)' : (data?.strategic_insights?.health_score || 0) > 60 ? 'var(--accent-gold)' : 'var(--danger)'} /> Business Health ({data?.strategic_insights?.health_score ?? '—'}%)
                </div>
                <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-                 {data.strategic_insights.health_message}
+                 {data?.strategic_insights?.health_message ?? 'No data available.'}
                </p>
             </div>
         </div>
@@ -246,17 +253,17 @@ export default function Dashboard() {
         <div className="card glass" style={{ padding: '32px' }}>
            <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '24px' }}>Category Sales</h3>
            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {data.sales_by_category?.slice(0, 5).map(cat => (
+              {(data?.sales_by_category || []).slice(0, 5).map(cat => (
                 <div key={cat.category}>
                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
                       <span>{cat.category}</span>
-                      <span style={{ color: 'var(--primary-blue)' }}>GH₵ {Number(cat.revenue).toLocaleString()}</span>
+                      <span style={{ color: 'var(--primary-blue)' }}>GH₵ {Number(cat.revenue || 0).toLocaleString()}</span>
                    </div>
                    <div style={{ height: '4px', background: 'var(--bg-surface-secondary)', borderRadius: '10px' }}>
                       <div style={{ 
                         height: '100%', 
                         background: 'var(--primary-blue)', 
-                        width: `${data.total_revenue > 0 ? (Number(cat.revenue) / data.total_revenue) * 100 : 0}%` 
+                        width: `${(data?.total_revenue || 0) > 0 ? (Number(cat.revenue || 0) / data.total_revenue) * 100 : 0}%` 
                       }}></div>
                    </div>
                 </div>

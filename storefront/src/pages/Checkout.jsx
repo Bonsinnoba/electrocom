@@ -1,84 +1,88 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useCart } from '../context/CartContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useUser } from '../context/UserContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { CreditCard, Truck, ShieldCheck, ArrowLeft, ChevronRight, CheckCircle, Smartphone, MapPin, Tag } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
-import { createOrder, validateCoupon } from '../services/api';
+import { createOrder, validateCoupon, getShippingFee } from '../services/api';
 
 import { usePaystackPayment } from 'react-paystack';
+
+const GHANA_REGIONS = [
+  { code: 'GA', label: 'Greater Accra', city: 'Accra' },
+  { code: 'AS', label: 'Ashanti', city: 'Kumasi' },
+  { code: 'CR', label: 'Central', city: 'Cape Coast' },
+  { code: 'ER', label: 'Eastern', city: 'Koforidua' },
+  { code: 'WR', label: 'Western', city: 'Sekondi-Takoradi' },
+  { code: 'VR', label: 'Volta', city: 'Ho' },
+  { code: 'NR', label: 'Northern', city: 'Tamale' },
+  { code: 'UE', label: 'Upper East', city: 'Bolgatanga' },
+  { code: 'UW', label: 'Upper West', city: 'Wa' },
+  { code: 'BE', label: 'Bono East', city: 'Techiman' },
+  { code: 'BR', label: 'Bono', city: 'Sunyani' },
+  { code: 'AH', label: 'Ahafo', city: 'Goaso' },
+  { code: 'OT', label: 'Oti', city: 'Dambai' },
+  { code: 'SV', label: 'Savannah', city: 'Damongo' },
+  { code: 'NE', label: 'North East', city: 'Nalerigu' },
+  { code: 'WN', label: 'Western North', city: 'Sefwi Wiawso' }
+];
 
 export default function Checkout() {
   const { cartItems, subtotal, clearCart, appliedCoupon, applyCoupon, removeCoupon, isApplyingCoupon, couponError } = useCart();
   const { addToast } = useNotifications();
   const { user } = useUser();
-  const { formatPrice } = useSettings();
+  const { siteSettings, formatPrice } = useSettings();
   const navigate = useNavigate();
   
-  const [step, setStep] = useState(1); // 1: Shipping, 2: Payment, 3: Review
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [couponCode, setCouponCode] = useState('');
   const [formData, setFormData] = useState({
-    name: user?.name && user.name !== 'Guest User' ? user.name : '',
+    name: user?.name || '',
     email: user?.email || '',
     address: user?.address || '',
-    city: '',
-    region: '',
-    zip: '',
-    cardNumber: '',
-    expiry: '',
-    cvv: '',
-    momoNumber: user?.phone || '',
-    momoProvider: 'MTN'
+    city: user?.city || '',
+    region: user?.region || '',
+    zip: user?.zip || ''
+  });
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [couponCode, setCouponCode] = useState('');
+
+  const [shippingData, setShippingData] = useState({
+    fee: 0,
+    is_discounted: false,
+    city: ''
   });
 
-  // GHANA_REGIONS Moved up to use in shipping calculation
-  const GHANA_REGIONS = [
-    { code: 'GA-', city: 'Accra', label: 'Greater Accra (GA)' },
-    { code: 'AK-', city: 'Kumasi', label: 'Ashanti (AK)' },
-    { code: 'CR-', city: 'Cape Coast', label: 'Central (CR)' },
-    { code: 'WR-', city: 'Takoradi', label: 'Western (WR)' },
-    { code: 'ER-', city: 'Koforidua', label: 'Eastern (ER)' },
-    { code: 'VR-', city: 'Ho', label: 'Volta (VR)' },
-    { code: 'NR-', city: 'Tamale', label: 'Northern (NR)' },
-    { code: 'UE-', city: 'Bolgatanga', label: 'Upper East (UE)' },
-    { code: 'UW-', city: 'Wa', label: 'Upper West (UW)' },
-    { code: 'BA-', city: 'Sunyani', label: 'Brong Ahafo (BA)' },
-    { code: 'WN-', city: 'Sefwi Wiawso', label: 'Western North (WN)' },
-    { code: 'AH-', city: 'Goaso', label: 'Ahafo (AH)' },
-    { code: 'BE-', city: 'Techiman', label: 'Bono East (BE)' },
-    { code: 'OR-', city: 'Dambai', label: 'Oti (OR)' },
-    { code: 'NE-', city: 'Nalerigu', label: 'North East (NE)' },
-    { code: 'SR-', city: 'Damongo', label: 'Savannah (SR)' },
-  ];
-
-  const [shippingData, setShippingData] = useState({ fee: 20, city: 'Accra', is_discounted: false });
-
-  const fetchShippingEstimate = useCallback(async () => {
+  const fetchShipping = useCallback(async () => {
     if (!formData.region) return;
-    
     try {
-      const regionLabel = GHANA_REGIONS.find(r => r.code === formData.region)?.label || formData.region;
-      const response = await fetch(`http://localhost:8000/shipping_estimate.php?region=${encodeURIComponent(regionLabel)}&subtotal=${subtotal}`);
-      const result = await response.json();
-      if (result.success) {
-        setShippingData(result.data);
-      }
+        const res = await getShippingFee(formData.region, subtotal);
+        if (res.success) {
+            setShippingData({
+                fee: res.fee,
+                is_discounted: res.is_discounted,
+                city: res.city
+            });
+        }
     } catch (err) {
-      console.error("Failed to fetch shipping estimate:", err);
+        console.error("Shipping calc failed");
     }
   }, [formData.region, subtotal]);
 
   useEffect(() => {
-    fetchShippingEstimate();
-  }, [fetchShippingEstimate]);
+    fetchShipping();
+  }, [fetchShipping]);
 
+  const vatRate = parseFloat(siteSettings?.vatRate || 10);
   const shippingFee = shippingData.fee;
-  const tax = subtotal * 0.1;
-  const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const total = Math.max(0, subtotal - discount + tax + shippingFee);
+  
+  // Align with backend: Calculate tax on discounted subtotal
+  const discount = Math.round((appliedCoupon ? appliedCoupon.discountAmount : 0) * 100) / 100;
+  const taxableAmount = Math.max(0, subtotal - discount);
+  const tax = Math.round((taxableAmount * (vatRate / 100)) * 100) / 100;
+  
+  const total = Math.round((taxableAmount + tax + shippingFee) * 100) / 100;
 
   const handleApplyCoupon = async () => {
     const success = await applyCoupon(couponCode);
@@ -123,10 +127,12 @@ export default function Checkout() {
       clearCart();
       navigate(`/order-success?ref=${reference.reference}`);
       setLoading(false);
+      isProcessingOrder.current = false;
   };
 
   const onClose = () => {
       setLoading(false);
+      isProcessingOrder.current = false;
       addToast('Payment cancelled', 'info');
   };
 
@@ -150,7 +156,11 @@ export default function Checkout() {
     }
   };
 
+  const isProcessingOrder = useRef(false);
+
   const handleCompletePurchase = async () => {
+    if (isProcessingOrder.current) return;
+    isProcessingOrder.current = true;
     setLoading(true);
 
     if (paymentMethod === 'card' || paymentMethod === 'momo') {
@@ -172,21 +182,7 @@ export default function Checkout() {
             const response = await createOrder(orderData);
 
             if (response.success && response.payment_reference) {
-                // 2. Trigger Paystack with the custom reference from backend
-                const paystackConfig = {
-                    ...config,
-                    reference: response.payment_reference,
-                    email: formData.email || user.email
-                };
-                
-                // We need a way to call initializePayment with the NEW config
-                // Since usePaystackPayment is a hook, we might need to adjust how it's used
-                // Or just use the 'initializePayment' function if it allows overrides (it doesn't usually)
-                
-                // Alternative: Use the Paystack Pop-up directly if possible, or 
-                // just rely on the reference generation being predictable if we can't update it easily.
-                
-                // For 'react-paystack', we might need to store the reference in state and trigger useEffect
+                // Trigger Paystack via the useEffect by setting the pending reference
                 setPendingRef(response.payment_reference);
             } else {
                 throw new Error(response.message || 'Failed to initialize order');
@@ -194,6 +190,7 @@ export default function Checkout() {
         } catch (err) {
             addToast(err.message || 'Server error. Please try again.', 'error');
             setLoading(false);
+            isProcessingOrder.current = false;
         }
     } else {
         addToast('Payment method not supported yet', 'info');
@@ -217,6 +214,44 @@ export default function Checkout() {
         setPendingRef(null); // Reset
     }
   }, [paystackConfig.reference, pendingRef, initializePayment]);
+
+  // --- NEW: Proactive Reservation Hardening (Heartbeat & Beacon) ---
+  useEffect(() => {
+    // Only run if we have an active order reference and are in a 'Loading' (Payment) state
+    if (!paystackConfig.reference || !loading) return;
+
+    // 1. Activity Heartbeat (Every 30 seconds)
+    const interval = setInterval(() => {
+      fetch('/api/orders.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'heartbeat', reference: paystackConfig.reference }),
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => {}); // Silent fail
+    }, 30000);
+
+    // 2. Proactive Release (Beacon on Window Close)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+         // Optional: Short delay or logic to decide if hidden = abandoned
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      // Navigator.sendBeacon is reliable for tab closing
+      const data = JSON.stringify({ action: 'cancel', reference: paystackConfig.reference });
+      navigator.sendBeacon('/api/orders.php', data);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [paystackConfig.reference, loading]);
+  // -----------------------------------------------------------------
 
   useEffect(() => {
     if (!user) {
@@ -562,7 +597,7 @@ export default function Checkout() {
                 <span>{formatPrice(subtotal)}</span>
               </div>
               <div className="summary-row">
-                <span className="text-muted">Estimated Tax</span>
+                <span className="text-muted">Estimated Tax ({vatRate}%)</span>
                 <span>{formatPrice(tax)}</span>
               </div>
               {appliedCoupon && (

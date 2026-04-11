@@ -4,6 +4,7 @@ import CategoryDropdown from './CategoryDropdown';
 import { useCart } from '../context/CartContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useUser } from '../context/UserContext';
+import { useSettings } from '../context/SettingsContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 
@@ -19,6 +20,7 @@ export default function Navbar({
   setSearchQuery,
   products = []
 }) {
+  const { siteSettings } = useSettings();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const searchRef = useRef(null);
@@ -78,13 +80,19 @@ export default function Navbar({
   }, [isSearchOpen, isFocused]);
 
   return (
-    <nav className="top-nav">
-      <div className="sidebar-icon btn" id="toggle-menu" style={{ margin: 0 }} onClick={onMenuClick}>
+    <nav className="top-nav" aria-label="Main Navigation">
+      <div className="sidebar-icon btn" id="toggle-menu" style={{ margin: 0 }} onClick={onMenuClick} role="button" aria-label="Toggle Side Menu" tabIndex={0}>
         <Menu size={20} />
       </div>
       
-      <Link to="/" style={{ display: 'flex' }}>
-        <img src="/logo.png" className={`nav-logo ${isSearchOpen ? 'hidden-mobile' : ''}`} alt="ElectroCom" />
+      <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
+        {siteSettings.siteLogoUrl ? (
+          <img src={siteSettings.siteLogoUrl} className={`nav-logo ${isSearchOpen ? 'hidden-mobile' : ''}`} alt={siteSettings.siteName} style={{ maxHeight: '40px', objectFit: 'contain' }} />
+        ) : (
+          <div className={`nav-logo-text ${isSearchOpen ? 'hidden-mobile' : ''}`} style={{ fontWeight: 900, fontSize: '20px', color: 'var(--primary-blue)' }}>
+            {siteSettings.siteName}
+          </div>
+        )}
       </Link>
       
       <div ref={searchRef} className={`search-container ${isSearchOpen ? 'active' : ''}`}>
@@ -93,6 +101,7 @@ export default function Navbar({
           type="text" 
           id="search-input" 
           placeholder={searchPlaceholder} 
+          aria-label="Search products and sections"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
@@ -153,7 +162,7 @@ export default function Navbar({
                       setIsSearchOpen(false);
                     }}
                   >
-                    <img src={product.image} alt="" className="result-thumb" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '10px' }} />
+                    <img src={product.image} alt={product.name} className="result-thumb" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '10px' }} />
                     <div className="result-info">
                       <span className="result-name">{product.name}</span>
                       <span className="result-meta">GH₵{product.price} • View Details</span>
@@ -178,17 +187,20 @@ export default function Navbar({
         <div 
           className="sidebar-icon mobile-nav-icon btn" 
           onClick={() => setIsSearchOpen(!isSearchOpen)}
+          role="button"
+          aria-label="Toggle Search"
+          tabIndex={0}
         >
           <Search size={20} />
         </div>
         
         {/* Mobile Map Toggle - hidden on mobile; Map is in the sidebar */}
-        <div className="sidebar-icon btn nav-map-btn" onClick={onMapClick}>
+        <div className="sidebar-icon btn nav-map-btn" onClick={onMapClick} role="button" aria-label="Open Store Locations" tabIndex={0}>
           <Map size={20} />
         </div>
         
         {/* Notifications */}
-        <div className="sidebar-icon btn" style={{ position: 'relative' }} onClick={onNotificationsClick}>
+        <div className="sidebar-icon btn" style={{ position: 'relative' }} onClick={onNotificationsClick} role="button" aria-label={`View Notifications, ${unreadCount} unread`} tabIndex={0}>
           <Bell size={20} />
           {unreadCount > 0 && (
             <span key={unreadCount} className="badge-premium badge-notif">
@@ -217,7 +229,7 @@ export default function Navbar({
           )}
         </Link>
         
-        <div className="sidebar-icon btn" id="theme-toggle" onClick={onThemeToggle}>
+        <div className="sidebar-icon btn" id="theme-toggle" onClick={onThemeToggle} role="button" aria-label={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"} tabIndex={0}>
           {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
         </div>
         

@@ -13,14 +13,15 @@ export default function Cart() {
   const { cartItems, removeFromCart, updateQuantity, subtotal, appliedCoupon, applyCoupon, removeCoupon, isApplyingCoupon, couponError } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { addToast } = useNotifications();
-  const { formatPrice } = useSettings();
+  const { siteSettings, formatPrice } = useSettings();
   
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [couponInput, setCouponInput] = useState('');
-
-  const tax = subtotal * 0.1;
+  const vatRate = parseFloat(siteSettings?.vatRate || 10);
+  const tax = subtotal * (vatRate / 100);
   const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const total = Math.max(0, subtotal - discount + tax);
+
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [couponInput, setCouponInput] = useState('');
 
   const handleMoveToWishlist = () => {
     if (!confirmDelete) return;
@@ -147,7 +148,7 @@ export default function Cart() {
                   <span className="font-bold">{formatPrice(subtotal)}</span>
                 </div>
                 <div className="summary-row">
-                  <span className="text-muted">Estimated Tax (10%)</span>
+                  <span className="text-muted">Estimated Tax ({vatRate}%)</span>
                   <span className="font-bold">{formatPrice(tax)}</span>
                 </div>
                 <div className="summary-row">

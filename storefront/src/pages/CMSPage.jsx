@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle, FileText } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 import DOMPurify from 'dompurify'; // Important: Sanitize HTML content before rendering
 
 export default function CMSPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { siteSettings } = useSettings();
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,19 +20,20 @@ export default function CMSPage() {
 
     const fetchPageContent = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/cms.php?slug=${slug}`);
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_BASE}/cms.php?slug=${slug}`);
         const data = await response.json();
 
         if (response.ok && data.success && data.data) {
           setPage(data.data);
-          document.title = `${data.data.title} | ElectroCom`;
+          document.title = `${data.data.title} | ${siteSettings.siteName}`;
         } else {
           setError(data.error || 'Page not found');
-          document.title = `Not Found | ElectroCom`;
+          document.title = `Not Found | ${siteSettings.siteName}`;
         }
       } catch (err) {
         setError('Failed to load connection');
-        document.title = `Error | ElectroCom`;
+        document.title = `Error | ${siteSettings.siteName}`;
       } finally {
         setLoading(false);
       }

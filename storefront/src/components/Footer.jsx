@@ -1,5 +1,5 @@
 import React from 'react';
-import { Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { Twitter, Instagram, Facebook, Youtube, Mail, Phone, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 
@@ -13,21 +13,32 @@ export default function Footer() {
           {/* Company Info */}
           <div className="footer-column">
             <div className="footer-logo word-logo" style={{ marginBottom: '20px' }}>
-              <span className="word-logo-main">{siteSettings.siteName.slice(0, 7)}</span>
-              <span className="word-logo-sub">{siteSettings.siteName.slice(7)}</span>
+              <span className="word-logo-main">{siteSettings.siteName.split(' ')[0]}</span>
+              <span className="word-logo-sub">{siteSettings.siteName.split(' ').slice(1).join(' ')}</span>
               <div className="logo-indicator"></div>
             </div>
             <p className="footer-description">Your trusted destination for premium electronics and cutting-edge technology.</p>
             <div className="footer-social">
-              <a href="#" className="social-link" data-tooltip="Twitter" data-tooltip-pos="top">
-                <Twitter size={20} />
-              </a>
-              <a href="#" className="social-link" data-tooltip="Instagram" data-tooltip-pos="top">
-                <Instagram size={20} />
-              </a>
-              <a href="#" className="social-link" data-tooltip="LinkedIn" data-tooltip-pos="top">
-                <Linkedin size={20} />
-              </a>
+              {siteSettings.socialTwitter && (
+                <a href={siteSettings.socialTwitter} className="social-link" target="_blank" rel="noopener noreferrer" data-tooltip="Twitter" data-tooltip-pos="top" aria-label="Twitter Header Link">
+                  <Twitter size={20} color="#1DA1F2" />
+                </a>
+              )}
+              {siteSettings.socialInstagram && (
+                <a href={siteSettings.socialInstagram} className="social-link" target="_blank" rel="noopener noreferrer" data-tooltip="Instagram" data-tooltip-pos="top" aria-label="Instagram Footer Link">
+                  <Instagram size={20} color="#E1306C" />
+                </a>
+              )}
+              {siteSettings.socialFacebook && (
+                <a href={siteSettings.socialFacebook} className="social-link" target="_blank" rel="noopener noreferrer" data-tooltip="Facebook" data-tooltip-pos="top" aria-label="Facebook Footer Link">
+                  <Facebook size={20} color="#1877F2" />
+                </a>
+              )}
+              {siteSettings.socialYoutube && (
+                <a href={siteSettings.socialYoutube} className="social-link" target="_blank" rel="noopener noreferrer" data-tooltip="YouTube" data-tooltip-pos="top" aria-label="YouTube Footer Link">
+                  <Youtube size={20} color="#FF0000" />
+                </a>
+              )}
             </div>
           </div>
 
@@ -87,7 +98,8 @@ export default function Footer() {
               <MapPin size={24} />
               <div>
                 <strong>Visit Us</strong>
-                <span>Accra, Kumasi &amp; Wa, Ghana</span>
+                <span>{siteSettings.storeAddress || 'Ghana'}</span>
+                {siteSettings.businessHours && <div style={{ fontSize: '11px', opacity: 0.7 }}>{siteSettings.businessHours}</div>}
               </div>
             </div>
         </div>

@@ -1,7 +1,0 @@
-=== Simulating GET for Super Admin ===
-User logic: Role=super, BranchId=0
-Is in RBAC_STAFF_GROUP? NO
-Is in RBAC_ALL_ADMINS? YES
-Executing ADMIN query...
-Requests fetched: 3
-ERROR: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'p.sku' in 'field list'

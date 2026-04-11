@@ -41,21 +41,55 @@ if (!is_dir(__DIR__ . '/data')) {
 }
 
 $DEFAULTS = [
+    // ── Identity ─────────────────────────────────────────────────────────────
     'siteName'          => 'ElectroCom',
     'siteEmail'         => 'admin@electrocom.gh',
-    'maintenanceMode'   => false,
-    'allowRegistration' => true,
-    'maxLoginAttempts'  => 5,
-    'sessionTimeout'    => 60,
-    'twoFactorAdmin'    => false,
-    'emailNotify'       => true,
-    'securityAlerts'    => true,
-    'apiRateLimit'      => 100,
-    'debugMode'         => false,
-    'backupFrequency'   => 'daily',
     'phone1'            => '0536683393',
     'phone2'            => '0506408074',
     'whatsapp'          => '233536683393',
+    // ── General (new) ────────────────────────────────────────────────────────
+    'siteLogoUrl'       => '',
+    'faviconUrl'        => '',
+    'storeAddress'      => '',
+    'businessHours'     => 'Mon–Fri, 8am–6pm',
+    'socialInstagram'   => '',
+    'socialTwitter'     => '',
+    'socialFacebook'    => '',
+    'socialTikTok'      => '',
+    'socialYoutube'     => '',
+    // ── Branding (new) ────────────────────────────────────────────────────────
+    'primaryColor'            => '#3b82f6',
+    'accentColor'             => '#f59e0b',
+    'headerBg'                => '#0f172a',
+    'fontFamily'              => 'Inter',
+    'heroBannerTagline'       => '',
+    'heroBannerSubtext'       => '',
+    'heroCTAText'             => 'Shop Now',
+    'heroCTAUrl'              => '/products',
+    // ── Security ─────────────────────────────────────────────────────────────
+    'maintenanceMode'          => false,
+    'allowRegistration'        => true,
+    'maxLoginAttempts'         => 5,
+    'sessionTimeout'           => 60,
+    'twoFactorAdmin'           => false,
+    'lockoutDuration'          => 30,
+    'passwordMinLength'        => 8,
+    'requireEmailVerification' => false,
+    'requireNumberInPassword'  => false,
+    // ── Notifications ─────────────────────────────────────────────────────────
+    'emailNotify'       => true,
+    'securityAlerts'    => true,
+    'lowStockThreshold' => 5,
+    'lowStockAlertEmail'=> 'admin@electrocom.gh',
+    // ── System ────────────────────────────────────────────────────────────────
+    'apiRateLimit'             => 100,
+    'debugMode'                => false,
+    'backupFrequency'          => 'daily',
+    'defaultItemsPerPage'      => 12,
+    'orderReceiptFooterNote'   => '',
+    'homepageSectionTitle'     => 'New Arrivals',
+    'homepageFeaturedCategory' => '',
+    'vatRate'                  => 0,
 ];
 
 $method = $_SERVER['REQUEST_METHOD'];

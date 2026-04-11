@@ -1,56 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, User, Shield, Bell, Moon, Sun, Monitor, Globe, Check } from 'lucide-react';
 import { updateProfile } from '../services/api';
+import { useAdminSettings } from '../context/AdminSettingsContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Settings() {
-  const [storeName, setStoreName] = useState('ElectroCom');
-  const [contactEmail, setContactEmail] = useState('admin@electrocom.com');
+  const { user } = useAuth();
+  const { siteName, siteEmail, refreshSettings } = useAdminSettings();
+  
+  const [storeNameState, setStoreNameState] = useState('');
+  const [contactEmailState, setContactEmailState] = useState('');
+  
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved !== null ? JSON.parse(saved) : false;
   });
+  
   const [orderAlerts, setOrderAlerts] = useState(true);
   const [stockAlerts, setStockAlerts] = useState(true);
-  const [theme, setTheme] = useState(() => localStorage.getItem('admin_theme') || 'blue');
   const [saveStatus, setSaveStatus] = useState('');
 
-  const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
-  const isAccountant = user.role === 'accountant';
-  const isMarketing = user.role === 'marketing';
+  // Sync state with global settings on load
+  React.useEffect(() => {
+    if (siteName) setStoreNameState(siteName);
+    if (siteEmail) setContactEmailState(siteEmail);
+  }, [siteName, siteEmail]);
+
+  const isAccountant = user?.role === 'accountant';
+  const isMarketing = user?.role === 'marketing';
   const isRestricted = isAccountant || isMarketing;
 
-  const handleSave = () => {
-    // Simulate save operation
+  const handleSave = async () => {
     setSaveStatus('saving');
+    // For now, standard settings only saves local preferences/alerts
+    // Store-wide settings are managed in Super Settings
     setTimeout(() => {
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus(''), 2000);
     }, 500);
-  };
-
-  const toggleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
-    
-    // Notify other components (like App.jsx) about the change immediately
-    window.dispatchEvent(new Event('themeChange'));
-  };
-
-  const changeTheme = async (newTheme) => {
-    setTheme(newTheme);
-    localStorage.setItem('admin_theme', newTheme);
-    window.dispatchEvent(new Event('themeChange'));
-    
-    // Sync to backend
-    try {
-      const response = await updateProfile({ theme: newTheme });
-      if (response.success && response.data?.user) {
-        localStorage.setItem('ehub_user', JSON.stringify(response.data.user));
-      }
-    } catch (e) {
-      console.error('Failed to sync theme to backend:', e);
-    }
   };
 
   return (
@@ -70,18 +57,17 @@ export default function Settings() {
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>{isRestricted ? 'Name' : 'Store Name'}</label>
               <input 
                 type="text" 
-                value={isRestricted ? user.name : storeName}
-                readOnly={isRestricted}
-                onChange={(e) => !isRestricted && setStoreName(e.target.value)}
+                value={isRestricted ? user.name : storeNameState}
+                readOnly={true}
                 style={{ 
                   width: '100%', 
                   padding: '10px 14px', 
                   borderRadius: '8px', 
                   border: '1px solid var(--border-light)', 
-                  background: isRestricted ? 'transparent' : 'var(--bg-surface-secondary)', 
-                  color: isRestricted ? 'var(--text-muted)' : 'var(--text-main)', 
+                  background: 'transparent', 
+                  color: 'var(--text-muted)', 
                   outline: 'none',
-                  cursor: isRestricted ? 'not-allowed' : 'text'
+                  cursor: 'not-allowed'
                 }} 
               />
             </div>
@@ -89,35 +75,24 @@ export default function Settings() {
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>{isRestricted ? 'Email Address' : 'Contact Email'}</label>
               <input 
                 type="email" 
-                value={isRestricted ? user.email : contactEmail}
-                readOnly={isRestricted}
-                onChange={(e) => !isRestricted && setContactEmail(e.target.value)}
+                value={isRestricted ? user.email : contactEmailState}
+                readOnly={true}
                 style={{ 
                   width: '100%', 
                   padding: '10px 14px', 
                   borderRadius: '8px', 
                   border: '1px solid var(--border-light)', 
-                  background: isRestricted ? 'transparent' : 'var(--bg-surface-secondary)', 
-                  color: isRestricted ? 'var(--text-muted)' : 'var(--text-main)', 
+                  background: 'transparent', 
+                  color: 'var(--text-muted)', 
                   outline: 'none',
-                  cursor: isRestricted ? 'not-allowed' : 'text'
+                  cursor: 'not-allowed'
                 }} 
               />
             </div>
-            {isRestricted && (
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '12px' }}>
-                * Store-wide details are managed by the Super User and hidden for your role.
-              </p>
-            )}
             {!isRestricted && (
-              <button 
-                className={`btn btn-primary ${saveStatus === 'saved' ? 'btn-success' : ''}`}
-                onClick={handleSave}
-                disabled={saveStatus === 'saving'}
-                style={{ marginTop: '10px', width: 'fit-content' }}
-              >
-                {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save Profile'}
-              </button>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '12px' }}>
+                * Store-wide details are managed in the <strong style={{color: 'var(--text-main)'}}>Global Settings</strong>.
+              </p>
             )}
           </div>
         </section>
@@ -128,7 +103,12 @@ export default function Settings() {
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div 
-              onClick={toggleDarkMode}
+              onClick={() => {
+                const nd = !darkMode;
+                setDarkMode(nd);
+                localStorage.setItem('darkMode', JSON.stringify(nd));
+                window.dispatchEvent(new Event('themeChange'));
+              }}
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '12px', background: 'var(--bg-surface-secondary)', cursor: 'pointer', transition: 'all 0.2s' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -142,41 +122,26 @@ export default function Settings() {
                 position: 'relative', 
                 transition: 'all 0.3s'
               }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  left: darkMode ? '20px' : '2px',
+                  width: '18px',
+                   height: '18px',
+                  background: 'white',
+                  borderRadius: '50%',
+                  transition: 'all 0.3s'
+                }} />
               </div>
             </div>
 
-            <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--bg-surface-secondary)' }}>
-              <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>Brand Theme</label>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                {[
-                  { id: 'blue', color: '#1e3a8a', label: 'Classic Blue' },
-                  { id: 'yellow', color: '#fbbf24', label: 'Golden Yellow' },
-                  { id: 'green', color: '#16a34a', label: 'Nature Green' },
-                  { id: 'purple', color: '#7c3aed', label: 'Royal Purple' }
-                ].map((t) => (
-                  <div 
-                    key={t.id}
-                    onClick={() => changeTheme(t.id)}
-                    style={{ 
-                      width: '44px', 
-                      height: '44px', 
-                      borderRadius: '12px', 
-                      background: t.color, 
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: theme === t.id ? '3px solid var(--text-main)' : '2px solid transparent',
-                      transition: 'all 0.2s',
-                      boxShadow: theme === t.id ? '0 0 15px rgba(0,0,0,0.2)' : 'none',
-                      transform: theme === t.id ? 'scale(1.1)' : 'scale(1)'
-                    }}
-                    title={t.label}
-                  >
-                    {theme === t.id && <Check size={20} color="white" />}
-                  </div>
-                ))}
+            <div style={{ padding: '12px', borderRadius: '12px', border: '1px dashed var(--border-light)', opacity: 0.8 }}>
+              <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Shield size={14} color="var(--primary-blue)" /> Centralized Branding
               </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                Site-wide colors and typography are dictated by the Super Admin in Global Settings.
+              </p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '12px', background: 'var(--bg-surface-secondary)', opacity: 0.6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

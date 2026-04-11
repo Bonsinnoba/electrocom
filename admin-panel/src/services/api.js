@@ -37,12 +37,16 @@ export const formatImageUrl = (url) => {
 /**
  * Helper to get authentication headers
  */
-const getAuthHeaders = () => {
+const getAuthHeaders = (contentType = 'application/json') => {
     const token = localStorage.getItem('ehub_token');
-    return {
-        'Content-Type': 'application/json',
+    const headers = {
+        'X-App-ID': 'admin',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
     };
+    if (contentType) {
+        headers['Content-Type'] = contentType;
+    }
+    return headers;
 };
 
 /**
@@ -516,6 +520,30 @@ export const saveSuperSettings = async (payload) => {
     }
 };
 
+export const uploadBrandingAsset = async (file, type, oldPath = '') => {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+        formData.append('oldPath', oldPath);
+
+        const response = await fetch(`${API_BASE_URL}/upload_branding.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(null),
+            body: formData,
+        });
+        
+        // Remove 'Content-Type' if it was erroneously set by getAuthHeaders
+        // wait, getAuthHeaders sets it to application/json. 
+        // I need to override it.
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error uploading branding asset:', error);
+        throw error;
+    }
+};
+
 export const fetchTrafficStats = async () => {
     try {
         const response = await fetch(`${API_BASE_URL}/admin_traffic.php?action=stats`, {
@@ -800,8 +828,20 @@ export const markNotificationRead = async (id) => {
     }
 };
 
-// Keep backward-compat exports pointing to correct functions
-export const getBranches = fetchWarehouses;
-export const addBranch = createWarehouse;
+
+// ─── Multi-Branch Fulfillment & Picking ───────────────────────────────────────
+export const fetchPickingTasks = async (status = 'pending') => authFetch(`/picking_api.php?status=${status}&_t=${Date.now()}`);
+
+export const updatePickingTask = async (taskId, action, extra = {}) => authFetch('/picking_api.php', {
+    method: 'POST',
+    body: JSON.stringify({ task_id: taskId, action, ...extra })
+});
+
+export const confirmArrival = async (transferId) => authFetch('/admin_locations.php', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'confirm_arrival', transfer_id: transferId })
+});
+
+export const fetchStockTransfers = async () => authFetch('/admin_locations.php');
 export const fetchBackend = authFetch;
 

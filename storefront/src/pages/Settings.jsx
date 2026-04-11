@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  Moon, Sun, Bell, Lock, Globe, Shield, Settings as SettingsIcon, 
-  ChevronRight, User, MapPin, CreditCard, ShoppingBag, 
+  Moon, Sun, Bell, Globe, Shield, Settings as SettingsIcon, 
+  ChevronRight, User, MapPin, ShoppingBag, 
   Trash2, HelpCircle, Eye, EyeOff, Mail, Phone, CreditCard as PaymentIcon,
-  History, DollarSign, Smartphone, Receipt, X, AlertTriangle, KeyRound,
-  ShieldCheck, CheckCircle, Upload, Camera, Loader
+  History, Smartphone, Receipt, X, AlertTriangle, KeyRound
 } from 'lucide-react';
 import AlertModal from '../components/AlertModal';
 import { useNotifications } from '../context/NotificationContext';
@@ -13,10 +12,10 @@ import { useUser } from '../context/UserContext';
 import { deleteMyAccount, changePassword, updateProfile } from '../services/api'; // Added updateProfile
 import { useNavigate, Link } from 'react-router-dom'; // Added Link
 
-export default function Settings({ searchQuery, isDarkMode, toggleDarkMode, theme, setTheme }) {
+export default function Settings({ searchQuery, isDarkMode, toggleDarkMode }) {
   const { addToast } = useNotifications();
-  const { settings, updateSetting, updateCurrency } = useSettings();
-  const { user, updateUser, logout } = useUser(); // Added updateUser
+  const { settings, updateSetting, siteSettings } = useSettings();
+  const { user, updateUser, logout } = useUser();
   const navigate = useNavigate();
 
   // Profile Edit State
@@ -431,49 +430,23 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode, them
             action={<ActionButton label={isDarkMode ? "Light Mode" : "Dark Mode"} onClick={toggleDarkMode} />} 
           />
           <div style={{ padding: '12px', borderTop: '1px solid var(--border-light)', marginTop: '8px' }}>
-            <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', fontWeight: 600 }}>Brand Accent Color</label>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {[
-                { id: 'blue', color: '#3b82f6', label: 'Classic Blue' },
-                { id: 'yellow', color: '#fbbf24', label: 'Golden Yellow' },
-                { id: 'green', color: '#22c55e', label: 'Nature Green' },
-                { id: 'purple', color: '#8b5cf6', label: 'Royal Purple' }
-              ].map((t) => (
-                <div 
-                  key={t.id}
-                  onClick={async () => {
-                    setTheme(t.id);
-                    addToast(`Theme switched to ${t.label}`, 'success');
-                    if (user) {
-                      try {
-                        const res = await updateProfile({ theme: t.id });
-                        if (res.success && res.data && res.data.user) {
-                          updateUser(res.data.user);
-                        }
-                      } catch (e) {
-                        console.error('Failed to sync theme:', e);
-                      }
-                    }
-                  }}
-                  style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    borderRadius: '50%', 
-                    background: t.color, 
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: theme === t.id ? '3px solid var(--text-main)' : '2px solid transparent',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: theme === t.id ? '0 0 12px rgba(0,0,0,0.2)' : 'none',
-                    transform: theme === t.id ? 'scale(1.15)' : 'scale(1)'
-                  }}
-                  title={t.label}
-                >
-                  {theme === t.id && <CheckCircle size={18} color="white" />}
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Store Brand Color</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: siteSettings.primaryColor || 'var(--primary-blue)',
+                border: '3px solid var(--border-light)',
+                boxShadow: `0 0 14px ${siteSettings.primaryColor || 'var(--primary-blue)'}55`,
+                flexShrink: 0
+              }} />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '14px' }}>{siteSettings.primaryColor || '#3b82f6'}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Managed by store administrators
                 </div>
-              ))}
+              </div>
             </div>
           </div>
           <SettingRow 

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { loginUser } from '../services/api';
+import { loginUser, API_BASE_URL } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useAdminSettings } from '../context/AdminSettingsContext';
 import { Lock, Mail, Loader, AlertCircle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
   const { login } = useAuth();
+  const { siteName } = useAdminSettings();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +24,7 @@ export default function Login() {
         const result = await loginUser({ email, password });
         if (result.success) {
             const user = result.data.user;
-            const allowedRoles = ['admin', 'super', 'branch_admin', 'accountant', 'marketing'];
+            const allowedRoles = ['admin', 'super', 'branch_admin', 'accountant', 'marketing', 'picker'];
             
             if (!allowedRoles.includes(user.role)) {
                 setError('Access denied: Unauthorized role.');
@@ -78,7 +80,7 @@ export default function Login() {
             <ShieldCheck size={32} />
           </div>
           <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 8px 0' }}>Admin Login</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>ElectroCom Management Dashboard</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{siteName} Management Dashboard</p>
         </div>
 
         {error && (

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Lock, Mail, LogIn, UserPlus, Phone, Loader, Globe, Eye, EyeOff, Chrome, Github, ArrowLeft } from 'lucide-react';
+import { X, User, Lock, Mail, LogIn, UserPlus, Phone, Loader, Globe, Eye, EyeOff, Chrome, Github, ArrowLeft, MapPin } from 'lucide-react';
 import { loginUser, registerUser, verifyUser, forgotPassword, resetPassword } from '../services/api';
 import { useUser } from '../context/UserContext';
+import { useSettings } from '../context/SettingsContext';
 
 
 
@@ -20,7 +21,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
 
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
-  const { updateUser } = useUser();
+  const { login: handleContextLogin } = useUser();
+  const { siteSettings } = useSettings();
+  const canRegister = siteSettings?.allowRegistration !== false;
   
   // AuthModal focused on local signin/signup
 
@@ -112,7 +115,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
           setVerificationStep(true);
         } else {
           // Direct login
-          updateUser(response.data.user);
+          handleContextLogin(response.data.user, response.data.token);
           onClose(response.data.user);
           setFormData({ name: '', email: '', phone: '', country: 'Ghana', password: '', confirmPassword: '', verification_method: 'email' });
         }
@@ -219,7 +222,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
       const response = await verifyUser(tempUser.id, verificationCode);
       if (response.success) {
         // use response.data.user because verify.php now returns the FULL user including token
-        updateUser(response.data.user);
+        handleContextLogin(response.data.user, response.data.token);
         onClose(response.data.user);
         setFormData({ name: '', email: '', phone: '', country: 'Ghana', password: '', confirmPassword: '', verification_method: 'email' });
         setVerificationStep(false);
@@ -401,6 +404,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
             <p className="mobile-only-text">
               Already have an account? <button type="button" className="toggle-auth-btn" onClick={() => setIsSignUp(false)}>Sign In</button>
             </p>
+            {!canRegister && isSignUp && (
+              <div className="auth-error" style={{ marginTop: '20px' }}>
+                New registrations are currently disabled.
+              </div>
+            )}
           </form>
         </div>
 
@@ -443,9 +451,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
                 {loading ? <Loader className="animate-spin" size={18} /> : 'Sign In'}
               </button>
               
-              <p className="mobile-only-text">
-                Don't have an account? <button type="button" className="toggle-auth-btn" onClick={() => setIsSignUp(true)}>Sign Up</button>
-              </p>
+              {canRegister && (
+                <p className="mobile-only-text">
+                    Don't have an account? <button type="button" className="toggle-auth-btn" onClick={() => setIsSignUp(true)}>Sign Up</button>
+                </p>
+              )}
             </form>
           ) : (
             <div className="forgot-password-view animate-fade-in" style={{
@@ -681,7 +691,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
             <div className="overlay-panel overlay-right">
               <h1>Hello, Friend!</h1>
               <p>Enter your personal details and start journey with us</p>
-              <button className="ghost-btn" id="signUp" onClick={() => setIsSignUp(true)}>Sign Up</button>
+              {canRegister ? (
+                <button className="ghost-btn" id="signUp" onClick={() => setIsSignUp(true)}>Sign Up</button>
+              ) : (
+                <div style={{ marginTop: '20px', color: 'rgba(255,255,255,0.7)', fontSize: '13px', fontWeight: 600 }}>
+                    Registration is currently unavailable
+                </div>
+              )}
             </div>
           </div>
         </div>

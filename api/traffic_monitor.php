@@ -108,8 +108,8 @@ function monitorTraffic()
     }
 }
 
-// Only monitor if not a preflight request
-if ($_SERVER['REQUEST_METHOD'] !== 'OPTIONS') {
+// Only monitor if not a preflight request and not running in CLI
+if (php_sapi_name() !== 'cli' && isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] !== 'OPTIONS') {
     try {
         monitorTraffic();
     } catch (\Throwable $e) {

@@ -4,10 +4,10 @@
 
 // Standardized RBAC Role Groups
 if (!defined('RBAC_ADMIN_GROUP')) {
-    define('RBAC_ADMIN_GROUP', ['admin', 'branch_admin', 'store_manager', 'marketing', 'accountant']);
+    define('RBAC_ADMIN_GROUP', ['admin', 'store_manager', 'marketing', 'accountant', 'picker']);
 }
 if (!defined('RBAC_STAFF_GROUP')) {
-    define('RBAC_STAFF_GROUP', ['pos_cashier', 'branch_admin', 'store_manager']);
+    define('RBAC_STAFF_GROUP', ['pos_cashier', 'store_manager', 'picker']);
 }
 if (!defined('RBAC_SUPER_GROUP')) {
     define('RBAC_SUPER_GROUP', ['super']);
@@ -54,10 +54,11 @@ if (!function_exists('verifyPassword')) {
 if (!function_exists('sanitizeInput')) {
     function sanitizeInput($data)
     {
+        if ($data === null) return null;
         if (is_array($data)) {
             return array_map('sanitizeInput', $data);
         }
-        return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars(trim((string)$data), ENT_QUOTES, 'UTF-8');
     }
 }
 
@@ -159,7 +160,10 @@ if (!function_exists('authenticate')) {
     function authenticate($pdo = null, $dieOnError = true)
     {
         $token = null;
-        $headers = getallheaders();
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+
+        // 0. Identify the calling application for cookie selection
+        $appId = $headers['X-App-ID'] ?? $headers['x-app-id'] ?? null;
 
         // 1. Explicit Headers (Highest priority to prevent cross-app local HTTP cookie contamination)
         $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
@@ -171,13 +175,22 @@ if (!function_exists('authenticate')) {
             $token = $headers['X-Session-Token'] ?? $headers['x-session-token'] ?? null;
         }
 
-        // 2. Cookie Fallback
+        // 2. Isolated Cookie Check
         if (!$token) {
-            $token = $_COOKIE['ehub_session'] ?? null;
+            if ($appId === 'admin') {
+                $token = $_COOKIE['ehub_admin_session'] ?? null;
+            } elseif ($appId === 'storefront') {
+                $token = $_COOKIE['ehub_store_session'] ?? null;
+            }
+            
+            // Fallback for transition or missing headers
+            if (!$token) {
+                $token = $_COOKIE['ehub_session'] ?? null;
+            }
         }
 
         if (!$token) {
-            if (function_exists('logApp')) logApp('error', 'AUTH', "AUTH FAIL: No token found. Headers: " . json_encode($headers));
+            if (function_exists('logApp')) logApp('error', 'AUTH', "AUTH FAIL: No token found. App-ID: $appId | Headers: " . json_encode($headers));
             if ($dieOnError) {
                 header('Content-Type: application/json');
                 http_response_code(401);
@@ -279,12 +292,16 @@ if (!function_exists('clearSession')) {
         $cookieParams = [
             'expires' => time() - 3600,
             'path' => '/',
-            'domain' => '', // Set if using a specific domain
+            'domain' => '',
             'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
             'httponly' => true,
             'samesite' => 'Strict'
         ];
+        
+        // Clear all possible session cookies to ensure clean isolation
         setcookie('ehub_session', '', $cookieParams);
+        setcookie('ehub_admin_session', '', $cookieParams);
+        setcookie('ehub_store_session', '', $cookieParams);
     }
 }
 
@@ -301,18 +318,6 @@ if (!function_exists('getUserRole')) {
     }
 }
 
-/**
- * Get Manager Branch ID
- */
-if (!function_exists('getManagerBranchId')) {
-    function getManagerBranchId($userId, $pdo)
-    {
-        $stmt = $pdo->prepare("SELECT branch_id FROM users WHERE id = ?");
-        $stmt->execute([$userId]);
-        $row = $stmt->fetch();
-        return $row ? $row['branch_id'] : null;
-    }
-}
 
 /**
  * Get User Name
@@ -358,6 +363,19 @@ if (!function_exists('isSuperAdmin')) {
         return getUserRole($payload['user_id'], $pdo) === 'super';
     }
 }
+
+/**
+ * Get User Details including Branch
+ */
+if (!function_exists('getUserDetails')) {
+    function getUserDetails($userId, $pdo)
+    {
+        $stmt = $pdo->prepare("SELECT id, name as username, role FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+}
+
 
 /**
  * Require Role
@@ -519,28 +537,7 @@ if (!function_exists('isDebugEnabled')) {
     }
 }
 
-/**
- * Resolve Fulfillment Branch
- * Maps a user's region to the nearest warehouse, defaulting to HQ
- */
-if (!function_exists('resolveFulfillmentBranch')) {
-    function resolveFulfillmentBranch($userRegion, $pdo)
-    {
-        try {
-            // 1. Try to find a local warehouse in the same region
-            $stmt = $pdo->prepare("SELECT id FROM store_branches WHERE region = ? AND type = 'warehouse' AND status = 'Online' LIMIT 1");
-            $stmt->execute([$userRegion]);
-            $branchId = $stmt->fetchColumn();
-            
-            if ($branchId) return $branchId;
-            
-            // 2. Fallback to Headquarters (Branch ID 1)
-            return 1; 
-        } catch (Exception $e) {
-            return 1;
-        }
-    }
-}
+
 
 /**
  * Calculate Regional Shipping Fee
@@ -549,34 +546,24 @@ if (!function_exists('resolveFulfillmentBranch')) {
 if (!function_exists('calculateRegionalShipping')) {
     function calculateRegionalShipping($userRegion, $sourceBranchId, $subtotal, $pdo)
     {
-        try {
-            // Get source branch details
-            $stmt = $pdo->prepare("SELECT region, type, city FROM store_branches WHERE id = ?");
-            $stmt->execute([$sourceBranchId]);
-            $branch = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$branch) return ['fee' => 25.00, 'city' => 'Accra', 'source_branch_id' => 1]; 
-            
-            $baseFee = 35.00; // Default: Cross-Region
-
-            // Local Delivery (Same region)
-            if ($userRegion === $branch['region']) {
-                $baseFee = 15.00; 
-            }
-            
-            // Apply 50% Discount for orders >= 1500 GHc
-            if ($subtotal >= 1500) {
-                $baseFee = $baseFee * 0.5;
-            }
-
-            return [
-                'fee' => (float)$baseFee,
-                'city' => $branch['city'] ?? 'Accra',
-                'source_branch_id' => $sourceBranchId
-            ];
-        } catch (Exception $e) {
-            return ['fee' => 25.00, 'city' => 'Accra', 'source_branch_id' => 1];
+        $baseFee = 35.00; // Default: Regional/Upcountry
+        
+        // Define 'Local' as Greater Accra (Main Hub Location)
+        $localRegions = ['Greater Accra', 'Accra'];
+        if ($userRegion && in_array($userRegion, $localRegions)) {
+            $baseFee = 15.00;
         }
+        
+        // Dynamic discount for large orders
+        if ($subtotal >= 1500) {
+            $baseFee = $baseFee * 0.5;
+        }
+
+        return [
+            'fee' => (float)$baseFee,
+            'city' => 'Accra',
+            'source_branch_id' => 1 // Legacy support
+        ];
     }
 }
 /**

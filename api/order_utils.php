@@ -1,5 +1,6 @@
 <?php
 // backend/order_utils.php
+require_once 'fulfillment_service.php';
 
 function completeOrder($orderId, $pdo) {
     try {
@@ -40,15 +41,28 @@ function completeOrder($orderId, $pdo) {
         $itemStmt->execute([$orderId]);
         $items = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Mark as processing (status already confirmed not yet processing by the lock above)
-        $pdo->prepare("UPDATE orders SET status = 'processing' WHERE id = ?")->execute([$orderId]);
+        // 2. Intelligent Fulfillment
+        $fulfillment = new FulfillmentService($pdo);
+        $userRegion = $order['region'] ?? ''; // Ensure region exists in users or orders
+        
+        $assignedBranchId = $fulfillment->calculateBestBranch($userRegion, $items);
+        
+        // Mark as processing and assign branch
+        $pdo->prepare("UPDATE orders SET status = 'processing', assigned_branch_id = ? WHERE id = ?")
+            ->execute([$assignedBranchId, $orderId]);
+            
+        // 3. Create Picking Task
+        $fulfillment->createPickingTasks($orderId, $assignedBranchId);
 
-        // Fetch Order Items for processing
-        $updateStockStmt = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?");
+        // 4. Update Global Stock (for storefront availability)
+        $updateStockStmt = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?");
         $adminNotifyStmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) SELECT id, ?, ?, 'info' FROM users WHERE role = 'admin' OR role = 'super'");
 
         foreach ($items as $item) {
-            $updateStockStmt->execute([$item['quantity'], $item['product_id']]);
+            $updateStockStmt->execute([$item['quantity'], $item['product_id'], $item['quantity']]);
+            if ($updateStockStmt->rowCount() === 0) {
+                throw new Exception("Insufficient stock for '{$item['product_name']}'. Requested: {$item['quantity']}, Available: {$item['stock_quantity']}.");
+            }
 
             // Low Stock Check
             $newStock = $item['stock_quantity'] - $item['quantity'];
@@ -81,13 +95,18 @@ function completeOrder($orderId, $pdo) {
             require_once 'notifications.php';
             $notifier = new NotificationService();
 
+            // Load dynamic site name for branding
+            $settingsFile = __DIR__ . '/data/super_settings.json';
+            $siteConfig = file_exists($settingsFile) ? json_decode(file_get_contents($settingsFile), true) : [];
+            $brandName = $siteConfig['siteName'] ?? 'ElectroCom';
+
             if ($order['email'] && ($order['email_notif'] ?? true)) {
                 $itemsList = "";
                 foreach ($items as $item) {
                     $itemsList .= "  - {$item['product_name']} (x{$item['quantity']}) — GHS " . number_format($item['price_at_purchase'], 2) . "\n";
                 }
 
-                $subject = "ElectroCom — Order Confirmed ({$paymentRef})";
+                $subject = "{$brandName} — Order Confirmed ({$paymentRef})";
                 $msg = "Hi {$order['user_name']},\n\n"
                     . "Thank you for your order! Your payment has been verified.\n\n"
                     . "Order Reference: {$paymentRef}\n"
@@ -98,13 +117,13 @@ function completeOrder($orderId, $pdo) {
                     . "Total: GHS " . number_format($order['total_amount'], 2) . "\n"
                     . "Shipping To: {$order['shipping_address']}\n\n"
                     . "IMPORTANT: Please provide the Delivery Code ({$order['delivery_otp']}) to the agent upon arrival.\n\n"
-                    . "— The ElectroCom Team";
+                    . "— The {$brandName} Team";
 
                 $notifier->queueNotification('email', $order['email'], $msg, $subject);
             }
 
             if ($order['phone'] && ($order['sms_tracking'] ?? true)) {
-                $smsMsg = "ElectroCom Order {$paymentRef}: Your order for GHS " . number_format($order['total_amount'], 2) . " has been received! Delivery Code: {$order['delivery_otp']}.";
+                $smsMsg = "{$brandName} Order {$paymentRef}: Your order for GHS " . number_format($order['total_amount'], 2) . " has been received! Delivery Code: {$order['delivery_otp']}.";
                 $notifier->queueNotification('sms', $order['phone'], $smsMsg);
             }
         } catch (Exception $commErr) {
@@ -116,5 +135,21 @@ function completeOrder($orderId, $pdo) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         error_log("Order completion error: " . $e->getMessage());
         return false;
+    }
+}
+
+/**
+ * Log a granular event for the order tracking timeline.
+ */
+if (!function_exists('logOrderEvent')) {
+    function logOrderEvent($orderId, $statusKey, $message, $pdo) {
+        try {
+            $stmt = $pdo->prepare("INSERT INTO order_status_logs (order_id, status_key, message) VALUES (?, ?, ?)");
+            $stmt->execute([$orderId, $statusKey, $message]);
+            return true;
+        } catch (Exception $e) {
+            error_log("Failed to log order event: " . $e->getMessage());
+            return false;
+        }
     }
 }

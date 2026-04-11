@@ -44,7 +44,11 @@ export default function TrafficControl() {
 
   useEffect(() => {
     loadStats();
-    const interval = setInterval(loadStats, 30000); // Auto-refresh every 30s
+    const interval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            loadStats();
+        }
+    }, 45000); // Increased from 30s to 45s
     return () => clearInterval(interval);
   }, []);
 

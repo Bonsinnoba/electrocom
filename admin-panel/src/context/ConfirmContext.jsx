@@ -1,3 +1,4 @@
+/* @refresh reload */
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const ConfirmContext = createContext();

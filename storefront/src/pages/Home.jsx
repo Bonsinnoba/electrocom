@@ -2,9 +2,12 @@ import React, { useState, useMemo, useEffect } from 'react';
 import ProductCard from '../components/ProductCard';
 import HeroSlider from '../components/HeroSlider';
 import ProductSkeleton from '../components/ProductSkeleton';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Home({ products, onProductClick, searchQuery, loading }) {
-  const [visibleCount, setVisibleCount] = useState(9);
+  const { siteSettings } = useSettings();
+  const itemsPerPage = parseInt(siteSettings?.defaultItemsPerPage || 9);
+  const [visibleCount, setVisibleCount] = useState(itemsPerPage);
   const [viewHistory, setViewHistory] = useState({});
 
   useEffect(() => {
@@ -39,8 +42,8 @@ export default function Home({ products, onProductClick, searchQuery, loading })
   }, [sortedProducts, searchQuery]);
 
   useEffect(() => {
-    setVisibleCount(9);
-  }, [searchQuery]);
+    setVisibleCount(itemsPerPage);
+  }, [searchQuery, itemsPerPage]);
 
   const displayedProducts = useMemo(() => {
     return filteredProducts.slice(0, visibleCount);
@@ -52,7 +55,7 @@ export default function Home({ products, onProductClick, searchQuery, loading })
       
       <div style={{ flex: 1 }}>
         <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px' }}>
-          {searchQuery ? `Search Results for "${searchQuery}"` : 'Product Catalog'}
+          {searchQuery ? `Search Results for "${searchQuery}"` : (siteSettings.homepageSectionTitle || 'Product Catalog')}
         </h2>
         
         {loading ? (
@@ -93,7 +96,7 @@ export default function Home({ products, onProductClick, searchQuery, loading })
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: '48px', marginBottom: '24px' }}>
                 <button 
                   className="btn-primary" 
-                  onClick={() => setVisibleCount(prev => prev + 9)}
+                  onClick={() => setVisibleCount(prev => prev + itemsPerPage)}
                   style={{ 
                     padding: '14px 48px', 
                     borderRadius: '100px', 

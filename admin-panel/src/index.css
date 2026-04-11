@@ -37,6 +37,9 @@ h6,
 label,
 th,
 td,
+input,
+textarea,
+select,
 strong {
     color: var(--text-main);
 }
@@ -88,6 +91,42 @@ body {
     color: var(--text-main);
     overflow-x: hidden;
     min-height: 100vh;
+}
+
+/* Accessibility utilities */
+:focus-visible {
+    outline: 3px solid rgba(var(--primary-blue-rgb), 0.22);
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    box-shadow: 0 0 0 4px rgba(var(--primary-blue-rgb), 0.08);
+    border-color: var(--accent-blue);
+}
+
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 /* Scrollbar styling */
@@ -768,3 +807,86 @@ body {
     --accent-blue-rgb: 139, 92, 246;
 }
 
+/* =========================================
+   POS THERMAL RECEIPT STYLES
+   ========================================= */
+
+.pos-receipt-print {
+    display: none;
+}
+
+@media print {
+    @page { 
+        margin: 0; 
+        size: 80mm 297mm; /* Standard 80mm thermal receipt */
+    }
+
+    /* Hide the application UI elements */
+    .admin-sidebar,
+    .pos-success-screen,
+    .pos-main-container,
+    .admin-header,
+    .mobile-restriction {
+        display: none !important;
+    }
+
+    /* Reset the structure margins so receipt starts at 0,0 */
+    body, #root, .admin-layout, .admin-main {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: transparent !important;
+        display: block !important;
+    }
+
+    .pos-receipt-print {
+        display: block !important;
+        width: 100%;
+        max-width: 80mm;
+        margin: 0;
+        padding: 4mm;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 12px;
+        color: #000;
+        background: #fff;
+    }
+
+    /* Suppress unnecessary backgrounds to save ink */
+    .pos-receipt-print * {
+        visibility: visible;
+        background: transparent !important;
+        text-shadow: none !important;
+    }
+
+    .receipt-header {
+        text-align: center;
+        margin-bottom: 8px;
+    }
+
+    .receipt-header h2 {
+        font-size: 18px;
+        margin-bottom: 2px;
+        font-weight: bold;
+    }
+
+    .receipt-divider {
+        border-top: 1px dashed #000;
+        margin: 8px 0;
+    }
+
+    .receipt-meta, .receipt-footer {
+        text-align: center;
+        font-size: 11px;
+    }
+
+    .receipt-items th, .receipt-items td {
+        font-size: 12px;
+        font-family: 'Courier New', Courier, monospace !important;
+    }
+
+    .receipt-totals {
+        font-size: 14px;
+    }
+}

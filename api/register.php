@@ -3,10 +3,20 @@
 require_once 'db.php';
 require_once 'security.php';
 
-// Rate limit: 4 registration attempts per IP per hour
-checkRateLimit($pdo, 4, 3600);
+// Load settings
+$settingsFile = __DIR__ . '/data/super_settings.json';
+$globalSettings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
 
+// Check if registrations are currently allowed
+if (isset($globalSettings['allowRegistration']) && $globalSettings['allowRegistration'] === false) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'New registrations are currently disabled. Please contact support.']);
+    exit;
+}
 
+// Apply Rate Limiting
+$regRateLimit = (int)($globalSettings['apiRateLimit'] ?? 4); 
+checkRateLimit($pdo, $regRateLimit, 3600);
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -15,14 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Check if registrations are currently allowed (controlled from Super Settings)
-$settingsFile = __DIR__ . '/data/super_settings.json';
-$globalSettings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
-if (isset($globalSettings['allowRegistration']) && $globalSettings['allowRegistration'] === false) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'New registrations are currently disabled. Please contact support.']);
-    exit;
-}
 
 
 // Get raw POST data
@@ -55,9 +57,10 @@ if (!isValidEmail($email)) {
 }
 
 
-if (strlen($password) < 8) {
+$minLen = (int)($globalSettings['passwordMinLength'] ?? 8);
+if (strlen($password) < $minLen) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Security Rule: Password must be at least 8 characters long for your protection.']);
+    echo json_encode(['success' => false, 'message' => "Security Rule: Password must be at least $minLen characters long for your protection."]);
     exit;
 }
 
@@ -80,19 +83,24 @@ try {
 
     $region = sanitizeInput($data['region'] ?? 'Greater Accra');
 
-    $stmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, phone, avatar_text, region, verification_code, verification_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$name, $email, $hashedPassword, $phone, $avatarText, $region, $verificationCode, $verificationMethod]);
+    $requireVerif = (bool)($globalSettings['requireEmailVerification'] ?? true);
+    $initialVerified = $requireVerif ? 0 : 1;
 
-    // Dispatch verification code
-    require_once 'notifications.php';
-    $notifier = new NotificationService();
-    $subject = "Your ElectroCom Verification Code";
-    $msg = "Welcome to ElectroCom! Your verification code is: {$verificationCode}. Please enter this code to activate your account.";
+    $stmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, phone, avatar_text, region, verification_code, verification_method, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$name, $email, $hashedPassword, $phone, $avatarText, $region, $verificationCode, $verificationMethod, $initialVerified]);
 
-    if ($verificationMethod === 'sms') {
-        $notifier->queueNotification('sms', $phone, $msg);
-    } else {
-        $notifier->queueNotification('email', $email, $msg, $subject);
+    if ($requireVerif) {
+        // Dispatch verification code
+        require_once 'notifications.php';
+        $notifier = new NotificationService();
+        $subject = "Your ElectroCom Verification Code";
+        $msg = "Welcome to ElectroCom! Your verification code is: {$verificationCode}. Please enter this code to activate your account.";
+
+        if ($verificationMethod === 'sms') {
+            $notifier->queueNotification('sms', $phone, $msg);
+        } else {
+            $notifier->queueNotification('email', $email, $msg, $subject);
+        }
     }
 
     $userId = $pdo->lastInsertId();
@@ -103,8 +111,8 @@ try {
 
     echo json_encode([
         'success' => true,
-        'needs_verification' => true,
-        'message' => 'Account created successfully! Please verify your account to continue.',
+        'needs_verification' => $requireVerif,
+        'message' => $requireVerif ? 'Account created successfully! Please verify your account to continue.' : 'Account created successfully! Welcome aboard.',
         'data' => [
             'user' => [
                 'id' => (int)$userId,

@@ -15,7 +15,7 @@ const decodeHtml = (html) => {
 /**
  * Helper to ensure image URLs are absolute
  */
-const formatImageUrl = (url) => {
+export const formatImageUrl = (url) => {
     if (!url) return url;
     // Fix hardcoded dev URLs from DB
     const cleaningBases = [
@@ -44,6 +44,7 @@ const getAuthHeaders = () => {
     const token = secureStorage.getItem('token', 'shared');
     return {
         'Content-Type': 'application/json',
+        'X-App-ID': 'storefront',
         ...(token ? { 'X-Session-Token': token } : {})
     };
 };
@@ -406,5 +407,18 @@ export const fetchSiteSettings = async () => {
     } catch (error) {
         console.error('Error fetching site settings:', error);
         return null;
+    }
+};
+
+export const getShippingFee = async (region, subtotal) => {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/fetch_shipping.php`, getFetchOptions({
+            method: 'POST',
+            body: JSON.stringify({ region, subtotal })
+        }));
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching shipping fee:', error);
+        return { success: false, fee: 0 };
     }
 };

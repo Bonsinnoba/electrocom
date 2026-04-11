@@ -23,21 +23,15 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     try {
-        $managerBranchId = ($role === 'store_manager' || $role === 'branch_admin') ? getManagerBranchId($userId, $pdo) : null;
-        
         $sql = "SELECT r.*, o.id as order_display_id, u.name as customer_name, p.name as product_name, p.product_code 
                 FROM order_returns r
                 JOIN orders o ON r.order_id = o.id
                 JOIN users u ON o.user_id = u.id
-                JOIN products p ON r.product_id = p.id";
+                JOIN products p ON r.product_id = p.id
+                ORDER BY r.created_at DESC";
         
-        if ($managerBranchId) {
-            $stmt = $pdo->prepare($sql . " WHERE o.branch_id = ? ORDER BY r.created_at DESC");
-            $stmt->execute([$managerBranchId]);
-        } else {
-            $stmt = $pdo->prepare($sql . " ORDER BY r.created_at DESC");
-            $stmt->execute();
-        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
         
         $returns = $stmt->fetchAll();
         foreach ($returns as &$ret) {
@@ -69,20 +63,13 @@ if ($method === 'GET') {
     try {
         $pdo->beginTransaction();
 
-        // 1. Verify order exists and belongs to manager's branch if applicable
-        $orderCheck = $pdo->prepare("SELECT branch_id, status FROM orders WHERE id = ?");
+        // 1. Verify order exists
+        $orderCheck = $pdo->prepare("SELECT status FROM orders WHERE id = ?");
         $orderCheck->execute([$orderId]);
         $order = $orderCheck->fetch();
 
         if (!$order) throw new Exception("Order not found");
         
-        if ($role === 'store_manager' || $role === 'branch_admin') {
-            $managerBranchId = getManagerBranchId($userId, $pdo);
-            if ($managerBranchId && $order['branch_id'] != $managerBranchId) {
-                throw new Exception("Unauthorized: This order belongs to another branch.");
-            }
-        }
-
         // 2. Create return record
         // Self-heal table if needed
         $pdo->exec("CREATE TABLE IF NOT EXISTS order_returns (

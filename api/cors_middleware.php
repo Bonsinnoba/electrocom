@@ -26,12 +26,17 @@ if ($appEnv === 'development') {
 }
 
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Session-Token, Accept, Origin");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Session-Token, X-App-ID, x-app-id, Accept, Origin");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Max-Age: 86400"); // Cache preflight for 24h
 header("Content-Type: application/json; charset=UTF-8");
 
-if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
+// Security Headers
+header("X-Content-Type-Options: nosniff");
+header("X-Frame-Options: DENY");
+header("Strict-Transport-Security: max-age=31536000");
+
+if (isset($_SERVER["REQUEST_METHOD"]) && $_SERVER["REQUEST_METHOD"] === "OPTIONS") {
     header('Content-Type: application/json');
     http_response_code(200);
     exit;

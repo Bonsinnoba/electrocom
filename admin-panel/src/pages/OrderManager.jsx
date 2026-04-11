@@ -178,8 +178,12 @@ export default function OrderManager() {
                       borderRadius: '100px', 
                       fontSize: '11px', 
                       fontWeight: 700,
-                      background: o.status.toLowerCase() === 'delivered' ? 'var(--success-bg)' : o.status.toLowerCase() === 'shipped' ? 'var(--info-bg)' : 'var(--warning-bg)',
-                      color: o.status.toLowerCase() === 'delivered' ? 'var(--success)' : o.status.toLowerCase() === 'shipped' ? 'var(--accent-blue)' : 'var(--warning)'
+                      background: o.status.toLowerCase() === 'delivered' ? 'var(--success-bg)' : 
+                                 o.status.toLowerCase() === 'shipped' ? 'var(--info-bg)' : 
+                                 o.status.toLowerCase() === 'cancelled' ? 'var(--bg-surface-secondary)' : 'var(--warning-bg)',
+                      color: o.status.toLowerCase() === 'delivered' ? 'var(--success)' : 
+                             o.status.toLowerCase() === 'shipped' ? 'var(--accent-blue)' : 
+                             o.status.toLowerCase() === 'cancelled' ? 'var(--text-muted)' : 'var(--warning)'
                     }}>
                       {o.status}
                     </span>
@@ -261,7 +265,7 @@ export default function OrderManager() {
                 </div>
                 {selectedOrder.user_region && (
                    <div style={{ marginTop: '12px', display: 'flex', gap: '8px', color: 'var(--accent-blue)', fontSize: '13px', fontWeight: 600 }}>
-                     <Globe size={16} style={{ flexShrink: 0 }} /> Region: {selectedOrder.user_region}
+                     <ShieldCheck size={16} style={{ flexShrink: 0 }} /> Region: {selectedOrder.user_region}
                    </div>
                 )}
                 {selectedOrder.review_requested_at && (
@@ -283,18 +287,14 @@ export default function OrderManager() {
                       <div style={{ fontWeight: 600, fontSize: '14px' }}>{item.name}</div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Qty: {item.qty}</span>
-                        {item.location && (
-                          <span style={{ 
-                            fontSize: '10px', 
-                            fontWeight: 700, 
-                            color: 'var(--primary-blue)', 
-                            background: 'rgba(59, 130, 246, 0.1)', 
-                            padding: '2px 6px', 
-                            borderRadius: '4px',
-                            textTransform: 'uppercase'
-                          }}>
-                            Shelf: {item.location}
-                          </span>
+                        {(item.aisle || item.rack || item.bin) ? (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            {item.aisle && <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>A:{item.aisle}</span>}
+                            {item.rack && <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>R:{item.rack}</span>}
+                            {item.bin && <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>B:{item.bin}</span>}
+                          </div>
+                        ) : (
+                          item.location && <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>Shelf: {item.location}</span>
                         )}
                       </div>
                     </div>
@@ -313,26 +313,6 @@ export default function OrderManager() {
                 <Calendar size={16} /> Fulfillment Status
               </h3>
               
-              {/* --- NEW: Dispatch Source Display --- */}
-              <div style={{ marginBottom: '20px', padding: '16px', borderRadius: '12px', background: 'var(--bg-surface-secondary)', border: '1px solid var(--border-light)' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Dispatch Source</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ 
-                    padding: '8px', 
-                    background: selectedOrder.branch_type === 'headquarters' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                    color: selectedOrder.branch_type === 'headquarters' ? 'var(--primary-blue)' : 'var(--success)',
-                    borderRadius: '8px'
-                  }}>
-                    {selectedOrder.branch_type === 'headquarters' ? <ShieldCheck size={18} /> : <MapPin size={18} />}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 700 }}>{selectedOrder.branch_name || 'Accra (Headquarters)'}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {selectedOrder.branch_type === 'headquarters' ? 'Primary Fulfillment Center' : 'Local Regional Warehouse'}
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <button 

@@ -2,33 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
-import ProductManager from './pages/ProductManager';
-import OrderManager from './pages/OrderManager';
-import CustomerManager from './pages/CustomerManager';
-import SliderManager from './pages/SliderManager';
-import StoreLayout from './pages/StoreLayout';
-import Settings from './pages/Settings';
 import Login from './pages/Login';
 import { API_BASE_URL } from './services/api';
-import CouponManager from './pages/CouponManager';
+import CustomerManager from './pages/CustomerManager';
+import Settings from './pages/Settings';
 import SystemNotifications from './pages/SystemNotifications';
-import ReviewManager from './pages/ReviewManager';
-import AbandonedCartManager from './pages/AbandonedCartManager';
-import BroadcastManager from './pages/BroadcastManager';
-import ReturnManager from './pages/ReturnManager';
 import POSInterface from './pages/POSInterface';
+
+import InventoryHub from './pages/InventoryHub';
+import SalesHub from './pages/SalesHub';
+import MarketingHub from './pages/MarketingHub';
 import SuperDashboard from './pages/super-user/SuperDashboard';
-import BranchManagement from './pages/super-user/BranchManagement';
 import AdminControl from './pages/super-user/AdminControl';
 import SystemLogs from './pages/super-user/SystemLogs';
-import StockManagement from './pages/StockManagement';
 import StaffChat from './pages/StaffChat';
-
+import AccountantDashboard from './pages/AccountantDashboard';
 import GlobalSettings from './pages/super-user/GlobalSettings';
 import TrafficControl from './pages/super-user/TrafficControl';
-import { NotificationProvider, useNotifications } from './context/NotificationContext';
+
+
+
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import { ConfirmProvider } from './context/ConfirmContext';
+import { AdminSettingsProvider, useAdminSettings } from './context/AdminSettingsContext';
 import { X } from 'lucide-react';
 
 // ─── Toast Overlay ────────────────────────────────────────────────────────────
@@ -197,19 +194,22 @@ const ProtectedLayout = ({ children, requireSuper = false }) => {
   );
 };
 
+const DashboardSwitcher = () => {
+  const { user } = useAuth();
+  if (user?.role === 'accountant') return <AccountantDashboard />;
+  return <Dashboard />;
+};
+
 // ─── App Content ─────────────────────────────────────────────────────────────
 function AppContent() {
-  const { user } = useAuth();
-  
+  const { settings, siteName, primaryColor, fontFamily, loading: settingsLoading } = useAdminSettings();
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved !== null ? JSON.parse(saved) : false;
   });
 
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('admin_theme') || 'blue';
-  });
-
+  // Apply dark mode
   useEffect(() => {
     if (isDarkMode) {
       document.body.classList.add('dark-mode');
@@ -218,30 +218,39 @@ function AppContent() {
     }
   }, [isDarkMode]);
 
+  // Apply site branding (Primary Color and Font)
   useEffect(() => {
-    // Remove existing theme classes
+    if (primaryColor) {
+      document.documentElement.style.setProperty('--primary-blue', primaryColor);
+      document.documentElement.style.setProperty('--primary-blue-hover', `${primaryColor}CC`);
+      
+      const hexToRgb = (hex) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '30, 58, 138';
+      };
+      document.documentElement.style.setProperty('--primary-blue-rgb', hexToRgb(primaryColor));
+    }
+    
+    if (fontFamily) {
+      document.documentElement.style.setProperty('--font-main', fontFamily);
+      document.body.style.fontFamily = `'${fontFamily}', sans-serif`;
+    }
+
+    if (siteName) {
+      document.title = `${siteName} | Admin Panel`;
+    }
+  }, [primaryColor, fontFamily, siteName]);
+
+  // Remove local legacy theme sync
+  useEffect(() => {
     document.body.classList.remove('theme-yellow', 'theme-green', 'theme-purple');
-    // Add new one if not blue
-    if (theme !== 'blue') {
-      document.body.classList.add(`theme-${theme}`);
-    }
-    localStorage.setItem('admin_theme', theme);
-  }, [theme]);
+  }, []);
 
-  // Sync theme from user profile on login
-  useEffect(() => {
-    if (user && user.theme && user.theme !== theme) {
-      setTheme(user.theme);
-    }
-  }, [user]);
-
+  // Storage change listener only needs to care about Dark Mode now
   useEffect(() => {
     const handleStorageChange = () => {
       const saved = localStorage.getItem('darkMode');
       if (saved !== null) setIsDarkMode(JSON.parse(saved));
-      
-      const savedTheme = localStorage.getItem('admin_theme');
-      if (savedTheme) setTheme(savedTheme);
     };
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('themeChange', handleStorageChange);
@@ -251,10 +260,36 @@ function AppContent() {
     };
   }, []);
 
-  const { logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
   const { addToast } = useNotifications();
 
-  // passive session expiry listener
+  // Idle timeout implementation (Session Expiry)
+  useEffect(() => {
+    if (!settings?.sessionTimeout || !isAuthenticated) return;
+    
+    const timeoutMins = parseInt(settings.sessionTimeout);
+    let timer;
+    
+    const resetTimer = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        logout();
+        addToast(`Disconnected: Session expired after ${timeoutMins}m of inactivity.`, 'info');
+      }, timeoutMins * 60 * 1000);
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => document.addEventListener(event, resetTimer));
+    
+    resetTimer();
+
+    return () => {
+      events.forEach(event => document.removeEventListener(event, resetTimer));
+      if (timer) clearTimeout(timer);
+    };
+  }, [settings?.sessionTimeout, isAuthenticated, logout, addToast]);
+
+  // passive session expiry listener (401 from API)
   useEffect(() => {
     const handleUnauthorized = () => {
       logout();
@@ -278,33 +313,29 @@ function AppContent() {
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
-        <Route path="/products" element={<ProtectedLayout><ProductManager /></ProtectedLayout>} />
-        <Route path="/orders" element={<ProtectedLayout><OrderManager /></ProtectedLayout>} />
-        <Route path="/staff-chat" element={<ProtectedLayout><StaffChat /></ProtectedLayout>} /> {/* Added StaffChat Route */}
+        <Route path="/" element={
+          <ProtectedLayout>
+            <DashboardSwitcher />
+          </ProtectedLayout>
+        } />
+
+        <Route path="/catalog" element={<ProtectedLayout><InventoryHub /></ProtectedLayout>} />
+        <Route path="/sales" element={<ProtectedLayout><SalesHub /></ProtectedLayout>} />
+        <Route path="/marketing" element={<ProtectedLayout><MarketingHub /></ProtectedLayout>} />
+        
         <Route path="/pos" element={<ProtectedLayout><POSInterface /></ProtectedLayout>} />
         <Route path="/customers" element={<ProtectedLayout><CustomerManager /></ProtectedLayout>} />
-        <Route path="/slider" element={<ProtectedLayout><SliderManager /></ProtectedLayout>} />
-        <Route path="/coupons" element={<ProtectedLayout><CouponManager /></ProtectedLayout>} />
-        <Route path="/inventory" element={<ProtectedLayout><StoreLayout /></ProtectedLayout>} />
         <Route path="/notifications" element={<ProtectedLayout><SystemNotifications /></ProtectedLayout>} />
-        <Route path="/reviews" element={<ProtectedLayout><ReviewManager /></ProtectedLayout>} />
-        <Route path="/abandoned-carts" element={<ProtectedLayout><AbandonedCartManager /></ProtectedLayout>} />
-        <Route path="/broadcast" element={<ProtectedLayout><BroadcastManager /></ProtectedLayout>} />
-        <Route path="/returns" element={<ProtectedLayout><ReturnManager /></ProtectedLayout>} />
-        <Route path="/stock-requests" element={<ProtectedLayout><StockManagement /></ProtectedLayout>} />
         <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
 
-        {/* Super Admin Routes */}
         <Route path="/super/dashboard" element={<ProtectedLayout requireSuper><SuperDashboard /></ProtectedLayout>} />
-        <Route path="/super/branches" element={<ProtectedLayout requireSuper><BranchManagement /></ProtectedLayout>} />
         <Route path="/super/admins" element={<ProtectedLayout requireSuper><AdminControl /></ProtectedLayout>} />
 
         <Route path="/super/logs" element={<ProtectedLayout requireSuper><SystemLogs /></ProtectedLayout>} />
         <Route path="/super/traffic" element={<ProtectedLayout requireSuper><TrafficControl /></ProtectedLayout>} />
         <Route path="/super/settings" element={<ProtectedLayout requireSuper><GlobalSettings /></ProtectedLayout>} />
         
-        {/* Redirect unknown routes */}
+        <Route path="/staff-chat" element={<ProtectedLayout><StaffChat /></ProtectedLayout>} /> 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
@@ -315,12 +346,14 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <NotificationProvider>
-        <ConfirmProvider>
-          <AdminToasts />
-          <AppContent />
-        </ConfirmProvider>
-      </NotificationProvider>
+      <AdminSettingsProvider>
+        <NotificationProvider>
+          <ConfirmProvider>
+            <AdminToasts />
+            <AppContent />
+          </ConfirmProvider>
+        </NotificationProvider>
+      </AdminSettingsProvider>
     </AuthProvider>
   );
 }

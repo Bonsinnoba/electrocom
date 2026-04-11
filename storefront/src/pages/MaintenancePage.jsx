@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSettings } from '../context/SettingsContext';
 
 const GEARS_SVG = (
   <svg viewBox="0 0 200 200" width="240" height="240" style={{ display: 'block', margin: '0 auto' }}>
@@ -55,6 +56,7 @@ function AnimatedDot({ delay }) {
 }
 
 export default function MaintenancePage() {
+  const { siteSettings } = useSettings();
   const [timeStr, setTimeStr] = useState('');
 
   useEffect(() => {
@@ -114,7 +116,7 @@ export default function MaintenancePage() {
           color: '#a78bfa', marginBottom: '24px'
         }}>
           <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#a78bfa', animation: 'dotBounce 2s ease-in-out infinite' }} />
-          ElectroCom
+          {siteSettings.siteName}
         </div>
 
         {/* Heading */}
@@ -159,8 +161,8 @@ export default function MaintenancePage() {
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '3px' }}>Need urgent help?</div>
             <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
               Email us at{' '}
-              <a href="mailto:support@electrocom.com" style={{ color: '#a78bfa', fontWeight: 700, textDecoration: 'none' }}>
-                support@electrocom.com
+              <a href={`mailto:${siteSettings.siteEmail || 'support@electrocom.com'}`} style={{ color: '#a78bfa', fontWeight: 700, textDecoration: 'none' }}>
+                {siteSettings.siteEmail || 'support@electrocom.com'}
               </a>
               {' '}and we'll respond right away.
             </div>
@@ -175,8 +177,15 @@ export default function MaintenancePage() {
 
       {/* Social links */}
       <div style={{ marginTop: '32px', display: 'flex', gap: '16px', zIndex: 1 }}>
-        {['Instagram', 'Twitter/X'].map(s => (
-          <span key={s} style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{s}</span>
+        {[
+          siteSettings.socialInstagram && { label: 'Instagram', url: siteSettings.socialInstagram },
+          siteSettings.socialTwitter && { label: 'Twitter/X', url: siteSettings.socialTwitter },
+          siteSettings.socialFacebook && { label: 'Facebook', url: siteSettings.socialFacebook },
+        ].filter(Boolean).map(s => (
+          <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontWeight: 600, textDecoration: 'none' }}>
+            {s.label}
+          </a>
         ))}
       </div>
 

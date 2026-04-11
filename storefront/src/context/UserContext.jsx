@@ -14,37 +14,86 @@ export const useUser = () => {
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    return secureStorage.getItem('user', 'shared'); // Meta info can be shared across sessions
+    // Try to recover the last active user session from local storage safely
+    const lastUserId = localStorage.getItem('ehub_last_user_id');
+    return lastUserId ? secureStorage.getItem('user', lastUserId) : null;
   });
 
-  // Hydrate full user profile (including large base64 profile images) on initial load
+  // Hydrate full user profile on initial load
   useEffect(() => {
       if (user && secureStorage.getItem('token', 'shared')) {
           checkUserStatus().then(res => {
               if (res && res.success && res.data && res.data.user) {
-                  setUser(res.data.user);
+                  // Use the login helper to ensure storage is synced to the confirmed ID
+                  login(res.data.user);
+              } else if (res && res.unauthorized) {
+                  logout();
               }
-          }).catch(console.error);
+          }).catch(err => {
+              console.error('Session validation failed:', err);
+          });
       }
   }, []);
 
   useEffect(() => {
-    if (user) {
-        secureStorage.setItem('user', user, 'shared');
-    } else {
-        secureStorage.removeItem('user', 'shared');
+    if (user && user.id) {
+        secureStorage.setItem('user', user, user.id);
+        localStorage.setItem('ehub_last_user_id', user.id);
     }
   }, [user]);
 
   const updateUser = (newData) => {
-    setUser(prev => ({ ...prev, ...newData }));
+    setUser(prev => {
+        if (!prev) return newData;
+        return { ...prev, ...newData };
+    });
+  };
+
+  /**
+   * Dedicated login function that fully replaces the user session.
+   * This prevents accidental "merging" of data between different accounts.
+   */
+  const login = (userData, token = null) => {
+    // 1. Wipe any stale shared data first
+    secureStorage.removeItem('user', 'shared');
+    
+    // 2. Persist token if provided (Critical for api.js headers)
+    if (token) {
+        secureStorage.setItem('token', token, 'shared');
+    }
+    
+    // 3. Set the new user state cleanly (REPLACE, don't MERGE)
+    setUser(userData);
+    
+    // 4. Store the ID so we can recover this specific session on refresh
+    if (userData && userData.id) {
+        localStorage.setItem('ehub_last_user_id', userData.id);
+        // Explicitly set the isolated storage immediately to avoid race conditions
+        secureStorage.setItem('user', userData, userData.id);
+    }
   };
 
   const logout = async () => {
+    const currentId = user?.id;
+    
+    // 1. Clear State
     setUser(null);
+    localStorage.removeItem('ehub_last_user_id');
+    
+    // 2. Deep Cleanup of storage
+    if (currentId) {
+        secureStorage.removeItem('user', currentId);
+    }
+    secureStorage.removeItem('user', 'shared');
+    secureStorage.removeItem('token', 'shared');
+    
+    // 3. System Cleanup
     localStorage.setItem('site_theme', 'blue');
     window.dispatchEvent(new Event('themeChange'));
-    await logoutUser();
+    
+    try {
+        await logoutUser();
+    } catch (e) {}
   };
 
   const resetUser = () => {
@@ -73,7 +122,8 @@ export const UserProvider = ({ children }) => {
   return (
     <UserContext.Provider value={{ 
       user, 
-      updateUser, 
+      updateUser,
+      login, 
       resetUser, 
       logout,
       authModal,

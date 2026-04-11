@@ -1,3 +1,4 @@
+/* @refresh reload */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../services/api';
 
@@ -24,12 +25,21 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const fetchServerNotifications = async () => {
+    const token = localStorage.getItem('ehub_token');
+    if (!token) return;
+
     try {
         const response = await fetch(`${API_BASE_URL}/get_notifications.php?admin=true&_t=${Date.now()}`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('ehub_token')}`
+                'Authorization': `Bearer ${token}`
             }
         });
+        
+        if (response.status === 401) {
+             // Stop polling if unauthorized
+             return false;
+        }
+
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
             setNotifications(result.data.map(n => ({
@@ -45,11 +55,21 @@ export const NotificationProvider = ({ children }) => {
     } catch (error) {
         console.error("Failed to fetch admin notifications", error);
     }
+    return true;
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchServerNotifications();
-    const interval = setInterval(fetchServerNotifications, 30000); // 30s poll
+    
+    // Polling setup
+    const interval = setInterval(async () => {
+        const shouldContinue = await fetchServerNotifications();
+        if (shouldContinue === false) {
+            clearInterval(interval);
+        }
+    }, 45000); // Relaxed to 45s
+
     return () => clearInterval(interval);
   }, []);
 
