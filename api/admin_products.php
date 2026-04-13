@@ -225,6 +225,16 @@ if ($method === 'POST') {
             }
 
             logger('info', 'PRODUCTS', "New product created: {$name} (ID: {$productId}) by {$userName}");
+            logAdminAudit($pdo, $userId, 'product.create', 'product', (string)$productId, [
+                'name' => $name,
+                'product_code' => $product_code,
+                'price' => $price,
+                'stock' => $stock,
+                'location' => $location,
+                'aisle' => $aisle,
+                'rack' => $rack,
+                'bin' => $bin
+            ]);
             echo json_encode(['success' => true, 'id' => $productId, 'image_url' => $image_url]);
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
@@ -285,6 +295,16 @@ if ($method === 'POST') {
             $pdo->commit();
             
             logger('info', 'PRODUCTS', "Product updated (ID: {$id}) by {$userName}");
+            logAdminAudit($pdo, $userId, 'product.update', 'product', (string)$id, [
+                'name' => $name,
+                'product_code' => $product_code,
+                'price' => $price,
+                'stock' => $stock,
+                'location' => $location,
+                'aisle' => $aisle,
+                'rack' => $rack,
+                'bin' => $bin
+            ]);
             echo json_encode(['success' => true, 'image_url' => $image_url]);
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
@@ -316,6 +336,7 @@ if ($method === 'POST') {
 
             $pdo->prepare("DELETE FROM products WHERE id = ?")->execute([$id]);
             logger('warn', 'PRODUCTS', "Product deleted (ID: {$id}) by {$userName}");
+            logAdminAudit($pdo, $userId, 'product.delete', 'product', (string)$id, []);
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {
             error_log("Product deletion failed: " . $e->getMessage());

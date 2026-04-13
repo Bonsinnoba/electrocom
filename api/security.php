@@ -332,6 +332,52 @@ if (!function_exists('getUserName')) {
     }
 }
 
+/**
+ * Admin audit trail logger for critical mutations.
+ */
+if (!function_exists('logAdminAudit')) {
+    function logAdminAudit($pdo, $actorUserId, $action, $entityType, $entityId = null, $changes = null)
+    {
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS admin_audit_logs (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                actor_user_id INT NOT NULL,
+                actor_role VARCHAR(50) DEFAULT NULL,
+                action VARCHAR(120) NOT NULL,
+                entity_type VARCHAR(80) NOT NULL,
+                entity_id VARCHAR(120) DEFAULT NULL,
+                changes_json JSON DEFAULT NULL,
+                ip_address VARCHAR(45) DEFAULT NULL,
+                user_agent VARCHAR(255) DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_actor_created (actor_user_id, created_at),
+                INDEX idx_entity (entity_type, entity_id)
+            )");
+
+            $role = getUserRole($actorUserId, $pdo);
+            $ip = getClientIP();
+            $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);
+            $changesJson = $changes !== null ? json_encode($changes) : null;
+
+            $stmt = $pdo->prepare("INSERT INTO admin_audit_logs (actor_user_id, actor_role, action, entity_type, entity_id, changes_json, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                (int)$actorUserId,
+                $role,
+                (string)$action,
+                (string)$entityType,
+                $entityId !== null ? (string)$entityId : null,
+                $changesJson,
+                $ip,
+                $ua
+            ]);
+        } catch (Throwable $e) {
+            if (function_exists('logger')) {
+                logger('error', 'AUDIT', 'Failed to write audit log: ' . $e->getMessage());
+            }
+        }
+    }
+}
+
 
 /**
  * Check if Super Admin (non-blocking)

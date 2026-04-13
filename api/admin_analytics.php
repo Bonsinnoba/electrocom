@@ -12,6 +12,22 @@ $branchId = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
+        $settingsFile = __DIR__ . '/data/super_settings.json';
+        $storedSettings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+        $insightDefaults = [
+            'insightsShipWarnHours' => 24,
+            'insightsShipCriticalHours' => 48,
+            'insightsLowStockWarnCount' => 5,
+            'insightsLowStockCriticalCount' => 12,
+            'insightsOnlineRevenueMinPct' => 35,
+            'insightsRepeatOrderMin' => 1.2,
+            'insightsWeightShip' => 35,
+            'insightsWeightStock' => 25,
+            'insightsWeightOnline' => 20,
+            'insightsWeightRepeat' => 20,
+        ];
+        $insightConfig = array_merge($insightDefaults, $storedSettings);
+
         $data = [];
         $whereClause = "1=1";
         $params = [];
@@ -102,31 +118,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ");
         $data['strategic_insights']['ship_efficiency'] = round((float)$effStmt->fetchColumn(), 1) ?: 0;
 
-        // e. Business Health Status
-        $healthScore = 100;
-        $healthMsg = "Operational efficiency is stable.";
-        
-        if ($data['strategic_insights']['ship_efficiency'] > 48) {
-            $healthScore -= 20;
-            $healthMsg = "Fulfillment is slowing down. Check logistics.";
-        } elseif ($data['strategic_insights']['ship_efficiency'] > 24) {
-            $healthScore -= 10;
-        }
-
-        if ($data['low_stock_count'] > 5) {
-            $healthScore -= 15;
-            $healthMsg = "Critical stock levels detected. Restock soon.";
-        }
-
-        $data['strategic_insights']['health_score'] = $healthScore;
-        $data['strategic_insights']['health_message'] = $healthMsg;
-
         // c. Total Orders count
         $totalOrdersStmt = $pdo->query("SELECT COUNT(id) FROM orders WHERE status != 'cancelled'");
         $data['total_orders'] = (int)$totalOrdersStmt->fetchColumn();
 
         // d. Average Order Value
         $data['avg_order_value'] = $data['total_orders'] > 0 ? round($data['total_revenue'] / $data['total_orders'], 2) : 0;
+
+        // e. Business Health Status (configurable weighted model)
+        $shipWarnHours = max(1, (float)$insightConfig['insightsShipWarnHours']);
+        $shipCriticalHours = max($shipWarnHours + 1, (float)$insightConfig['insightsShipCriticalHours']);
+        $lowStockWarnCount = max(0, (int)$insightConfig['insightsLowStockWarnCount']);
+        $lowStockCriticalCount = max($lowStockWarnCount + 1, (int)$insightConfig['insightsLowStockCriticalCount']);
+        $onlineRevenueMinPct = max(0, min(100, (float)$insightConfig['insightsOnlineRevenueMinPct']));
+        $repeatOrderMin = max(0.5, (float)$insightConfig['insightsRepeatOrderMin']);
+
+        $weightShip = max(0, (float)$insightConfig['insightsWeightShip']);
+        $weightStock = max(0, (float)$insightConfig['insightsWeightStock']);
+        $weightOnline = max(0, (float)$insightConfig['insightsWeightOnline']);
+        $weightRepeat = max(0, (float)$insightConfig['insightsWeightRepeat']);
+
+        $healthScore = 100;
+        $alerts = [];
+
+        $shipEfficiency = (float)$data['strategic_insights']['ship_efficiency'];
+        if ($shipEfficiency > $shipCriticalHours) {
+            $healthScore -= $weightShip;
+            $alerts[] = ['severity' => 3, 'message' => 'Fulfillment is critically slow. Review dispatch workflow and picker load.'];
+        } elseif ($shipEfficiency > $shipWarnHours) {
+            $healthScore -= round($weightShip * 0.55, 1);
+            $alerts[] = ['severity' => 2, 'message' => 'Fulfillment speed is below target. Consider improving dispatch turnaround.'];
+        }
+
+        $lowStockCount = (int)$data['low_stock_count'];
+        if ($lowStockCount >= $lowStockCriticalCount) {
+            $healthScore -= $weightStock;
+            $alerts[] = ['severity' => 3, 'message' => 'Critical stock pressure detected. Prioritize restocking high-demand items.'];
+        } elseif ($lowStockCount >= $lowStockWarnCount) {
+            $healthScore -= round($weightStock * 0.55, 1);
+            $alerts[] = ['severity' => 2, 'message' => 'Stock risk rising. Prepare replenishment to avoid missed sales.'];
+        }
+
+        $onlinePct = $data['total_revenue'] > 0
+            ? (($data['revenue_online'] / $data['total_revenue']) * 100)
+            : 100;
+        if ($onlinePct < $onlineRevenueMinPct) {
+            $healthScore -= $weightOnline;
+            $alerts[] = ['severity' => 1, 'message' => 'Online revenue share is below target. Improve digital conversion and campaigns.'];
+        }
+
+        $repeatRatio = $data['total_customers'] > 0
+            ? ($data['total_orders'] / $data['total_customers'])
+            : $repeatOrderMin;
+        if ($repeatRatio < $repeatOrderMin) {
+            $healthScore -= $weightRepeat;
+            $alerts[] = ['severity' => 1, 'message' => 'Repeat purchase ratio is below target. Increase retention and reorder nudges.'];
+        }
+
+        $healthScore = max(0, min(100, (int)round($healthScore)));
+        usort($alerts, fn($a, $b) => $b['severity'] <=> $a['severity']);
+        $healthMsg = count($alerts) > 0 ? $alerts[0]['message'] : 'Operational efficiency is stable.';
+
+        $data['strategic_insights']['health_score'] = $healthScore;
+        $data['strategic_insights']['health_message'] = $healthMsg;
+        $data['strategic_insights']['health_breakdown'] = [
+            'online_pct' => round($onlinePct, 1),
+            'repeat_ratio' => round($repeatRatio, 2),
+            'ship_warn_hours' => $shipWarnHours,
+            'ship_critical_hours' => $shipCriticalHours,
+            'low_stock_warn_count' => $lowStockWarnCount,
+            'low_stock_critical_count' => $lowStockCriticalCount
+        ];
 
         // 9. Sales by Category
         $catStmt = $pdo->prepare("

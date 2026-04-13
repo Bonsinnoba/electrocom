@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Send, Users, Mail, MessageSquare, AlertCircle, CheckCircle } from 'lucide-react';
-import { sendBroadcast } from '../services/api';
+import { sendBroadcast, API_BASE_URL } from '../services/api';
 import { useNotifications } from '../context/NotificationContext';
 import { useConfirm } from '../context/ConfirmContext';
 
@@ -9,18 +9,40 @@ export default function BroadcastManager() {
     const { confirm } = useConfirm();
     const [loading, setLoading] = useState(false);
     const [stats, setStats] = useState(null);
+    const [roleOptions, setRoleOptions] = useState(['customer']);
     const [formData, setFormData] = useState({
         type: 'email',
         target: 'all',
+        role_targets: ['customer'],
         title: '',
         message: ''
     });
+
+    React.useEffect(() => {
+        const loadRoles = async () => {
+            try {
+                const token = localStorage.getItem('ehub_token');
+                const res = await fetch(`${API_BASE_URL}/admin_broadcast.php`, {
+                    headers: {
+                        'X-App-ID': 'admin',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    }
+                });
+                const data = await res.json();
+                if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+                    setRoleOptions(data.data);
+                }
+            } catch {}
+        };
+        loadRoles();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.message) return alert('Message is required');
         
-        if (!(await confirm(`Are you sure you want to send this broadcast to ${formData.target} customers? This action cannot be undone.`))) return;
+        if (!formData.role_targets?.length) return alert('Select at least one role');
+        if (!(await confirm(`Are you sure you want to send this broadcast to selected roles (${formData.role_targets.join(', ')})? This action cannot be undone.`))) return;
 
         setLoading(true);
         setStats(null);
@@ -82,16 +104,57 @@ export default function BroadcastManager() {
 
                         <div className="form-group">
                             <label style={{ fontSize: '14px', fontWeight: 700, marginBottom: '8px', display: 'block' }}>Target Audience</label>
-                            <select 
-                                value={formData.target} 
-                                onChange={(e) => setFormData({...formData, target: e.target.value})}
-                                className="input-field"
-                                style={{ width: '100%', padding: '12px' }}
-                            >
-                                <option value="all">All Customers</option>
-                                <option value="verified">Verified Customers Only (Ghana Card)</option>
-                                <option value="standard">Standard Customers Only</option>
-                            </select>
+                            <div style={{ display: 'grid', gap: '10px' }}>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        style={{ padding: '6px 10px', fontSize: '12px' }}
+                                        onClick={() => setFormData({ ...formData, role_targets: [...roleOptions] })}
+                                    >
+                                        Select all
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        style={{ padding: '6px 10px', fontSize: '12px' }}
+                                        onClick={() => setFormData({ ...formData, role_targets: ['customer'] })}
+                                    >
+                                        Customers only
+                                    </button>
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                    {roleOptions.map((role) => {
+                                        const active = formData.role_targets.includes(role);
+                                        return (
+                                            <button
+                                                key={role}
+                                                type="button"
+                                                onClick={() => {
+                                                    const next = active
+                                                        ? formData.role_targets.filter(r => r !== role)
+                                                        : [...formData.role_targets, role];
+                                                    setFormData({ ...formData, role_targets: next });
+                                                }}
+                                                className={`btn ${active ? 'btn-primary' : 'btn-secondary'}`}
+                                                style={{ padding: '8px 12px', textTransform: 'capitalize' }}
+                                            >
+                                                {role.replace('_', ' ')}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <select 
+                                    value={formData.target} 
+                                    onChange={(e) => setFormData({...formData, target: e.target.value})}
+                                    className="input-field"
+                                    style={{ width: '100%', padding: '12px' }}
+                                >
+                                    <option value="all">All Selected Roles</option>
+                                    <option value="verified">Verified Customers (only applies to customer role)</option>
+                                    <option value="standard">Standard Customers (only applies to customer role)</option>
+                                </select>
+                            </div>
                         </div>
 
                         {(formData.type === 'email' || formData.type === 'both') && (

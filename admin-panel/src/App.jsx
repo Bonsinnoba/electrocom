@@ -19,6 +19,7 @@ import StaffChat from './pages/StaffChat';
 import AccountantDashboard from './pages/AccountantDashboard';
 import GlobalSettings from './pages/super-user/GlobalSettings';
 import TrafficControl from './pages/super-user/TrafficControl';
+import PickupLocationManager from './pages/super-user/PickupLocationManager';
 
 
 
@@ -334,6 +335,7 @@ function AppContent() {
         <Route path="/super/logs" element={<ProtectedLayout requireSuper><SystemLogs /></ProtectedLayout>} />
         <Route path="/super/traffic" element={<ProtectedLayout requireSuper><TrafficControl /></ProtectedLayout>} />
         <Route path="/super/settings" element={<ProtectedLayout requireSuper><GlobalSettings /></ProtectedLayout>} />
+        <Route path="/super/pickup-locations" element={<ProtectedLayout requireSuper><PickupLocationManager /></ProtectedLayout>} />
         
         <Route path="/staff-chat" element={<ProtectedLayout><StaffChat /></ProtectedLayout>} /> 
         <Route path="*" element={<Navigate to="/" replace />} />

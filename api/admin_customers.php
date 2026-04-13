@@ -90,6 +90,7 @@ if ($method === 'GET') {
             $stmt->execute([$id]);
 
             logger('warn', 'STAFF', "User ID: {$id} was permanently deleted by {$userName}");
+            logAdminAudit($pdo, $userId, 'user.delete', 'user', (string)$id, []);
 
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {
@@ -112,6 +113,7 @@ if ($method === 'GET') {
             $stmt->execute([$newStatus, $id]);
 
             logger('info', 'STAFF', "User ID: {$id} status updated to {$newStatus} by {$userName}");
+            logAdminAudit($pdo, $userId, 'user.status.update', 'user', (string)$id, ['status' => $newStatus]);
 
             echo json_encode(['success' => true, 'status' => $newStatus]);
         } catch (PDOException $e) {
@@ -154,6 +156,7 @@ if ($method === 'GET') {
             $stmt->execute([$newRole, $id]);
 
             logger('info', 'STAFF', "User ID: {$id} role updated to " . strtoupper($newRole) . " by {$userName}");
+            logAdminAudit($pdo, $userId, 'user.role.update', 'user', (string)$id, ['role' => $newRole]);
 
             echo json_encode(['success' => true, 'role' => $newRole]);
         } catch (PDOException $e) {

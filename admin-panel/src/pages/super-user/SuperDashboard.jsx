@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp, Activity, Globe, ShieldCheck,
   AlertTriangle, RefreshCw, ArrowUpRight,
@@ -18,6 +19,35 @@ const fmt   = (n) => n >= 1_000_000 ? `GH₵ ${(n/1_000_000).toFixed(2)}M` : n >
 const fmtN  = (n) => n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n);
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
 const STATUS_COL = { pending:'#f59e0b', processing:'#3b82f6', shipped:'#a855f7', delivered:'#22c55e', cancelled:'#ef4444' };
+const toDateKey = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+const buildFilledSeries = (source, days, numericKeys) => {
+  const list = Array.isArray(source) ? source : [];
+  if (days !== 7) return list.slice(-days);
+  const mapped = new Map();
+  list.forEach((entry) => {
+    const key = toDateKey(entry?.date);
+    if (key) mapped.set(key, entry);
+  });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const filled = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = toDateKey(d);
+    const base = mapped.get(key) || {};
+    const row = { ...base, date: d.toISOString().slice(0, 10), _isFilled: !mapped.has(key) };
+    numericKeys.forEach((k) => {
+      row[k] = Number(base[k] || 0);
+    });
+    filled.push(row);
+  }
+  return filled;
+};
 
 // ── Skeleton card ─────────────────────────────────────────────────────────────
 function Skeleton({ h = 24, w = '60%' }) {
@@ -27,11 +57,14 @@ function Skeleton({ h = 24, w = '60%' }) {
 
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [data, setData]     = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [chartRange, setChartRange] = useState(30);
+  const [chartMode, setChartMode] = useState('area');
 
   const load = async () => {
     try {
@@ -61,6 +94,39 @@ export default function Dashboard() {
     { label: 'Total Users',     value: fmtN(data?.total_users   || 0), change: `${data?.total_admins || 0} admins`,  icon: <Users size={20} />,      color: '#3b82f6' },
     { label: 'Products Listed', value: fmtN(data?.total_products|| 0), change: 'In catalogue',                       icon: <Package size={20} />,    color: '#a855f7' },
   ];
+  const filteredRevenueChart = buildFilledSeries(analytics?.revenue_chart, chartRange, ['daily_revenue']);
+  const suggestedActions = [
+    (data?.total_products || 0) > 0 && (data?.total_orders || 0) < 5 ? {
+      level: 'medium',
+      title: 'Review catalog-to-order conversion',
+      detail: 'Product volume is healthy but order volume is low. Consider optimizing pricing, promotions, and discovery.',
+      actionPath: '/catalog',
+    } : null,
+    (data?.server_health?.disk_used_pct || 0) > 75 ? {
+      level: 'high',
+      title: 'Free server disk space soon',
+      detail: `Disk usage is at ${data.server_health.disk_used_pct}%. Archive logs/backups to avoid service instability.`,
+      actionPath: '/super/logs',
+    } : null,
+    (analytics?.top_products || []).length > 0 && Number(analytics.top_products[0]?.total_sold || 0) > Number(analytics.top_products[1]?.total_sold || 0) * 3 ? {
+      level: 'low',
+      title: 'Diversify product demand',
+      detail: 'Sales are concentrated in one top product. Promote adjacent products to reduce dependency risk.',
+      actionPath: '/marketing',
+    } : null,
+    (data?.error_log_tail || []).length > 15 ? {
+      level: 'medium',
+      title: 'Triage recurring PHP errors',
+      detail: 'Error log volume is elevated. Resolve repeated warnings before they impact checkout or admin actions.',
+      actionPath: '/super/logs',
+    } : null,
+  ].filter(Boolean).slice(0, 3);
+  const formatChartTick = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    if (chartRange === 7) return date.toLocaleString('en-US', { weekday: 'short' });
+    return `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })}`;
+  };
 
   return (
     <div className="animate-fade-in">
@@ -116,6 +182,32 @@ export default function Dashboard() {
         }
       </div>
 
+      {suggestedActions.length > 0 && (
+        <div className="card glass" style={{ marginBottom: '24px' }}>
+          <h2 style={{ fontSize:'18px', fontWeight:800, marginBottom:'14px', display:'flex', alignItems:'center', gap:'8px' }}>
+            <Zap size={18} color="var(--primary-gold)" /> Suggested Actions
+          </h2>
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {suggestedActions.map((item, idx) => (
+              <button
+                key={`${item.title}-${idx}`}
+                type="button"
+                onClick={() => item.actionPath && navigate(item.actionPath)}
+                style={{ padding:'12px 14px', borderRadius:'10px', border:'1px solid var(--border-light)', background:'var(--bg-main)', textAlign:'left', cursor: item.actionPath ? 'pointer' : 'default' }}
+              >
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
+                  <strong style={{ fontSize:'14px' }}>{item.title}</strong>
+                  <span style={{ fontSize:'10px', fontWeight:800, textTransform:'uppercase', color: item.level === 'high' ? 'var(--danger)' : item.level === 'medium' ? 'var(--warning)' : 'var(--success)' }}>
+                    {item.level}
+                  </span>
+                </div>
+                <div style={{ fontSize:'12px', color:'var(--text-muted)' }}>{item.detail}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
 
 
       {/* ── Advanced Analytics (Recharts) ─────────────────────────────────── */}
@@ -128,42 +220,85 @@ export default function Dashboard() {
             
             {/* Revenue Area Chart */}
             <div className="card glass">
-              <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:'16px', color:'var(--text-muted)' }}>Revenue (Last 30 Days)</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom:'16px', gap: '8px', flexWrap: 'wrap' }}>
+                <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:0, color:'var(--text-muted)' }}>Revenue</h3>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[7, 30, 90].map((days) => (
+                    <button key={days} type="button" className={`btn ${chartRange === days ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartRange(days)}>
+                      {days}d
+                    </button>
+                  ))}
+                  <button type="button" className={`btn ${chartMode === 'area' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartMode('area')}>
+                    Area
+                  </button>
+                  <button type="button" className={`btn ${chartMode === 'bar' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartMode('bar')}>
+                    Bar
+                  </button>
+                </div>
+              </div>
               <div style={{ height: '300px', width: '100%' }}>
                 <ResponsiveContainer>
-                  <AreaChart data={analytics.revenue_chart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  {chartMode === 'area' ? (
+                  <AreaChart data={filteredRevenueChart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.32}/>
+                        <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <CartesianGrid strokeDasharray="4 4" stroke="var(--border-light)" vertical={false} />
                     <XAxis 
                        dataKey="date" 
-                       tickFormatter={(str) => {
-                          const date = new Date(str);
-                          return `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })}`;
-                       }}
-                       stroke="#64748b" 
+                       tickFormatter={formatChartTick}
+                       stroke="var(--text-muted)" 
                        fontSize={12} 
                        tickLine={false} 
                        axisLine={false} 
                     />
                     <YAxis 
                        tickFormatter={(num) => `GH₵${num >= 1000 ? (num/1000).toFixed(0)+'k' : num}`} 
-                       stroke="#64748b" 
+                       stroke="var(--text-muted)" 
                        fontSize={12} 
                        tickLine={false} 
                        axisLine={false} 
                     />
                     <RechartsTooltip 
-                       contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                       formatter={(value) => [`GH₵ ${parseFloat(value).toFixed(2)}`, 'Revenue']}
+                       contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '12px' }}
+                       formatter={(value, _name, ctx) => [`GH₵ ${parseFloat(value || 0).toFixed(2)}`, ctx?.payload?._isFilled ? 'Revenue (auto-filled)' : 'Revenue']}
                        labelFormatter={(label) => new Date(label).toLocaleDateString()}
                     />
-                    <Area type="monotone" dataKey="daily_revenue" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                    <Area type="monotone" dataKey="daily_revenue" stroke="var(--accent-blue)" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
                   </AreaChart>
+                  ) : (
+                  <BarChart data={filteredRevenueChart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="4 4" stroke="var(--border-light)" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatChartTick}
+                      stroke="var(--text-muted)"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tickFormatter={(num) => `GH₵${num >= 1000 ? `${(num/1000).toFixed(0)}k` : num}`}
+                      stroke="var(--text-muted)"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '12px' }}
+                      formatter={(value, _name, ctx) => [`GH₵ ${parseFloat(value || 0).toFixed(2)}`, ctx?.payload?._isFilled ? 'Revenue (auto-filled)' : 'Revenue']}
+                      labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                    />
+                    <Bar dataKey="daily_revenue" fill="var(--accent-blue)" radius={[8, 8, 0, 0]} barSize={14} maxBarSize={16}>
+                      {filteredRevenueChart.map((entry, idx) => (
+                        <Cell key={`super-rev-cell-${idx}`} fill={entry._isFilled ? 'rgba(var(--accent-blue-rgb), 0.35)' : 'var(--accent-blue)'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                  )}
                 </ResponsiveContainer>
               </div>
             </div>
@@ -174,24 +309,24 @@ export default function Dashboard() {
               <div style={{ height: '300px', width: '100%' }}>
                 <ResponsiveContainer>
                   <BarChart data={analytics.top_products} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={true} vertical={false} />
+                    <CartesianGrid strokeDasharray="4 4" stroke="var(--border-light)" horizontal={true} vertical={false} />
                     <XAxis type="number" hide />
                     <YAxis 
                        type="category" 
                        dataKey="name" 
                        width={100}
-                       stroke="#64748b" 
+                       stroke="var(--text-muted)" 
                        fontSize={11} 
                        tickLine={false} 
                        axisLine={false}
                        tickFormatter={(str) => str.length > 15 ? str.substring(0, 15) + '...' : str}
                     />
                     <RechartsTooltip 
-                       cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                       contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                       cursor={{fill: 'rgba(var(--accent-blue-rgb),0.08)'}}
+                       contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '12px' }}
                        formatter={(value) => [`${value} units`, 'Sold']}
                     />
-                    <Bar dataKey="total_sold" fill="var(--primary-gold)" radius={[0, 4, 4, 0]}>
+                    <Bar dataKey="total_sold" fill="var(--primary-gold)" radius={[0, 4, 4, 0]} barSize={10} maxBarSize={12}>
                         {
                             (analytics.top_products || []).map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={index === 0 ? "var(--primary-gold)" : index === 1 ? "#3b82f6" : index === 2 ? "#a855f7" : "#64748b"} />
@@ -208,7 +343,7 @@ export default function Dashboard() {
       )}
 
       {/* ── Recent Orders ──────────────────────────────────────────────────── */}
-      <div className="card glass">
+      <div className="card glass" style={{ marginBottom: '24px' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px' }}>
           <h2 style={{ fontSize:'18px', fontWeight:800, display:'flex', alignItems:'center', gap:'10px' }}>
             <ShoppingCart size={18} color="var(--primary-gold)" /> Recent Orders
@@ -257,11 +392,11 @@ export default function Dashboard() {
 
       {/* ── Monitoring Row: Auth Origins + Server Health ─────────────────────── */}
       {!loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px', marginTop: '8px', marginBottom: '32px' }}>
 
           {/* Auth Origins */}
-          <div className="card glass">
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px' }}>
+          <div className="card glass" style={{ padding: '24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px', flexWrap: 'wrap' }}>
               <Globe size={18} color="#3b82f6" />
               <h2 style={{ fontSize:'18px', fontWeight:800 }}>Auth Origins</h2>
               <span style={{ marginLeft:'auto', fontSize:'12px', color:'var(--text-muted)', fontWeight:700 }}>How users sign in</span>
@@ -298,8 +433,8 @@ export default function Dashboard() {
           </div>
 
           {/* Server Health */}
-          <div className="card glass">
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px' }}>
+          <div className="card glass" style={{ padding: '24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px', flexWrap: 'wrap' }}>
               <Server size={18} color="#22c55e" />
               <h2 style={{ fontSize:'18px', fontWeight:800 }}>Server Health</h2>
               <span style={{ marginLeft:'auto', fontSize:'11px', fontFamily:'monospace', color:'var(--text-muted)' }}>PHP {data?.server_health?.php_version}</span>

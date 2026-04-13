@@ -71,11 +71,44 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
   const inWishlist = isInWishlist(product.id);
   const gallery = Array.isArray(product.gallery) ? product.gallery : [];
   const allImages = Array.from(new Set([product.image, ...gallery].filter(Boolean))).slice(0, 4);
+  const datasheetQuery = encodeURIComponent(`${product.product_code || product.name} datasheet pdf`);
+  const datasheetUrl = `https://www.google.com/search?q=${datasheetQuery}`;
 
-  // Get related products (same category, excluding current product)
-  const related = products
-    .filter(p => p.category === product.category && p.id !== product.id)
-    .slice(0, 4);
+  // Smarter recommendations based on category, price proximity, ratings, popularity, and user behavior.
+  let related = [];
+  try {
+    const history = JSON.parse(localStorage.getItem('ehub_view_history') || '{}');
+    const recentViews = JSON.parse(localStorage.getItem('ehub_recent_views') || '[]');
+    const recentSet = new Set(Array.isArray(recentViews) ? recentViews : []);
+    const currentPrice = parseFloat(product.price) || 0;
+    const categoryKey = String(product.category || '').toLowerCase();
+    const candidates = (products || []).filter((p) => p.id !== product.id);
+    related = candidates
+      .map((p, idx) => {
+        const pPrice = parseFloat(p.price) || 0;
+        const priceDiff = currentPrice > 0 ? Math.abs(pPrice - currentPrice) / currentPrice : 1;
+        const sameCategory = String(p.category || '').toLowerCase() === categoryKey ? 1 : 0;
+        const viewScore = Number(history[p.id] || 0);
+        const ratingScore = parseFloat(p.rating) || 0;
+        const popularity = Number(p.total_sold || p.sold || 0);
+        const recentPenalty = recentSet.has(p.id) ? -1.2 : 0;
+        const score =
+          sameCategory * 4 +
+          (1 - Math.min(priceDiff, 1)) * 2 +
+          ratingScore * 1.4 +
+          popularity * 0.03 +
+          viewScore * 0.6 +
+          recentPenalty;
+        return { p, idx, score };
+      })
+      .sort((a, b) => (b.score - a.score) || (a.idx - b.idx))
+      .slice(0, 4)
+      .map((entry) => entry.p);
+  } catch {
+    related = (products || [])
+      .filter(p => p.category === product.category && p.id !== product.id)
+      .slice(0, 4);
+  }
 
   const handleAddToCart = () => {
     if (!user) {
@@ -414,6 +447,22 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
 
               <div className="info-tab">
                 <h3><Settings size={16} /> Technical Specs & User Guide</h3>
+                {product.product_code && (
+                  <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                      Component Code: <span style={{ color: 'var(--primary-blue)', fontFamily: 'monospace' }}>{product.product_code}</span>
+                    </span>
+                    <a
+                      href={datasheetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-outline"
+                      style={{ fontSize: '12px', padding: '6px 10px', textDecoration: 'none' }}
+                    >
+                      Find Datasheet
+                    </a>
+                  </div>
+                )}
                 
                 {/* Specifications Grid */}
                 <div className="specs-grid" style={{ marginBottom: '20px' }}>

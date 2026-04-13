@@ -36,6 +36,7 @@ $DEFAULTS = [
     'homepageFeaturedCategory' => '',
     'vatRate'                  => 10,
     'allowRegistration'        => true,
+    'allowDoorToDoorDelivery'  => false,
     'orderReceiptFooterNote'   => '',
 ];
 

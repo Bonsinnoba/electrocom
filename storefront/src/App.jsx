@@ -306,6 +306,17 @@ function AppContent() {
       const history = historyStr ? JSON.parse(historyStr) : {};
       history[product.id] = (history[product.id] || 0) + 1;
       localStorage.setItem('ehub_view_history', JSON.stringify(history));
+
+      const recentStr = localStorage.getItem('ehub_recent_views');
+      const recent = Array.isArray(JSON.parse(recentStr || '[]')) ? JSON.parse(recentStr || '[]') : [];
+      const nextRecent = [product.id, ...recent.filter((id) => id !== product.id)].slice(0, 20);
+      localStorage.setItem('ehub_recent_views', JSON.stringify(nextRecent));
+
+      const categoryStr = localStorage.getItem('ehub_category_affinity');
+      const categoryAffinity = categoryStr ? JSON.parse(categoryStr) : {};
+      const categoryKey = (product.category || 'uncategorized').toLowerCase();
+      categoryAffinity[categoryKey] = (categoryAffinity[categoryKey] || 0) + 1;
+      localStorage.setItem('ehub_category_affinity', JSON.stringify(categoryAffinity));
     } catch (e) {
       console.warn('Failed to save view history:', e);
     }
@@ -359,7 +370,7 @@ function AppContent() {
           onMapClick={() => setActiveDrawer('map')}
           onMenuClick={toggleSidebar}
           onThemeToggle={toggleDarkMode}
-          onProductClick={setSelectedProduct}
+          onProductClick={handleProductClick}
           onNotificationsClick={() => setActiveDrawer('notifications')}
           isDarkMode={isDarkMode}
           searchQuery={searchQuery}

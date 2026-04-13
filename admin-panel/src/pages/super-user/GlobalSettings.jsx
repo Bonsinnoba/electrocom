@@ -133,6 +133,7 @@ const DEFAULTS = {
   // Security
   maintenanceMode:          false,
   allowRegistration:        true,
+  allowDoorToDoorDelivery:  false,
   maxLoginAttempts:         5,
   sessionTimeout:           60,
   twoFactorAdmin:           false,
@@ -149,6 +150,17 @@ const DEFAULTS = {
   apiRateLimit:             60,
   debugMode:                false,
   backupFrequency:          'daily',
+  // Strategic insights model
+  insightsShipWarnHours:        24,
+  insightsShipCriticalHours:    48,
+  insightsLowStockWarnCount:    5,
+  insightsLowStockCriticalCount:12,
+  insightsOnlineRevenueMinPct:  35,
+  insightsRepeatOrderMin:       1.2,
+  insightsWeightShip:           35,
+  insightsWeightStock:          25,
+  insightsWeightOnline:         20,
+  insightsWeightRepeat:         20,
   defaultItemsPerPage:      9,
   orderReceiptFooterNote:   '',
   homepageSectionTitle:     'Product Catalog',
@@ -482,6 +494,10 @@ export default function GlobalSettings() {
               label="Allow New Registrations"
               description="When disabled, the sign-up page will return a 403 error."
             />
+            <Toggle value={settings.allowDoorToDoorDelivery} onChange={set('allowDoorToDoorDelivery')}
+              label="Enable Door to Door Delivery"
+              description="When disabled, checkout will only allow pickup locations."
+            />
           </>
         )}
 
@@ -638,6 +654,40 @@ export default function GlobalSettings() {
               label="Debug Mode"
               description="Enables verbose error output. Never enable this in production."
             />
+
+            <SectionHeader title="Strategic Insights Model" />
+            <Field label="Shipping Warning Hours" description="Average dispatch time above this gets a warning penalty." icon={<Clock size={14} />}>
+              <input style={narrowInput} type="number" min={1} max={240} value={settings.insightsShipWarnHours} onChange={setNum('insightsShipWarnHours')} />
+            </Field>
+            <Field label="Shipping Critical Hours" description="Average dispatch time above this gets a critical penalty." icon={<Clock size={14} />}>
+              <input style={narrowInput} type="number" min={1} max={480} value={settings.insightsShipCriticalHours} onChange={setNum('insightsShipCriticalHours')} />
+            </Field>
+            <Field label="Low Stock Warning Count" description="Number of low-stock products that triggers a warning penalty." icon={<Package size={14} />}>
+              <input style={narrowInput} type="number" min={0} max={1000} value={settings.insightsLowStockWarnCount} onChange={setNum('insightsLowStockWarnCount')} />
+            </Field>
+            <Field label="Low Stock Critical Count" description="Number of low-stock products that triggers a critical penalty." icon={<Package size={14} />}>
+              <input style={narrowInput} type="number" min={1} max={2000} value={settings.insightsLowStockCriticalCount} onChange={setNum('insightsLowStockCriticalCount')} />
+            </Field>
+            <Field label="Minimum Online Revenue Share (%)" description="If online revenue share falls below this, health score is penalized." icon={<Percent size={14} />}>
+              <input style={narrowInput} type="number" min={0} max={100} step={1} value={settings.insightsOnlineRevenueMinPct} onChange={setNum('insightsOnlineRevenueMinPct')} />
+            </Field>
+            <Field label="Minimum Repeat Order Ratio" description="Minimum orders-per-customer target before retention penalty applies." icon={<Percent size={14} />}>
+              <input style={narrowInput} type="number" min={0.5} max={10} step={0.1} value={settings.insightsRepeatOrderMin} onChange={setNum('insightsRepeatOrderMin')} />
+            </Field>
+
+            <SectionHeader title="Health Score Weights" />
+            <Field label="Shipping Weight" description="Penalty weight for poor fulfillment speed (0-100)." icon={<Shield size={14} />}>
+              <input style={narrowInput} type="number" min={0} max={100} value={settings.insightsWeightShip} onChange={setNum('insightsWeightShip')} />
+            </Field>
+            <Field label="Stock Weight" description="Penalty weight for low stock pressure (0-100)." icon={<Shield size={14} />}>
+              <input style={narrowInput} type="number" min={0} max={100} value={settings.insightsWeightStock} onChange={setNum('insightsWeightStock')} />
+            </Field>
+            <Field label="Online Revenue Weight" description="Penalty weight for weak online share (0-100)." icon={<Shield size={14} />}>
+              <input style={narrowInput} type="number" min={0} max={100} value={settings.insightsWeightOnline} onChange={setNum('insightsWeightOnline')} />
+            </Field>
+            <Field label="Repeat Purchase Weight" description="Penalty weight for low repeat ratio (0-100)." icon={<Shield size={14} />}>
+              <input style={narrowInput} type="number" min={0} max={100} value={settings.insightsWeightRepeat} onChange={setNum('insightsWeightRepeat')} />
+            </Field>
 
             <div style={{ marginTop: '32px', padding: '24px', background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ef4444', marginBottom: '12px' }}>

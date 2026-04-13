@@ -422,3 +422,14 @@ export const getShippingFee = async (region, subtotal) => {
         return { success: false, fee: 0 };
     }
 };
+
+export const fetchPickupLocations = async () => {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/get_pickup_locations.php`, getFetchOptions());
+        const result = await response.json();
+        return result.success ? result.data : [];
+    } catch (error) {
+        console.error('Error fetching pickup locations:', error);
+        return [];
+    }
+};

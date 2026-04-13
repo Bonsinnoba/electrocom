@@ -48,6 +48,7 @@ export const SettingsProvider = ({ children }) => {
     homepageSectionTitle:     'New Arrivals',
     homepageFeaturedCategory: '',
     vatRate:                  0,
+    allowDoorToDoorDelivery:  false,
   });
 
   const [settings, setSettings] = useState(() => {

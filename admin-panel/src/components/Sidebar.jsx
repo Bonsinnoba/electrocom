@@ -22,7 +22,7 @@ export default function Sidebar() {
   const navItems = [
     { icon: <LayoutDashboard size={20} />, label: isAccountant ? 'Finance Dash' : 'Dashboard', path: '/', visible: !isPicker },
     { icon: <Package size={20} />, label: 'Inventory Hub', path: '/catalog', visible: !isAccountant && !isPicker },
-    { icon: <ShoppingCart size={20} />, label: 'Sales & Fulfillment', path: '/sales', visible: !isMarketing && !isPicker },
+    { icon: <ShoppingCart size={20} />, label: isPicker ? 'Picker Workflow' : 'Sales & Fulfillment', path: '/sales', visible: !isMarketing },
     { icon: <Zap size={20} />, label: 'POS Checkout', path: '/pos', visible: !isMarketing && !isAccountant && !isPicker },
     { icon: <Users size={20} />, label: isAccountant ? 'Billing List' : 'Customers', path: '/customers', visible: !isMarketing && !isPicker },
     { icon: <Megaphone size={20} />, label: 'Marketing & Growth', path: '/marketing', visible: !isPicker && (!isAccountant || !isMarketing) },
@@ -35,6 +35,7 @@ export default function Sidebar() {
     { icon: <ShieldAlert size={20} />, label: 'Global Overview', path: '/super/dashboard' },
 
     { icon: <Users size={20} />, label: 'Admin Control', path: '/super/admins' },
+    { icon: <MapPin size={20} />, label: 'Pickup Locations', path: '/super/pickup-locations' },
     { icon: <Database size={20} />, label: 'System Logs', path: '/super/logs' },
     { icon: <Activity size={20} />, label: 'Traffic Control', path: '/super/traffic' },
     { icon: <Globe size={20} />, label: 'Super Settings', path: '/super/settings' },
@@ -55,6 +56,7 @@ export default function Sidebar() {
           <div className="sidebar-section-label">
             {isAccountant ? 'Financial Control' : 
              isMarketing ? 'Promotion & Analytics' : 
+             isPicker ? 'Picker Operations' :
              role === 'store_manager' ? 'Store Operations' : 
              'Store Management'}
           </div>

@@ -4,9 +4,45 @@ import FilterPanel from '../components/FilterPanel';
 import ProductSkeleton from '../components/ProductSkeleton';
 import { Filter as FilterIcon } from 'lucide-react';
 
+const normalizeSearchText = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const levenshteinDistance = (a, b) => {
+  const s = normalizeSearchText(a);
+  const t = normalizeSearchText(b);
+  if (!s.length) return t.length;
+  if (!t.length) return s.length;
+  const matrix = Array.from({ length: s.length + 1 }, () => Array(t.length + 1).fill(0));
+  for (let i = 0; i <= s.length; i += 1) matrix[i][0] = i;
+  for (let j = 0; j <= t.length; j += 1) matrix[0][j] = j;
+  for (let i = 1; i <= s.length; i += 1) {
+    for (let j = 1; j <= t.length; j += 1) {
+      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return matrix[s.length][t.length];
+};
+
+const isFuzzyPartMatch = (query, rawTarget) => {
+  const target = normalizeSearchText(rawTarget);
+  if (!query || !target) return false;
+  if (target.includes(query)) return true;
+  if (query.length < 3) return false;
+  const words = String(rawTarget || '').toLowerCase().split(/[\s/>-]+/).filter(Boolean);
+  return words.some((word) => {
+    const distance = levenshteinDistance(query, word);
+    return distance <= (query.length >= 6 ? 2 : 1);
+  });
+};
+
 export default function Shop({ products, onProductClick, searchQuery, loading }) {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [visibleCount, setVisibleCount] = useState(9);
+  const [sortBy, setSortBy] = useState('featured');
   const [filters, setFilters] = useState({
     category: 'All',
     maxPrice: 2000, // Initial high default
@@ -43,11 +79,18 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
 
   const filteredProducts = useMemo(() => {
     const filtered = products.filter(p => {
-      const query = searchQuery.toLowerCase();
+      const query = searchQuery.toLowerCase().trim();
+      const normalizedQuery = normalizeSearchText(query);
       const name = String(p.name || '').toLowerCase();
       const category = String(p.category || '').toLowerCase();
       const code = String(p.product_code || '').toLowerCase();
-      const matchSearch = name.includes(query) || category.includes(query) || code.includes(query);
+      const exactMatch = !query || name.includes(query) || category.includes(query) || code.includes(query);
+      const fuzzyMatch = !exactMatch && (
+        isFuzzyPartMatch(normalizedQuery, name) ||
+        isFuzzyPartMatch(normalizedQuery, code) ||
+        isFuzzyPartMatch(normalizedQuery, category)
+      );
+      const matchSearch = exactMatch || fuzzyMatch;
       
       const matchCategory = filters.category === 'All' || 
                             category === filters.category.toLowerCase();
@@ -64,9 +107,41 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
     return filtered;
   }, [filters, searchQuery, products]);
 
+  const sortedProducts = useMemo(() => {
+    const list = [...filteredProducts];
+    const getPrice = (p) => parseFloat(String(p.price || '0').replace(/[^0-9.]/g, '')) || 0;
+    const getStock = (p) => Number(p.stock_quantity || 0);
+    const getSold = (p) => Number(p.total_sold || p.sold || 0);
+    const getCreated = (p) => new Date(p.created_at || p.updated_at || 0).getTime() || 0;
+
+    switch (sortBy) {
+      case 'price_low':
+        list.sort((a, b) => getPrice(a) - getPrice(b));
+        break;
+      case 'price_high':
+        list.sort((a, b) => getPrice(b) - getPrice(a));
+        break;
+      case 'rating':
+        list.sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+        break;
+      case 'new':
+        list.sort((a, b) => getCreated(b) - getCreated(a));
+        break;
+      case 'stock_low':
+        list.sort((a, b) => getStock(a) - getStock(b));
+        break;
+      case 'best_selling':
+        list.sort((a, b) => getSold(b) - getSold(a));
+        break;
+      default:
+        break;
+    }
+    return list;
+  }, [filteredProducts, sortBy]);
+
   const displayedProducts = useMemo(() => {
-    return filteredProducts.slice(0, visibleCount);
-  }, [filteredProducts, visibleCount]);
+    return sortedProducts.slice(0, visibleCount);
+  }, [sortedProducts, visibleCount]);
 
   const resetFilters = () => {
     setFilters({
@@ -145,9 +220,42 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
               <FilterIcon size={18} /> Filters
             </button>
 
-            <div className="desktop-only-block" style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 }}>
-              Showing {loading ? '...' : filteredProducts.length} Products
+            <div className="desktop-only-block" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 }}>
+                Showing {loading ? '...' : filteredProducts.length} Products
+              </div>
+              <select
+                className="input-field"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={{ width: '220px', padding: '8px 10px' }}
+              >
+                <option value="featured">Sort: Featured</option>
+                <option value="best_selling">Sort: Best Selling</option>
+                <option value="new">Sort: New Arrivals</option>
+                <option value="rating">Sort: Highest Rated</option>
+                <option value="price_low">Sort: Price Low to High</option>
+                <option value="price_high">Sort: Price High to Low</option>
+                <option value="stock_low">Sort: Low Stock First</option>
+              </select>
             </div>
+          </div>
+
+          <div className="mobile-only" style={{ display: 'none', marginBottom: '16px' }}>
+            <select
+              className="input-field"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{ width: '100%', padding: '10px 12px' }}
+            >
+              <option value="featured">Featured</option>
+              <option value="best_selling">Best Selling</option>
+              <option value="new">New Arrivals</option>
+              <option value="rating">Highest Rated</option>
+              <option value="price_low">Price Low to High</option>
+              <option value="price_high">Price High to Low</option>
+              <option value="stock_low">Low Stock First</option>
+            </select>
           </div>
 
           {loading ? (
@@ -191,6 +299,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
                     rating={p.rating}
                     discount_percent={p.discount_percent}
                     sale_ends_at={p.sale_ends_at}
+                    stock_quantity={p.stock_quantity}
                     onClick={() => onProductClick(p)}
                   />
                 </div>
@@ -198,7 +307,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
             </div>
           )}
 
-          {visibleCount < filteredProducts.length && !loading && (
+          {visibleCount < sortedProducts.length && !loading && (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '48px', marginBottom: '24px' }}>
               <button 
                 className="btn-primary" 

@@ -29,7 +29,9 @@ function runMigrations($pdo) {
             // Check if already executed
             $stmt = $pdo->prepare("SELECT id FROM migrations WHERE filename = ?");
             $stmt->execute([$file]);
-            if ($stmt->fetch()) continue;
+            $alreadyRan = (bool)$stmt->fetch();
+            $stmt->closeCursor();
+            if ($alreadyRan) continue;
 
             // Execute file
             try {
@@ -65,6 +67,7 @@ function runMigrations($pdo) {
                 // Log execution
                 $logStmt = $pdo->prepare("INSERT INTO migrations (filename) VALUES (?)");
                 $logStmt->execute([$file]);
+                $logStmt->closeCursor();
                 
                 if ($pdo->inTransaction()) $pdo->commit();
                 $executedCount++;

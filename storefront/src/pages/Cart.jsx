@@ -236,6 +236,9 @@ export default function Cart() {
               <div className="secure-checkout-text">
                 Secure SSL Encrypted Checkout
               </div>
+              <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+                Tip: items in your cart stay saved for your next visit on this device.
+              </div>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   DollarSign, 
   ShoppingBag, 
@@ -23,12 +24,45 @@ import { useAdminSettings } from '../context/AdminSettingsContext';
 import { 
   AreaChart, 
   Area, 
+  BarChart,
+  Bar,
+  Cell,
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip as RechartsTooltip, 
   ResponsiveContainer 
 } from 'recharts';
+
+const toDateKey = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+const buildFilledSeries = (source, days, numericKeys) => {
+  const list = Array.isArray(source) ? source : [];
+  if (days !== 7) return list.slice(-days);
+  const mapped = new Map();
+  list.forEach((entry) => {
+    const key = toDateKey(entry?.date);
+    if (key) mapped.set(key, entry);
+  });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const filled = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = toDateKey(d);
+    const base = mapped.get(key) || {};
+    const row = { ...base, date: d.toISOString().slice(0, 10), _isFilled: !mapped.has(key) };
+    numericKeys.forEach((k) => {
+      row[k] = Number(base[k] || 0);
+    });
+    filled.push(row);
+  }
+  return filled;
+};
 
 const StatCard = ({ icon, label, value, trend, trendLabel, color = 'var(--primary-blue)', loading }) => (
   <div className={`card glass animate-fade-in ${loading ? 'shimmer' : ''}`} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -71,9 +105,12 @@ const StatCard = ({ icon, label, value, trend, trendLabel, color = 'var(--primar
 
 export default function Dashboard() {
   const { siteName } = useAdminSettings();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [chartRange, setChartRange] = useState(30);
+  const [chartMode, setChartMode] = useState('area');
   
   const loadAnalytics = async (isInitial = false) => {
     try {
@@ -117,6 +154,40 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  const filteredRevenueChart = buildFilledSeries(data?.revenue_chart, chartRange, ['online_revenue', 'pos_revenue']);
+  const suggestedActions = [
+    (data?.low_stock_count || 0) > 0 ? {
+      level: 'high',
+      title: 'Prioritize restock workflow',
+      detail: `${data.low_stock_count} products are low in stock and may block new sales.`,
+      actionPath: '/catalog',
+    } : null,
+    (data?.strategic_insights?.ship_efficiency || 0) > 24 ? {
+      level: 'medium',
+      title: 'Speed up dispatch operations',
+      detail: `Average dispatch time is ${data.strategic_insights.ship_efficiency} hours. Consider assigning more picker capacity.`,
+      actionPath: '/sales',
+    } : null,
+    Number(data?.revenue_online || 0) < Number(data?.revenue_pos || 0) * 0.5 ? {
+      level: 'medium',
+      title: 'Boost online conversion',
+      detail: 'Online sales are trailing POS sales significantly. Consider a targeted broadcast campaign and homepage offers.',
+      actionPath: '/marketing',
+    } : null,
+    (data?.total_customers || 0) > 0 && (data?.total_orders || 0) / (data?.total_customers || 1) < 1.2 ? {
+      level: 'low',
+      title: 'Increase repeat purchase rate',
+      detail: 'Customer-to-order ratio suggests low repeat buying. Add loyalty offers or reorder reminders.',
+      actionPath: '/marketing',
+    } : null,
+  ].filter(Boolean).slice(0, 3);
+  const formatChartTick = (value) => {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    if (chartRange === 7) return d.toLocaleString('en-US', { weekday: 'short' });
+    return `${d.getDate()} ${d.toLocaleString('en-US', { month: 'short' })}`;
+  };
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -182,35 +253,120 @@ export default function Dashboard() {
         />
       </div>
 
+      {suggestedActions.length > 0 && (
+        <div className="card glass" style={{ padding: '24px' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Zap size={18} color="var(--primary-blue)" /> Suggested Actions
+          </h3>
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {suggestedActions.map((item, idx) => (
+              <button
+                key={`${item.title}-${idx}`}
+                type="button"
+                onClick={() => item.actionPath && navigate(item.actionPath)}
+                style={{ padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-light)', background: 'var(--bg-main)', textAlign: 'left', cursor: item.actionPath ? 'pointer' : 'default' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <strong style={{ fontSize: '14px' }}>{item.title}</strong>
+                  <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: item.level === 'high' ? 'var(--danger)' : item.level === 'medium' ? 'var(--warning)' : 'var(--success)' }}>
+                    {item.level}
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{item.detail}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
         {/* Economic Velocity (Chart) */}
         <div className="card glass" style={{ gridColumn: 'span 2', padding: '32px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
             <div>
               <h3 style={{ fontSize: '18px', fontWeight: 800 }}>Economic Velocity</h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Revenue trends across last 30 days</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Revenue trends across selected period</p>
             </div>
-            <div style={{ display: 'flex', gap: '16px', fontSize: '11px', fontWeight: 700 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-blue)' }}></div> Online</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-gold)' }}></div> POS</div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[7, 30, 90].map((days) => (
+                  <button key={days} type="button" className={`btn ${chartRange === days ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartRange(days)}>
+                    {days}d
+                  </button>
+                ))}
+                <button type="button" className={`btn ${chartMode === 'area' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartMode('area')}>
+                  Area
+                </button>
+                <button type="button" className={`btn ${chartMode === 'bar' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartMode('bar')}>
+                  Bar
+                </button>
             </div>
           </div>
           <div style={{ width: '100%', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.revenue_chart}>
+              {chartMode === 'area' ? (
+              <AreaChart data={filteredRevenueChart}>
                 <defs>
-                  <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary-blue)" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="var(--primary-blue)" stopOpacity={0}/>
+                  <linearGradient id="onlineFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="posFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--accent-gold)" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="var(--accent-gold)" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-light)" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
-                <YAxis hide />
-                <RechartsTooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '12px', color: 'var(--text-main)' }} />
-                <Area type="monotone" dataKey="online_revenue" stackId="1" stroke="var(--accent-blue)" strokeWidth={3} fill="url(#colorTotal)" />
-                <Area type="monotone" dataKey="pos_revenue" stackId="1" stroke="var(--accent-gold)" strokeWidth={3} fill="url(#colorTotal)" />
+                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-light)" />
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
+                  tickFormatter={formatChartTick}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
+                  tickFormatter={(v) => `GH₵${v >= 1000 ? `${Math.round(v / 1000)}k` : v}`}
+                />
+                <RechartsTooltip
+                  contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '12px', color: 'var(--text-main)' }}
+                  formatter={(value, name, ctx) => {
+                    const baseLabel = name === 'online_revenue' ? 'Online' : 'POS';
+                    return [`GH₵ ${Number(value || 0).toLocaleString()}`, ctx?.payload?._isFilled ? `${baseLabel} (auto-filled)` : baseLabel];
+                  }}
+                  labelFormatter={(label) => {
+                    const d = new Date(label);
+                    return Number.isNaN(d.getTime()) ? label : d.toLocaleDateString();
+                  }}
+                />
+                <Area type="monotone" dataKey="online_revenue" stroke="var(--accent-blue)" strokeWidth={2.5} fill="url(#onlineFill)" />
+                <Area type="monotone" dataKey="pos_revenue" stroke="var(--accent-gold)" strokeWidth={2.5} fill="url(#posFill)" />
               </AreaChart>
+              ) : (
+              <BarChart data={filteredRevenueChart}>
+                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-light)" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} tickFormatter={formatChartTick} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} tickFormatter={(v) => `GH₵${v >= 1000 ? `${Math.round(v / 1000)}k` : v}`} />
+                <RechartsTooltip
+                  contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '12px', color: 'var(--text-main)' }}
+                  formatter={(value, name, ctx) => {
+                    const baseLabel = name === 'online_revenue' ? 'Online' : 'POS';
+                    return [`GH₵ ${Number(value || 0).toLocaleString()}`, ctx?.payload?._isFilled ? `${baseLabel} (auto-filled)` : baseLabel];
+                  }}
+                />
+                <Bar dataKey="online_revenue" fill="var(--accent-blue)" radius={[6, 6, 0, 0]} barSize={10} maxBarSize={12}>
+                  {filteredRevenueChart.map((entry, idx) => (
+                    <Cell key={`online-cell-${idx}`} fill={entry._isFilled ? 'rgba(var(--accent-blue-rgb), 0.35)' : 'var(--accent-blue)'} />
+                  ))}
+                </Bar>
+                <Bar dataKey="pos_revenue" fill="var(--accent-gold)" radius={[6, 6, 0, 0]} barSize={10} maxBarSize={12}>
+                  {filteredRevenueChart.map((entry, idx) => (
+                    <Cell key={`pos-cell-${idx}`} fill={entry._isFilled ? 'rgba(251, 191, 36, 0.35)' : 'var(--accent-gold)'} />
+                  ))}
+                </Bar>
+              </BarChart>
+              )}
             </ResponsiveContainer>
           </div>
         </div>

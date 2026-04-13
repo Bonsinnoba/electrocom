@@ -14,6 +14,7 @@ import {
 const ROLE_STYLE = {
   super:        { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',  color: '#fca5a5', label: 'SUPER' },
   admin:        { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)', color: '#fbbf24', label: 'ADMIN' },
+  picker:       { bg: 'rgba(14,165,233,0.12)', border: 'rgba(14,165,233,0.3)', color: '#38bdf8', label: 'PICKER' },
   accountant:   { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.3)',  color: '#4ade80', label: 'ACCT' },
   marketing:    { bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)', color: '#c084fc', label: 'MKTG' },
   customer:     { bg: 'rgba(148,163,184,0.1)',  border: 'rgba(148,163,184,0.2)', color: '#94a3b8', label: 'CUST' },
@@ -85,7 +86,7 @@ export default function AdminControl() {
 
   const counts = useMemo(() => ({
     total: users.length,
-    admins: users.filter(u => ['super', 'admin', 'accountant', 'marketing'].includes(u.role)).length,
+    admins: users.filter(u => ['super', 'admin', 'picker', 'accountant', 'marketing'].includes(u.role)).length,
     customers: users.filter(u => u.role === 'customer').length,
     suspended: users.filter(u => u.status === 'Suspended').length,
   }), [users]);
@@ -138,7 +139,7 @@ export default function AdminControl() {
           <option value="all">All Roles</option>
           <option value="super">Super Admins</option>
           <option value="admin">Global Admins</option>
-
+          <option value="picker">Pickers</option>
           <option value="accountant">Accountants</option>
           <option value="marketing">Marketing</option>
           <option value="customer">Customers</option>

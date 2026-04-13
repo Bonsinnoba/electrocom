@@ -14,10 +14,10 @@ export default function SalesHub() {
 
   const availableTabs = [];
   
-  if (!isMarketing && !isPicker) {
+  if (!isMarketing) {
     availableTabs.push({ 
       id: 'orders', 
-      label: isAccountant ? 'Audits / Orders' : 'Active Orders', 
+      label: isPicker ? 'Picker Queue' : (isAccountant ? 'Audits / Orders' : 'Active Orders'), 
       icon: <ShoppingCart size={16} />, 
       component: <OrderManager /> 
     });

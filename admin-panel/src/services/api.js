@@ -169,9 +169,6 @@ export const deleteCMSPage = async (id) => authFetch(`/cms.php?id=${id}`, { meth
 
 // deleteCustomer is kept as a backward-compat alias for deleteUser
 export const deleteCustomer = deleteUser;
-
-
-
 export const setUserRole = async (id, role) => {
     try {
         const response = await fetch(`${API_BASE_URL}/admin_customers.php`, {
@@ -235,6 +232,20 @@ export const updateOrderStatus = async (id, status) => {
         return await response.json();
     } catch (error) {
         console.error('Error updating order status:', error);
+        throw error;
+    }
+};
+
+export const updatePickerOrderStage = async (id, stage) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_orders.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'picker_update', id, stage }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating picker order stage:', error);
         throw error;
     }
 };
@@ -372,48 +383,6 @@ export const deleteSlide = async (id) => {
 
 };
 
-export const fetchStoreData = async () => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
-            headers: getAuthHeaders()
-        });
-        const result = await response.json();
-        return result.success ? result : { success: false, locations: [] };
-    } catch (error) {
-        console.error('Error fetching store data:', error);
-        return { success: false, locations: [] };
-    }
-};
-
-export const saveProductLocation = async (locationData) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'save_location', ...locationData }),
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error saving product location:', error);
-        throw error;
-    }
-};
-
-export const deleteProductLocation = async (id) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'delete_location', id }),
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error deleting product location:', error);
-        throw error;
-    }
-};
-
-
 // ─── Super User Endpoints ─────────────────────────────────────────────────────
 
 export const fetchSuperDashboard = async () => {
@@ -506,11 +475,6 @@ export const uploadBrandingAsset = async (file, type, oldPath = '') => {
             headers: getAuthHeaders(null),
             body: formData,
         });
-        
-        // Remove 'Content-Type' if it was erroneously set by getAuthHeaders
-        // wait, getAuthHeaders sets it to application/json. 
-        // I need to override it.
-
         return await response.json();
     } catch (error) {
         console.error('Error uploading branding asset:', error);
@@ -626,89 +590,6 @@ export const deleteBackup = async (filename) => {
 };
 
 
-// ─── Warehouse & Dispatch Endpoints ──────────────────────────────────────────
-
-export const fetchWarehouses = async () => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_locations.php?_t=${Date.now()}`, {
-            headers: getAuthHeaders()
-        });
-        const result = await response.json();
-        return result.success ? result.data : [];
-    } catch (error) {
-        console.error('Error fetching warehouses:', error);
-        return [];
-    }
-};
-
-export const createWarehouse = async (data) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'create_warehouse', ...data }),
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error creating warehouse:', error);
-        throw error;
-    }
-};
-
-export const deleteWarehouse = async (id) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'delete_warehouse', id }),
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error deleting warehouse:', error);
-        throw error;
-    }
-};
-
-export const fetchDispatches = async (warehouseId = null) => {
-    try {
-        const url = `${API_BASE_URL}/admin_locations.php?action=dispatches${warehouseId ? `&warehouse_id=${warehouseId}` : ''}&_t=${Date.now()}`;
-        const response = await fetch(url, { headers: getAuthHeaders() });
-        const result = await response.json();
-        return result.success ? result.data : [];
-    } catch (error) {
-        console.error('Error fetching dispatches:', error);
-        return [];
-    }
-};
-
-export const createDispatch = async (data) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'dispatch', ...data }),
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error creating dispatch:', error);
-        throw error;
-    }
-};
-
-export const updateDispatchStatus = async (id, status) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'update_dispatch_status', id, status }),
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error updating dispatch status:', error);
-        throw error;
-    }
-};
-
 export const updateProfile = async (profileData) => {
     try {
         const response = await fetch(`${API_BASE_URL}/update_profile.php`, {
@@ -794,4 +675,22 @@ export const markNotificationRead = async (id) => {
 
 
 export const fetchBackend = authFetch;
+
+// --- Pickup Locations (Super Admin) ---
+export const fetchPickupLocationsAdmin = async () => authFetch('/admin_pickup_locations.php');
+
+export const createPickupLocation = async (payload) => authFetch('/admin_pickup_locations.php', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'create', ...payload })
+});
+
+export const updatePickupLocation = async (payload) => authFetch('/admin_pickup_locations.php', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'update', ...payload })
+});
+
+export const deletePickupLocation = async (id) => authFetch('/admin_pickup_locations.php', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'delete', id })
+});
 

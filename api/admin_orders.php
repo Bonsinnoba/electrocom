@@ -28,26 +28,33 @@ if ($method === 'GET') {
     // Audit access: Admins, Branch Admins, Store Managers, Accountants, Super
     requireRole(RBAC_ALL_ADMINS, $pdo);
 } elseif ($method === 'POST') {
-    // Fulfillment access: Admins, Store Managers and Branch Admins only
-    requireRole(['super', 'admin', 'branch_admin', 'store_manager'], $pdo);
+    // Fulfillment access: Admins, Store Managers, Branch Admins, and Pickers
+    requireRole(['super', 'admin', 'branch_admin', 'store_manager', 'picker'], $pdo);
 }
 
 if ($method === 'GET') {
     try {
         $filterSql = "";
         $params = [];
+        $orderCols = $pdo->query("DESCRIBE orders")->fetchAll(PDO::FETCH_COLUMN);
+        $hasDeliveryMethod = in_array('delivery_method', $orderCols, true);
+        $deliverySelect = $hasDeliveryMethod ? "o.delivery_method" : "'pickup'";
 
         $stmt = $pdo->prepare("
             SELECT 
                 o.id, 
                 o.total_amount as amount, 
                 o.status, 
+                {$deliverySelect} as delivery_method,
                 o.created_at as date,
                 u.name as customer,
                 u.email,
                 u.region as user_region,
                 o.shipping_address as address,
-                'Delivery' as type
+                CASE
+                    WHEN o.delivery_method = 'pickup' THEN 'Pick Up'
+                    ELSE 'Delivery'
+                END as type
             FROM orders o
             JOIN users u ON o.user_id = u.id
             $filterSql
@@ -85,6 +92,12 @@ if ($method === 'GET') {
     $action = $decoded['action'] ?? '';
 
     if ($action === 'update_status') {
+        if ($role === 'picker') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Picker role must use picker workflow actions.']);
+            exit;
+        }
+
         $idStr = $decoded['id'] ?? null;
         $status = $decoded['status'] ?? 'pending';
 
@@ -151,7 +164,90 @@ if ($method === 'GET') {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
+    } elseif ($action === 'picker_update') {
+        if ($role !== 'picker' && $role !== 'super' && $role !== 'admin' && $role !== 'store_manager' && $role !== 'branch_admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Forbidden']);
+            exit;
+        }
+
+        $idStr = $decoded['id'] ?? null;
+        $stage = strtolower(trim((string)($decoded['stage'] ?? '')));
+
+        if (!$idStr || !$stage) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Order ID and stage are required']);
+            exit;
+        }
+
+        $allowedStages = ['received', 'picked', 'dispatched'];
+        if (!in_array($stage, $allowedStages, true)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid picker stage']);
+            exit;
+        }
+
+        $id = str_replace('ORD-', '', $idStr);
+
+        try {
+            $pdo->beginTransaction();
+
+            $currStmt = $pdo->prepare("SELECT status, user_id FROM orders WHERE id = ? FOR UPDATE");
+            $currStmt->execute([$id]);
+            $order = $currStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order) {
+                throw new Exception('Order not found');
+            }
+
+            $statusMap = [
+                'received' => 'processing',
+                'picked' => 'processing',
+                'dispatched' => 'shipped'
+            ];
+
+            $logMessageMap = [
+                'received' => "Order {$idStr} received by picker {$userName}.",
+                'picked' => "Items for {$idStr} picked and packed by {$userName}.",
+                'dispatched' => "Order {$idStr} dispatched from store by {$userName}."
+            ];
+
+            $newStatus = $statusMap[$stage];
+            if ($order['status'] !== $newStatus) {
+                $upd = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
+                $upd->execute([$newStatus, $id]);
+            }
+
+            $pdo->prepare("INSERT INTO order_status_logs (order_id, status_key, message) VALUES (?, ?, ?)")
+                ->execute([$id, $stage === 'dispatched' ? 'shipped' : $stage, $logMessageMap[$stage]]);
+
+            $userMsgMap = [
+                'received' => "Your order {$idStr} has been received for picking.",
+                'picked' => "Good news! Items for your order {$idStr} have been picked.",
+                'dispatched' => "Your order {$idStr} has been dispatched and is on the way."
+            ];
+
+            $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, 'Order Update', ?, 'order')")
+                ->execute([$order['user_id'], $userMsgMap[$stage]]);
+
+            logger('info', 'PICKER', "Picker workflow update for {$idStr}: {$stage} by {$userName}");
+            $pdo->commit();
+
+            echo json_encode(['success' => true, 'status' => $newStatus, 'stage' => $stage]);
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
     } elseif ($action === 'resend_receipt') {
+        if ($role === 'picker') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Picker role cannot resend receipts']);
+            exit;
+        }
+
         $idStr = $decoded['id'] ?? null;
         if (!$idStr) {
             http_response_code(400);
@@ -200,6 +296,12 @@ if ($method === 'GET') {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     } elseif ($action === 'verify_delivery') {
+        if ($role === 'picker') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Picker role cannot verify delivery']);
+            exit;
+        }
+
         $idStr = $decoded['id'] ?? null;
         $otp = $decoded['otp'] ?? '';
 

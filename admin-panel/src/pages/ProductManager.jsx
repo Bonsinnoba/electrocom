@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, Filter, X, Upload, Save, CheckCircle, Image as ImageIcon, Loader, Star, Download, UploadCloud, ShieldAlert, FileText } from 'lucide-react';
 import Papa from 'papaparse';
-import { fetchProducts, createProduct, updateProduct, deleteProduct, fetchStoreData, formatImageUrl } from '../services/api';
+import { fetchProducts, createProduct, updateProduct, deleteProduct, formatImageUrl } from '../services/api';
 import { useNotifications } from '../context/NotificationContext';
 import { useConfirm } from '../context/ConfirmContext';
 import { formatPrice } from '../utils/formatPrice';
@@ -210,8 +210,10 @@ export default function ProductManager() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.location || formData.location.trim() === '') {
-        const confirmSave = await confirm("Location is missing. Are you sure you want to save without a location?");
+    const hasLegacyLocation = Boolean((formData.location || '').trim());
+    const hasStructuredShelving = [formData.aisle, formData.rack, formData.bin].some((value) => Boolean((value || '').trim()));
+    if (!hasLegacyLocation && !hasStructuredShelving) {
+        const confirmSave = await confirm("Shelving location is missing (Aisle/Rack/Bin). Are you sure you want to save without a shelf location?");
         if (!confirmSave) return;
     }
 
@@ -284,6 +286,9 @@ export default function ProductManager() {
       PhysicalStock: p.physical_stock || p.stock,
       Reserved: p.reserved || 0,
       Location: p.location || '',
+      Aisle: p.aisle || '',
+      Rack: p.rack || '',
+      Bin: p.bin || '',
       Status: p.status,
       Rating: p.rating || 5,
       Description: p.description || '',
@@ -333,6 +338,9 @@ export default function ProductManager() {
                 price: row.Price !== undefined ? row.Price : (existingProduct ? existingProduct.price : 0),
                 stock: row.Stock !== undefined ? row.Stock : (existingProduct ? existingProduct.stock : 0),
                 location: row.Location !== undefined ? row.Location : (existingProduct ? existingProduct.location : ''),
+                aisle: row.Aisle !== undefined ? row.Aisle : (existingProduct ? existingProduct.aisle : ''),
+                rack: row.Rack !== undefined ? row.Rack : (existingProduct ? existingProduct.rack : ''),
+                bin: row.Bin !== undefined ? row.Bin : (existingProduct ? existingProduct.bin : ''),
                 rating: row.Rating !== undefined ? row.Rating : (existingProduct ? existingProduct.rating : 5),
                 description: row.Description !== undefined ? row.Description : (existingProduct ? existingProduct.description : ''),
                 image: existingProduct ? (existingProduct.image || existingProduct.image_url || '') : '',
@@ -725,36 +733,36 @@ export default function ProductManager() {
                   </div>
                 </div>
 
-                <div style={{ padding: '16px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
-                  <label style={{ display: 'block', marginBottom: '12px', fontSize: '12px', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase' }}>Shelving Location (Global Warehouse)</label>
+                <div style={{ padding: '18px', borderRadius: '14px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(37, 99, 235, 0.03))', border: '1px solid rgba(59, 130, 246, 0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+                  <label style={{ display: 'block', marginBottom: '14px', fontSize: '12px', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Shelving Location (Global Warehouse)</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                     <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Aisle</label>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>Aisle</label>
                       <input 
                         type="text" 
                         value={formData.aisle}
-                        onChange={(e) => setFormData({ ...formData, aisle: e.target.value })}
-                        style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'white', color: 'var(--text-main)', outline: 'none' }}
+                        onChange={(e) => setFormData({ ...formData, aisle: e.target.value.toUpperCase() })}
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.25)', background: 'var(--bg-surface)', color: 'var(--text-main)', outline: 'none', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.04em' }}
                         placeholder="e.g. A1"
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Rack</label>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>Rack</label>
                       <input 
                         type="text" 
                         value={formData.rack}
-                        onChange={(e) => setFormData({ ...formData, rack: e.target.value })}
-                        style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'white', color: 'var(--text-main)', outline: 'none' }}
+                        onChange={(e) => setFormData({ ...formData, rack: e.target.value.toUpperCase() })}
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.25)', background: 'var(--bg-surface)', color: 'var(--text-main)', outline: 'none', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.04em' }}
                         placeholder="e.g. S4"
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Bin</label>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>Bin</label>
                       <input 
                         type="text" 
                         value={formData.bin}
-                        onChange={(e) => setFormData({ ...formData, bin: e.target.value })}
-                        style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-light)', background: 'white', color: 'var(--text-main)', outline: 'none' }}
+                        onChange={(e) => setFormData({ ...formData, bin: e.target.value.toUpperCase() })}
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.25)', background: 'var(--bg-surface)', color: 'var(--text-main)', outline: 'none', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.04em' }}
                         placeholder="e.g. 102"
                       />
                     </div>

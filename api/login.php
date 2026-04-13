@@ -22,6 +22,40 @@ if (empty($email) || empty($password)) {
 }
 
 try {
+    $userColumns = [];
+    // Self-heal auth columns for older databases to prevent login query failures.
+    try {
+        $columns = $pdo->query("DESCRIBE users")->fetchAll(PDO::FETCH_COLUMN);
+        $userColumns = is_array($columns) ? $columns : [];
+        $requiredColumns = [
+            'region' => "ALTER TABLE users ADD COLUMN region VARCHAR(100) DEFAULT NULL AFTER address",
+            'status' => "ALTER TABLE users ADD COLUMN status ENUM('Active', 'Suspended') DEFAULT 'Active' AFTER role",
+            'is_verified' => "ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT FALSE AFTER status",
+            'verification_method' => "ALTER TABLE users ADD COLUMN verification_method ENUM('email', 'sms') DEFAULT 'email' AFTER is_verified",
+            'verification_code' => "ALTER TABLE users ADD COLUMN verification_code VARCHAR(10) DEFAULT NULL AFTER verification_method",
+            'login_attempts' => "ALTER TABLE users ADD COLUMN login_attempts INT DEFAULT 0 AFTER verification_code",
+            'lockout_until' => "ALTER TABLE users ADD COLUMN lockout_until DATETIME DEFAULT NULL AFTER login_attempts",
+        ];
+
+        foreach ($requiredColumns as $name => $sql) {
+            if (!in_array($name, $columns, true)) {
+                $pdo->exec($sql);
+            }
+        }
+        // Re-read columns after potential self-heal attempts.
+        $userColumns = $pdo->query("DESCRIBE users")->fetchAll(PDO::FETCH_COLUMN);
+    } catch (Throwable $schemaError) {
+        // Keep login flow alive; primary query below will surface issues if any remain.
+        logger('warn', 'LOGIN', 'Auth schema self-heal warning: ' . $schemaError->getMessage());
+    }
+    if (empty($userColumns)) {
+        try {
+            $userColumns = $pdo->query("DESCRIBE users")->fetchAll(PDO::FETCH_COLUMN);
+        } catch (Throwable $e) {
+            $userColumns = [];
+        }
+    }
+
     // Load security settings
     $settingsFile = __DIR__ . '/data/super_settings.json';
     $settings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
@@ -33,8 +67,31 @@ try {
     // 1. Apply Rate Limiting
     checkRateLimit($pdo, $rateLimit, 60, 'login');
 
-    // Fetch user by email
-    $stmt = $pdo->prepare("SELECT id, name, email, password_hash, phone, address, region, level, level_name, avatar_text, profile_image, status, role, is_verified, verification_method, email_notif, push_notif, sms_tracking, theme, login_attempts, lockout_until FROM users WHERE email = ?");
+    // Fetch user by email with backward-compatible column selection.
+    $selectParts = [
+        "id",
+        "name",
+        "email",
+        "password_hash",
+        "phone",
+        "address",
+        (in_array('region', $userColumns, true) ? "region" : "NULL AS region"),
+        "level",
+        "level_name",
+        "avatar_text",
+        "profile_image",
+        (in_array('status', $userColumns, true) ? "status" : "'Active' AS status"),
+        "role",
+        (in_array('is_verified', $userColumns, true) ? "is_verified" : "1 AS is_verified"),
+        (in_array('verification_method', $userColumns, true) ? "verification_method" : "'email' AS verification_method"),
+        (in_array('email_notif', $userColumns, true) ? "email_notif" : "1 AS email_notif"),
+        (in_array('push_notif', $userColumns, true) ? "push_notif" : "1 AS push_notif"),
+        (in_array('sms_tracking', $userColumns, true) ? "sms_tracking" : "1 AS sms_tracking"),
+        (in_array('theme', $userColumns, true) ? "theme" : "'blue' AS theme"),
+        (in_array('login_attempts', $userColumns, true) ? "login_attempts" : "0 AS login_attempts"),
+        (in_array('lockout_until', $userColumns, true) ? "lockout_until" : "NULL AS lockout_until")
+    ];
+    $stmt = $pdo->prepare("SELECT " . implode(', ', $selectParts) . " FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
@@ -66,8 +123,10 @@ try {
                 $lockout = date('Y-m-d H:i:s', time() + ($lockoutMins * 60)); 
                 logger('warn', 'SECURITY', "Account locked for {$user['email']} after $maxAttempts failed attempts.");
             }
-            $stmt = $pdo->prepare("UPDATE users SET login_attempts = ?, lockout_until = ? WHERE id = ?");
-            $stmt->execute([$attempts, $lockout, $user['id']]);
+            if (in_array('login_attempts', $userColumns, true) && in_array('lockout_until', $userColumns, true)) {
+                $stmt = $pdo->prepare("UPDATE users SET login_attempts = ?, lockout_until = ? WHERE id = ?");
+                $stmt->execute([$attempts, $lockout, $user['id']]);
+            }
         }
 
         http_response_code(401);
@@ -76,8 +135,10 @@ try {
     }
 
     // 3. Handle Successful Login -> Reset Attempts
-    $stmt = $pdo->prepare("UPDATE users SET login_attempts = 0, lockout_until = NULL WHERE id = ?");
-    $stmt->execute([$user['id']]);
+    if (in_array('login_attempts', $userColumns, true) && in_array('lockout_until', $userColumns, true)) {
+        $stmt = $pdo->prepare("UPDATE users SET login_attempts = 0, lockout_until = NULL WHERE id = ?");
+        $stmt->execute([$user['id']]);
+    }
 
     // TRANSPARENT SECURITY UPGRADE:
     // If user logged in via legacy hash, upgrade them to the new peppered format now.
@@ -98,8 +159,10 @@ try {
         // Generate a new code for the login attempt if one doesn't exist
         // Generate a new code using cryptographically secure randomness
         $newCode = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
-        $stmt = $pdo->prepare("UPDATE users SET verification_code = ? WHERE id = ?");
-        $stmt->execute([$newCode, $user['id']]);
+        if (in_array('verification_code', $userColumns, true)) {
+            $stmt = $pdo->prepare("UPDATE users SET verification_code = ? WHERE id = ?");
+            $stmt->execute([$newCode, $user['id']]);
+        }
 
         // Dispatch new code
         require_once 'notifications.php';

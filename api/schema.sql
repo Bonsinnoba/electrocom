@@ -10,7 +10,14 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     address TEXT,
-    role ENUM('customer', 'admin', 'marketing', 'accountant', 'store_manager', 'pos_cashier', 'super') DEFAULT 'customer',
+    region VARCHAR(100),
+    role ENUM('customer', 'admin', 'branch_admin', 'marketing', 'accountant', 'store_manager', 'pos_cashier', 'picker', 'super') DEFAULT 'customer',
+    status ENUM('Active', 'Suspended') DEFAULT 'Active',
+    is_verified BOOLEAN DEFAULT FALSE,
+    verification_method ENUM('email', 'sms') DEFAULT 'email',
+    verification_code VARCHAR(10) DEFAULT NULL,
+    login_attempts INT DEFAULT 0,
+    lockout_until DATETIME DEFAULT NULL,
     level INT DEFAULT 1,
     level_name VARCHAR(50) DEFAULT 'Starter',
     avatar_text VARCHAR(10) DEFAULT 'U',
@@ -45,6 +52,10 @@ CREATE TABLE IF NOT EXISTS products (
     rating DECIMAL(2, 1) DEFAULT 0.0,
     gallery JSON,
     product_code VARCHAR(100),
+    location VARCHAR(255),
+    aisle VARCHAR(50),
+    rack VARCHAR(50),
+    bin VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -54,6 +65,8 @@ CREATE TABLE IF NOT EXISTS orders (
     user_id INT,
     total_amount DECIMAL(10, 2) NOT NULL,
     status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
+    delivery_method ENUM('pickup', 'door_to_door') DEFAULT 'pickup',
+    pickup_location_id INT DEFAULT NULL,
     shipping_address TEXT,
     payment_method VARCHAR(50),
     payment_reference VARCHAR(100), -- Paystack/Stripe reference
@@ -63,6 +76,18 @@ CREATE TABLE IF NOT EXISTS orders (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_user_id (user_id),
     INDEX idx_status (status)
+);
+
+-- Pickup Locations table (managed by super admins)
+CREATE TABLE IF NOT EXISTS pickup_locations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    address TEXT NOT NULL,
+    city VARCHAR(100) DEFAULT NULL,
+    fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create Order Items table

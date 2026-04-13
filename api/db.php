@@ -21,6 +21,8 @@ $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => false,
+    // Prevent HY000/2014 when middleware and migrations run sequential queries.
+    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
 ];
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";

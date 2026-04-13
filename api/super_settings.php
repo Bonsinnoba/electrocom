@@ -69,6 +69,7 @@ $DEFAULTS = [
     // ── Security ─────────────────────────────────────────────────────────────
     'maintenanceMode'          => false,
     'allowRegistration'        => true,
+    'allowDoorToDoorDelivery'  => false,
     'maxLoginAttempts'         => 5,
     'sessionTimeout'           => 60,
     'twoFactorAdmin'           => false,
@@ -85,6 +86,17 @@ $DEFAULTS = [
     'apiRateLimit'             => 100,
     'debugMode'                => false,
     'backupFrequency'          => 'daily',
+    // ── Strategic Insights Model ─────────────────────────────────────────────
+    'insightsShipWarnHours'       => 24,
+    'insightsShipCriticalHours'   => 48,
+    'insightsLowStockWarnCount'   => 5,
+    'insightsLowStockCriticalCount'=> 12,
+    'insightsOnlineRevenueMinPct' => 35,
+    'insightsRepeatOrderMin'      => 1.2,
+    'insightsWeightShip'          => 35,
+    'insightsWeightStock'         => 25,
+    'insightsWeightOnline'        => 20,
+    'insightsWeightRepeat'        => 20,
     'defaultItemsPerPage'      => 12,
     'orderReceiptFooterNote'   => '',
     'homepageSectionTitle'     => 'New Arrivals',
@@ -113,6 +125,9 @@ if ($method === 'GET') {
     $merged   = array_merge($existing, $safe);
 
     file_put_contents($settingsFile, json_encode($merged, JSON_PRETTY_PRINT));
+    logAdminAudit($pdo, $userId, 'settings.update', 'super_settings', 'global', [
+        'changed_keys' => array_keys($safe)
+    ]);
     echo json_encode(['success' => true, 'message' => 'Settings saved.', 'data' => $merged]);
 } else {
     http_response_code(405);

@@ -20,6 +20,7 @@ if ($config['DB_AUTO_REPAIR'] ?? false) {
             coupon_code VARCHAR(50) DEFAULT NULL,
             discount_amount DECIMAL(10, 2) DEFAULT 0.00,
             status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
+            delivery_method ENUM('pickup', 'door_to_door') DEFAULT 'pickup',
             shipping_address TEXT,
             payment_method VARCHAR(50),
             payment_reference VARCHAR(100),
@@ -36,6 +37,19 @@ if ($config['DB_AUTO_REPAIR'] ?? false) {
             selected_color VARCHAR(50),
             FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
             FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+        )");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS order_idempotency (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            idempotency_key VARCHAR(120) NOT NULL,
+            status ENUM('pending','completed') DEFAULT 'pending',
+            order_id INT DEFAULT NULL,
+            payment_reference VARCHAR(120) DEFAULT NULL,
+            response_json JSON DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_user_key (user_id, idempotency_key),
+            INDEX idx_status_created (status, created_at)
         )");
 
         $cols = $pdo->query("DESCRIBE orders")->fetchAll(PDO::FETCH_COLUMN);
@@ -57,6 +71,22 @@ if ($config['DB_AUTO_REPAIR'] ?? false) {
         if (!in_array('cashier_id', $cols)) {
             $pdo->exec("ALTER TABLE orders ADD COLUMN cashier_id INT DEFAULT NULL AFTER user_id");
         }
+        if (!in_array('delivery_method', $cols)) {
+            $pdo->exec("ALTER TABLE orders ADD COLUMN delivery_method ENUM('pickup', 'door_to_door') DEFAULT 'pickup' AFTER status");
+        }
+        if (!in_array('pickup_location_id', $cols)) {
+            $pdo->exec("ALTER TABLE orders ADD COLUMN pickup_location_id INT DEFAULT NULL AFTER delivery_method");
+        }
+        $pdo->exec("CREATE TABLE IF NOT EXISTS pickup_locations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(150) NOT NULL,
+            address TEXT NOT NULL,
+            city VARCHAR(100) DEFAULT NULL,
+            fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )");
     } catch (Exception $e) {
         error_log("Orders schema self-healing failed: " . $e->getMessage());
     }
@@ -74,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $id = str_replace('ORD-', '', $orderIdStr);
         try {
             $stmt = $pdo->prepare("
-                SELECT id, total_amount, status, created_at, updated_at, shipping_address, payment_method, payment_reference
+                SELECT id, total_amount, status, delivery_method, pickup_location_id, created_at, updated_at, shipping_address, payment_method, payment_reference
                 FROM orders 
                 WHERE id = ? AND user_id = ?
             ");
@@ -119,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
         $stmt = $pdo->prepare("
             SELECT 
-                o.id, o.total_amount, o.status, o.created_at,
+                o.id, o.total_amount, o.status, o.delivery_method, o.pickup_location_id, o.created_at,
                 GROUP_CONCAT(p.name SEPARATOR ', ') as items
             FROM orders o
             LEFT JOIN order_items oi ON o.id = oi.order_id
@@ -186,8 +216,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $totalAmount = round((float)($decoded['total_amount'] ?? 0), 2);
     $shippingAddress = sanitizeInput($decoded['shipping_address'] ?? '');
     $paymentMethod = sanitizeInput($decoded['payment_method'] ?? 'card');
+    $deliveryMethod = sanitizeInput($decoded['delivery_method'] ?? 'pickup');
+    $pickupLocationId = isset($decoded['pickup_location_id']) ? (int)$decoded['pickup_location_id'] : null;
     $paymentReference = $decoded['payment_reference'] ?? null;
     $isExternalPayment = !empty($paymentReference);
+    $idempotencyKey = sanitizeInput($decoded['idempotency_key'] ?? '');
+
+    if (!in_array($deliveryMethod, ['pickup', 'door_to_door'], true)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid delivery method']);
+        exit;
+    }
+    if ($deliveryMethod === 'door_to_door') {
+        $settingsFile = __DIR__ . '/data/super_settings.json';
+        $allowDoorToDoor = false;
+        if (file_exists($settingsFile)) {
+            $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
+            $allowDoorToDoor = !empty($settings['allowDoorToDoorDelivery']);
+        }
+        if (!$allowDoorToDoor) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Door to door delivery is currently unavailable. Please choose pickup.']);
+            exit;
+        }
+    }
+    if ($deliveryMethod === 'pickup') {
+        if (!$pickupLocationId) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Pickup location is required.']);
+            exit;
+        }
+        $pickupStmt = $pdo->prepare("SELECT name, address, city FROM pickup_locations WHERE id = ? AND is_active = 1");
+        $pickupStmt->execute([$pickupLocationId]);
+        $pickupLocation = $pickupStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$pickupLocation) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Selected pickup location is not available.']);
+            exit;
+        }
+        $shippingAddress = trim(($pickupLocation['name'] ?? '') . ' - ' . ($pickupLocation['address'] ?? '') . (empty($pickupLocation['city']) ? '' : ', ' . $pickupLocation['city']));
+    }
 
     if (!$paymentReference) {
         $hash = substr(md5(uniqid(mt_rand(), true)), 0, 8);
@@ -201,6 +269,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Missing required fields']);
         exit;
+    }
+
+    $idempotencyRowId = null;
+    if ($idempotencyKey !== '') {
+        try {
+            $idStmt = $pdo->prepare("SELECT id, status, order_id, payment_reference, response_json FROM order_idempotency WHERE user_id = ? AND idempotency_key = ? LIMIT 1");
+            $idStmt->execute([$userId, $idempotencyKey]);
+            $existing = $idStmt->fetch(PDO::FETCH_ASSOC);
+            if ($existing) {
+                if ($existing['status'] === 'completed' && !empty($existing['response_json'])) {
+                    echo $existing['response_json'];
+                    exit;
+                }
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => 'A checkout attempt with this token is already processing. Please wait a moment and retry.']);
+                exit;
+            }
+            $insertIdStmt = $pdo->prepare("INSERT INTO order_idempotency (user_id, idempotency_key, status) VALUES (?, ?, 'pending')");
+            $insertIdStmt->execute([$userId, $idempotencyKey]);
+            $idempotencyRowId = (int)$pdo->lastInsertId();
+        } catch (Throwable $idemErr) {
+            // Fallback: continue without hard failure so checkout still works even if table is unavailable.
+            $idempotencyRowId = null;
+            error_log("Idempotency guard warning: " . $idemErr->getMessage());
+        }
     }
 
     if ($isExternalPayment) {
@@ -246,8 +339,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unset($item);
 
         $deliveryOtp = sprintf("%06d", mt_rand(100000, 999999));
-        $stmt = $pdo->prepare("INSERT INTO orders (user_id, total_amount, coupon_code, discount_amount, status, reserved_at, last_activity_at, delivery_otp, shipping_address, payment_method, payment_reference) VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP(), ?, ?, ?, ?)");
-        $stmt->execute([$userId, $totalAmount, $couponCode, $discountAmount, $orderStatus, $deliveryOtp, $shippingAddress, $paymentMethod, $paymentReference]);
+        $stmt = $pdo->prepare("INSERT INTO orders (user_id, total_amount, coupon_code, discount_amount, status, delivery_method, pickup_location_id, reserved_at, last_activity_at, delivery_otp, shipping_address, payment_method, payment_reference) VALUES (?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP(), ?, ?, ?, ?)");
+        $stmt->execute([$userId, $totalAmount, $couponCode, $discountAmount, $orderStatus, $deliveryMethod, $pickupLocationId, $deliveryOtp, $shippingAddress, $paymentMethod, $paymentReference]);
         $orderId = $pdo->lastInsertId();
         
         $pdo->prepare("UPDATE orders SET order_number = ? WHERE id = ?")->execute([$paymentReference, $orderId]);
@@ -262,9 +355,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'order_id' => $orderId, 'payment_reference' => $paymentReference]);
+        $responsePayload = ['success' => true, 'order_id' => $orderId, 'payment_reference' => $paymentReference];
+        if ($idempotencyRowId) {
+            $respJson = json_encode($responsePayload);
+            $doneStmt = $pdo->prepare("UPDATE order_idempotency SET status = 'completed', order_id = ?, payment_reference = ?, response_json = ? WHERE id = ?");
+            $doneStmt->execute([$orderId, $paymentReference, $respJson, $idempotencyRowId]);
+        }
+        echo json_encode($responsePayload);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($idempotencyRowId) {
+            try {
+                $pdo->prepare("DELETE FROM order_idempotency WHERE id = ? AND status = 'pending'")->execute([$idempotencyRowId]);
+            } catch (Throwable $cleanupErr) {}
+        }
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }

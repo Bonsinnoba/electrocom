@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, Truck, CheckCircle, Clock, X, MapPin, User, Package, Calendar, Mail, ShieldCheck, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { fetchOrders, updateOrderStatus, resendReceipt, verifyDelivery, API_BASE_URL } from '../services/api';
+import { fetchOrders, updateOrderStatus, updatePickerOrderStage, resendReceipt, verifyDelivery, API_BASE_URL } from '../services/api';
 import { useConfirm } from '../context/ConfirmContext';
 import { formatPrice } from '../utils/formatPrice';
 
@@ -18,6 +18,8 @@ export default function OrderManager() {
   const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
   const isAccountant = user.role === 'accountant';
   const isMarketing = user.role === 'marketing';
+  const isPicker = user.role === 'picker';
+  const canUsePickerWorkflow = ['picker', 'super', 'admin', 'store_manager', 'branch_admin'].includes(user.role);
 
   useEffect(() => {
     if (isMarketing) return;
@@ -88,6 +90,21 @@ export default function OrderManager() {
       alert('Connection error');
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const handlePickerStage = async (id, stage) => {
+    try {
+      const res = await updatePickerOrderStage(id, stage);
+      if (!res.success) {
+        alert(res.error || 'Failed to update picker stage');
+        return;
+      }
+      if (selectedOrder && selectedOrder.id === id) {
+        setSelectedOrder({ ...selectedOrder, status: res.status || selectedOrder.status });
+      }
+    } catch (error) {
+      alert('Failed to update picker stage');
     }
   };
 
@@ -226,26 +243,30 @@ export default function OrderManager() {
                 <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Order Details</h2>
                 <span style={{ fontSize: '12px', color: 'var(--primary-blue)', fontWeight: 700 }}>{selectedOrder.id}</span>
               </div>
-                <button 
-                onClick={() => window.open(`${API_BASE_URL}/invoice.php?order_id=${selectedOrder.id}`, '_blank')}
-                className="btn" 
-                style={{ padding: '6px 12px', fontSize: '11px', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                🖨️ Print Invoice
-              </button>
-                <button 
-                onClick={async () => {
-                  if(await confirm('Resend receipt to customer?')) {
-                    const res = await resendReceipt(selectedOrder.id);
-                    if(res.success) alert('Receipt re-sent!');
-                    else alert('Failed: ' + res.error);
-                  }
-                }}
-                className="btn" 
-                style={{ padding: '6px 12px', fontSize: '11px', background: 'var(--bg-surface-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <Mail size={14} /> Resend E-Receipt
-              </button>
+              {!isPicker && (
+                <>
+                  <button 
+                    onClick={() => window.open(`${API_BASE_URL}/invoice.php?order_id=${selectedOrder.id}`, '_blank')}
+                    className="btn" 
+                    style={{ padding: '6px 12px', fontSize: '11px', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    🖨️ Print Invoice
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      if(await confirm('Resend receipt to customer?')) {
+                        const res = await resendReceipt(selectedOrder.id);
+                        if(res.success) alert('Receipt re-sent!');
+                        else alert('Failed: ' + res.error);
+                      }
+                    }}
+                    className="btn" 
+                    style={{ padding: '6px 12px', fontSize: '11px', background: 'var(--bg-surface-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Mail size={14} /> Resend E-Receipt
+                  </button>
+                </>
+              )}
             </div>
             <button onClick={() => setSelectedOrder(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
               <X size={24} />
@@ -314,46 +335,72 @@ export default function OrderManager() {
               </h3>
               
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <button 
-                  onClick={() => handleUpdateStatus(selectedOrder.id, 'Shipped')}
-                  disabled={selectedOrder.status.toLowerCase() === 'shipped' || isAccountant}
-                  className="btn" 
-                  style={{ 
-                    background: 'var(--info-bg)', 
-                    color: 'var(--accent-blue)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    justifyContent: 'center',
-                    opacity: isAccountant ? 0.6 : 1,
-                    cursor: isAccountant ? 'not-allowed' : 'pointer'
-                  }}
-                  title={isAccountant ? "Accounting role cannot update order status" : ""}
-                >
-                  <Truck size={14} /> Mark Shipped
-                </button>
-                <button 
-                  onClick={() => handleUpdateStatus(selectedOrder.id, 'Delivered')}
-                  disabled={selectedOrder.status.toLowerCase() === 'delivered' || isAccountant}
-                  className="btn" 
-                  style={{ 
-                    background: 'var(--success-bg)', 
-                    color: 'var(--success)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    justifyContent: 'center',
-                    opacity: isAccountant ? 0.6 : 1,
-                    cursor: isAccountant ? 'not-allowed' : 'pointer'
-                  }}
-                  title={isAccountant ? "Accounting role cannot update order status" : ""}
-                >
-                  <CheckCircle size={14} /> Mark Delivered
-                </button>
-              </div>
+              {canUsePickerWorkflow ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                  <button
+                    onClick={() => handlePickerStage(selectedOrder.id, 'received')}
+                    className="btn"
+                    style={{ background: 'var(--warning-bg)', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+                  >
+                    <Clock size={14} /> Mark Order Received
+                  </button>
+                  <button
+                    onClick={() => handlePickerStage(selectedOrder.id, 'picked')}
+                    className="btn"
+                    style={{ background: 'var(--info-bg)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+                  >
+                    <Package size={14} /> Mark Items Picked
+                  </button>
+                  <button
+                    onClick={() => handlePickerStage(selectedOrder.id, 'dispatched')}
+                    className="btn"
+                    style={{ background: 'var(--success-bg)', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+                  >
+                    <Truck size={14} /> Mark Dispatched
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <button 
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'Shipped')}
+                    disabled={selectedOrder.status.toLowerCase() === 'shipped' || isAccountant}
+                    className="btn" 
+                    style={{ 
+                      background: 'var(--info-bg)', 
+                      color: 'var(--accent-blue)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px', 
+                      justifyContent: 'center',
+                      opacity: isAccountant ? 0.6 : 1,
+                      cursor: isAccountant ? 'not-allowed' : 'pointer'
+                    }}
+                    title={isAccountant ? "Accounting role cannot update order status" : ""}
+                  >
+                    <Truck size={14} /> Mark Shipped
+                  </button>
+                  <button 
+                    onClick={() => handleUpdateStatus(selectedOrder.id, 'Delivered')}
+                    disabled={selectedOrder.status.toLowerCase() === 'delivered' || isAccountant}
+                    className="btn" 
+                    style={{ 
+                      background: 'var(--success-bg)', 
+                      color: 'var(--success)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px', 
+                      justifyContent: 'center',
+                      opacity: isAccountant ? 0.6 : 1,
+                      cursor: isAccountant ? 'not-allowed' : 'pointer'
+                    }}
+                    title={isAccountant ? "Accounting role cannot update order status" : ""}
+                  >
+                    <CheckCircle size={14} /> Mark Delivered
+                  </button>
+                </div>
+              )}
               
-              {selectedOrder.status.toLowerCase() === 'delivered' && !isMarketing && !isAccountant && (
+              {selectedOrder.status.toLowerCase() === 'delivered' && !isMarketing && !isAccountant && !isPicker && (
                 <button 
                   onClick={() => navigate(`/returns?orderId=${selectedOrder.id}`)}
                   className="btn" 
@@ -375,7 +422,7 @@ export default function OrderManager() {
               )}
             </section>
 
-            {selectedOrder.status.toLowerCase() === 'shipped' && (
+            {selectedOrder.status.toLowerCase() === 'shipped' && !isPicker && (
               <section className="animate-fade-in">
                 <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ShieldCheck size={16} /> Delivery Verification
