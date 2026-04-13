@@ -7,16 +7,13 @@ import {
 import { 
   fetchCustomers as getUsers, 
   setUserRole as updateRole, 
-  setUserBranch as updateBranch,
   toggleUserStatus as toggleStatus, 
-  deleteCustomer as deleteUser,
-  fetchStoreData
+  deleteCustomer as deleteUser
 } from '../../services/api';
 
 const ROLE_STYLE = {
   super:        { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)',  color: '#fca5a5', label: 'SUPER' },
   admin:        { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)', color: '#fbbf24', label: 'ADMIN' },
-  branch_admin: { bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.3)', color: '#60a5fa', label: 'B. ADMIN' },
   accountant:   { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.3)',  color: '#4ade80', label: 'ACCT' },
   marketing:    { bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.3)', color: '#c084fc', label: 'MKTG' },
   customer:     { bg: 'rgba(148,163,184,0.1)',  border: 'rgba(148,163,184,0.2)', color: '#94a3b8', label: 'CUST' },
@@ -39,7 +36,6 @@ function Badge({ label, style }) {
 
 export default function AdminControl() {
   const [users, setUsers]     = useState([]);
-  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
   const [search, setSearch]   = useState('');
@@ -52,9 +48,8 @@ export default function AdminControl() {
   const load = async () => {
     setLoading(true); setError(null);
     try {
-      const [uRes, bRes] = await Promise.all([getUsers(), fetchStoreData()]);
+      const uRes = await getUsers();
       setUsers(uRes || []);
-      setBranches(bRes.branches || []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -90,7 +85,7 @@ export default function AdminControl() {
 
   const counts = useMemo(() => ({
     total: users.length,
-    admins: users.filter(u => ['super', 'admin', 'branch_admin', 'accountant', 'marketing'].includes(u.role)).length,
+    admins: users.filter(u => ['super', 'admin', 'accountant', 'marketing'].includes(u.role)).length,
     customers: users.filter(u => u.role === 'customer').length,
     suspended: users.filter(u => u.status === 'Suspended').length,
   }), [users]);
@@ -143,7 +138,7 @@ export default function AdminControl() {
           <option value="all">All Roles</option>
           <option value="super">Super Admins</option>
           <option value="admin">Global Admins</option>
-          <option value="branch_admin">Branch Admins</option>
+
           <option value="accountant">Accountants</option>
           <option value="marketing">Marketing</option>
           <option value="customer">Customers</option>
@@ -170,7 +165,7 @@ export default function AdminControl() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  {['User', 'Role', 'Branch', 'Status', 'Orders', 'Actions'].map(h => (
+                  {['User', 'Role', 'Status', 'Orders', 'Actions'].map(h => (
                     <th key={h} style={{ padding: '16px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
                   ))}
                 </tr>
@@ -215,26 +210,7 @@ export default function AdminControl() {
                           ))}
                         </select>
                       </td>
-                      <td style={{ padding: '16px 20px' }}>
-                        {['branch_admin', 'accountant', 'marketing'].includes(user.role) ? (
-                            <select 
-                              value={user.branch_id || ''} 
-                              onChange={(e) => withBusy(user.id, () => updateBranch(user.id, e.target.value))}
-                              disabled={isBusy}
-                              style={{ 
-                                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-light)', color: 'var(--text-main)',
-                                padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', outline: 'none'
-                              }}
-                            >
-                              <option value="">Select Branch</option>
-                              {branches.map(b => (
-                                <option key={b.id} value={b.id} style={{ background: 'var(--bg-surface)', color: 'var(--text-main)' }}>{b.name}</option>
-                              ))}
-                            </select>
-                        ) : (
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>N/A</span>
-                        )}
-                      </td>
+
                       <td style={{ padding: '16px 20px' }}><Badge label={user.status || 'Active'} style={statusStyle} /></td>
                       <td style={{ padding: '16px 20px', fontWeight: 700 }}>{user.orders_count || 0}</td>
                       <td style={{ padding: '16px 20px' }}>

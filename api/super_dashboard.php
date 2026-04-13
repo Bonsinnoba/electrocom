@@ -6,7 +6,7 @@
  *
  * GET → returns: total_revenue, total_orders, total_users,
  *                total_admins, total_products, recent_orders,
- *                orders_by_status, branches,
+ *                orders_by_status,
  *                server_health, auth_origins, error_log_tail
  */
 
@@ -52,31 +52,7 @@ try {
         LIMIT 5
     ")->fetchAll();
 
-    $pdo->exec("CREATE TABLE IF NOT EXISTS store_branches (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        branch_code VARCHAR(50) UNIQUE,
-        address TEXT,
-        lat DECIMAL(10,6) DEFAULT NULL,
-        lng DECIMAL(10,6) DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )");
 
-    $branches = $pdo->query("SELECT * FROM store_branches ORDER BY name ASC")->fetchAll();
-
-    // Dynamic Load Calculation
-    foreach ($branches as &$b) {
-        if ($b['type'] === 'headquarters') {
-            $hqLoad = min(100, round(($revenueRow['pending'] / 50) * 100));
-            $b['load_level'] = $hqLoad;
-        } else {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM warehouse_dispatches WHERE warehouse_id = ? AND status = 'pending'");
-            $stmt->execute([$b['id']]);
-            $pendingDispatches = $stmt->fetchColumn();
-            $whLoad = min(100, round(($pendingDispatches / 10) * 100));
-            $b['load_level'] = $whLoad;
-        }
-    }
 
     // ── Auth Origins (social login distribution) ──────────────────────────────
     $authOrigins = $pdo->query("
@@ -135,7 +111,7 @@ try {
             'cancelled'  => (int)($revenueRow['cancelled'] ?? 0),
         ],
         'recent_orders'  => $recent,
-        'branches'       => $branches,
+
         'auth_origins'   => $authOrigins,
         'server_health'  => [
             'disk_total_gb'  => round($diskTotal / 1073741824, 1),

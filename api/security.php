@@ -541,10 +541,10 @@ if (!function_exists('isDebugEnabled')) {
 
 /**
  * Calculate Regional Shipping Fee
- * Returns array with 'fee', 'city', and 'source_branch_id'
+ * Returns array with 'fee', 'city'
  */
 if (!function_exists('calculateRegionalShipping')) {
-    function calculateRegionalShipping($userRegion, $sourceBranchId, $subtotal, $pdo)
+    function calculateRegionalShipping($userRegion, $subtotal, $pdo)
     {
         $baseFee = 35.00; // Default: Regional/Upcountry
         
@@ -558,11 +558,9 @@ if (!function_exists('calculateRegionalShipping')) {
         if ($subtotal >= 1500) {
             $baseFee = $baseFee * 0.5;
         }
-
         return [
             'fee' => (float)$baseFee,
-            'city' => 'Accra',
-            'source_branch_id' => 1 // Legacy support
+            'city' => 'Accra'
         ];
     }
 }

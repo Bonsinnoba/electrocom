@@ -10,12 +10,12 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     address TEXT,
-    role ENUM('customer', 'admin', 'branch_admin', 'marketing', 'accountant', 'super') DEFAULT 'customer',
+    role ENUM('customer', 'admin', 'marketing', 'accountant', 'store_manager', 'pos_cashier', 'super') DEFAULT 'customer',
     level INT DEFAULT 1,
     level_name VARCHAR(50) DEFAULT 'Starter',
     avatar_text VARCHAR(10) DEFAULT 'U',
     profile_image LONGTEXT, -- To store Base64 images for now
-    wallet_balance DECIMAL(10, 2) DEFAULT 0.00,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     email_notif BOOLEAN DEFAULT TRUE,
@@ -92,20 +92,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     INDEX idx_notifications_user_read (user_id, is_read)
 );
 
--- Create Wallet & Transactions table
-CREATE TABLE IF NOT EXISTS wallet_transactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    amount DECIMAL(10, 2) NOT NULL,
-    type ENUM('credit', 'debit') NOT NULL,
-    reference VARCHAR(100), -- Payment gateway reference
-    title VARCHAR(255),
-    details TEXT,
-    status ENUM('completed', 'pending', 'failed') DEFAULT 'completed',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_wallet_user_created (user_id, created_at)
-);
+
 
 CREATE TABLE IF NOT EXISTS slider_images (
     id INT AUTO_INCREMENT PRIMARY KEY,

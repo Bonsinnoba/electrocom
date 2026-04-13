@@ -12,7 +12,7 @@ export default function MarketingHub() {
   const isMarketing = role === 'marketing';
   const isAccountant = role === 'accountant';
   const isPicker = role === 'picker';
-  const isBranchAdmin = role === 'branch_admin' || role === 'store_manager';
+
 
   const availableTabs = [];
   
@@ -31,7 +31,7 @@ export default function MarketingHub() {
     });
   }
   
-  if (!isAccountant && !isBranchAdmin && !isPicker) {
+  if (!isAccountant && !isPicker) {
     availableTabs.push({ 
       id: 'slider', 
       label: 'Hero Slider', 

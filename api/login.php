@@ -34,7 +34,7 @@ try {
     checkRateLimit($pdo, $rateLimit, 60, 'login');
 
     // Fetch user by email
-    $stmt = $pdo->prepare("SELECT id, name, email, password_hash, phone, address, region, level, level_name, avatar_text, profile_image, status, role, is_verified, verification_method, email_notif, push_notif, sms_tracking, theme, branch_id, login_attempts, lockout_until FROM users WHERE email = ?");
+    $stmt = $pdo->prepare("SELECT id, name, email, password_hash, phone, address, region, level, level_name, avatar_text, profile_image, status, role, is_verified, verification_method, email_notif, push_notif, sms_tracking, theme, login_attempts, lockout_until FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 

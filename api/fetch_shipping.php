@@ -25,8 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         // Use existing logic from security.php
-        $sourceBranchId = resolveFulfillmentBranch($region, $pdo);
-        $shippingInfo = calculateRegionalShipping($region, $sourceBranchId, $subtotal, $pdo);
+        $shippingInfo = calculateRegionalShipping($region, $subtotal, $pdo);
 
         echo json_encode([
             'success' => true,

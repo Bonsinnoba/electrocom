@@ -24,7 +24,7 @@ export default function Login() {
         const result = await loginUser({ email, password });
         if (result.success) {
             const user = result.data.user;
-            const allowedRoles = ['admin', 'super', 'branch_admin', 'accountant', 'marketing', 'picker'];
+            const allowedRoles = ['admin', 'super', 'accountant', 'marketing', 'picker'];
             
             if (!allowedRoles.includes(user.role)) {
                 setError('Access denied: Unauthorized role.');

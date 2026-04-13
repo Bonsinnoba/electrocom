@@ -44,11 +44,8 @@ foreach ($GHANA_REGIONS_MAP as $prefix => $fullName) {
 }
 
 try {
-    // 1. Resolve nearest fulfillment branch
-    $sourceBranchId = resolveFulfillmentBranch($normalizedRegion, $pdo);
-    
     // 2. Calculate dynamic fee based on region and subtotal
-    $shippingInfo = calculateRegionalShipping($normalizedRegion, $sourceBranchId, $subtotal, $pdo);
+    $shippingInfo = calculateRegionalShipping($normalizedRegion, $subtotal, $pdo);
 
     sendResponse(true, 'Shipping estimate calculated', [
         'region_detected' => $normalizedRegion,

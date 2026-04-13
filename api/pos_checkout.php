@@ -59,12 +59,12 @@ try {
         $customerId = $stmt->fetchColumn() ?: null;
     }
 
-    // 3. Create POS Order (Fixed branch ID 1 logic)
+    // 3. Create POS Order
     $stmt = $pdo->prepare("
         INSERT INTO orders (
             user_id, total_amount, status, payment_method, 
-            order_type, source_branch_id, cashier_id
-        ) VALUES (?, ?, 'delivered', ?, 'pos', 1, ?)
+            order_type, cashier_id
+        ) VALUES (?, ?, 'delivered', ?, 'pos', ?)
     ");
     $stmt->execute([$customerId, $totalAmount, $paymentMethod, $cashierId]);
     $orderId = $pdo->lastInsertId();

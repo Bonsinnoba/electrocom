@@ -16,7 +16,7 @@ try {
     }
 
     $reference = sanitizeInput($data['reference']);
-    $type = isset($data['type']) ? sanitizeInput($data['type']) : 'wallet_topup'; // 'wallet_topup' or 'order_payment'
+    $type = isset($data['type']) ? sanitizeInput($data['type']) : 'order_payment'; // 'order_payment'
 
     // 3. Verify with Paystack
     $secretKey = $config['PAYSTACK_SECRET'] ?? "";
@@ -53,27 +53,7 @@ try {
         sendResponse(false, 'Transaction was not successful: ' . $response['data']['gateway_response'], null, 400);
     }
 
-    // 4. Check if reference already used (Idempotency)
-    // FIX #7: Self-heal wallet_transactions table — it may not exist on fresh installs
-    try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS wallet_transactions (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            reference VARCHAR(100) UNIQUE NOT NULL,
-            amount DECIMAL(10,2),
-            type VARCHAR(50),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )");
-    } catch (Exception $schemaErr) {
-        error_log("wallet_transactions schema check failed: " . $schemaErr->getMessage());
-    }
 
-    // Check wallet_transactions
-    $stmt = $pdo->prepare("SELECT id FROM wallet_transactions WHERE reference = ?");
-    $stmt->execute([$reference]);
-    if ($stmt->fetch()) {
-        sendResponse(false, 'Transaction reference already used', null, 409);
-    }
 
     // Check orders
     $stmt = $pdo->prepare("SELECT id FROM orders WHERE payment_reference = ?");
@@ -99,15 +79,14 @@ try {
             $message = "Payment verified successfully";
         }
     } else {
-        throw new Exception("Invalid transaction type or wallet top-ups are disabled.");
+        throw new Exception("Invalid transaction type.");
     }
 
     $pdo->commit();
 
     sendResponse(true, $message, [
         'amount' => $amountPaid,
-        'reference' => $reference,
-        'new_balance' => ($type === 'wallet_topup') ? fetchUserBalance($pdo, $userId) : null
+        'reference' => $reference
     ]);
 } catch (Exception $e) {
     if ($pdo->inTransaction()) {
@@ -117,9 +96,4 @@ try {
     echo json_encode(['success' => false, 'message' => 'Verification error: ' . $e->getMessage()]);
 }
 
-function fetchUserBalance($pdo, $userId)
-{
-    $stmt = $pdo->prepare("SELECT wallet_balance FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-    return $stmt->fetchColumn();
-}
+

@@ -40,12 +40,10 @@ if ($method === 'GET') {
         // Fetch all users with basic order summary and branch name
         $stmt = $pdo->prepare("
             SELECT 
-                u.id, u.name, u.email, u.phone, u.address, u.role, u.level, u.level_name, u.avatar_text, u.status, u.created_at, u.branch_id,
-                sb.name as branch_name,
+                u.id, u.name, u.email, u.phone, u.address, u.role, u.level, u.level_name, u.avatar_text, u.status, u.created_at,
                 (SELECT COUNT(*) FROM orders WHERE user_id = u.id) as orders_count,
                 (SELECT SUM(total_amount) FROM orders WHERE user_id = u.id) as total_spent
             FROM users u 
-            LEFT JOIN store_branches sb ON u.branch_id = sb.id
             $filterSql
             ORDER BY u.created_at DESC
         ");
@@ -163,27 +161,6 @@ if ($method === 'GET') {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
 
-    } elseif ($action === 'set_branch') {
-        $id = $decoded['id'] ?? null;
-        $branch_id = $decoded['branch_id'] ?? null;
-
-        if (!$id) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'User ID is required']);
-            exit;
-        }
-
-        try {
-            $stmt = $pdo->prepare("UPDATE users SET branch_id = ? WHERE id = ?");
-            $stmt->execute([$branch_id, $id]);
-
-            logger('info', 'STAFF', "User ID: {$id} assigned to Branch ID: {$branch_id} by {$userName}");
-
-            echo json_encode(['success' => true]);
-        } catch (PDOException $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
     }
 } else {
     http_response_code(405);

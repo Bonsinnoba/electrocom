@@ -645,11 +645,11 @@ export default function GlobalSettings() {
                 <span style={{ fontWeight: 800, fontSize: '15px', textTransform: 'uppercase', letterSpacing: '1px' }}>Danger Zone</span>
               </div>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                Performing a Factory Reset will permanently delete all <strong>Products</strong>, <strong>Slider Images</strong>, and <strong>Branches</strong>. This action cannot be undone.
+                Performing a Factory Reset will permanently delete all <strong>Products</strong> and <strong>Slider Images</strong>. This action cannot be undone.
               </p>
               <button
                 onClick={async () => {
-                  if (confirm('🚨 WARNING: This will WIPE all products, slider images, and branches. Are you absolutely sure?')) {
+                  if (confirm('🚨 WARNING: This will WIPE all products and slider images. Are you absolutely sure?')) {
                     try {
                       const res = await (await import('../../services/api')).wipeDemoData();
                       if (res.success) alert(res.message);

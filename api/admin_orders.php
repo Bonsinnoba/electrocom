@@ -37,8 +37,6 @@ if ($method === 'GET') {
         $filterSql = "";
         $params = [];
 
-        // FIX #10: was o.branch_id (wrong), corrected to o.source_branch_id
-
         $stmt = $pdo->prepare("
             SELECT 
                 o.id, 
@@ -49,7 +47,7 @@ if ($method === 'GET') {
                 u.email,
                 u.region as user_region,
                 o.shipping_address as address,
-                'Delivery' as type,
+                'Delivery' as type
             FROM orders o
             JOIN users u ON o.user_id = u.id
             $filterSql

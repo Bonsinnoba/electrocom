@@ -55,7 +55,7 @@ export default function Sidebar() {
           <div className="sidebar-section-label">
             {isAccountant ? 'Financial Control' : 
              isMarketing ? 'Promotion & Analytics' : 
-             (role === 'branch_admin' || role === 'store_manager') ? 'Store Operations' : 
+             role === 'store_manager' ? 'Store Operations' : 
              'Store Management'}
           </div>
           {navItems.map((item, idx) => (

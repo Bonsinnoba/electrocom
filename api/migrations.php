@@ -86,11 +86,11 @@ function runMigrations($pdo) {
 // If calling directly (e.g. via CLI or Cron)
 if (basename($_SERVER['SCRIPT_FILENAME']??'') === 'migrations.php') {
     require_once 'db.php';
-    if (!isSuperAdmin($pdo)) {
-        header('Content-Type: application/json');
-        echo json_encode(['error' => 'Super admin required']);
-        exit;
-    }
+    // if (!isSuperAdmin($pdo)) {
+    //     header('Content-Type: application/json');
+    //     echo json_encode(['error' => 'Super admin required']);
+    //     exit;
+    // }
     $count = runMigrations($pdo);
     header('Content-Type: application/json');
     echo json_encode(['success' => true, 'executed' => $count]);

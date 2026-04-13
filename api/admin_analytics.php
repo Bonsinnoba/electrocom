@@ -15,12 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $data = [];
         $whereClause = "1=1";
         $params = [];
-
-        if ($branchId) {
-            $whereClause = "(assigned_branch_id = ? OR source_branch_id = ?)";
-            $params = [$branchId, $branchId];
-        }
-
         // 1. Total Revenue Breakdown
         $revStmt = $pdo->prepare("
             SELECT COALESCE(order_type, 'online') as type, SUM(total_amount) as total 

@@ -187,20 +187,6 @@ export const setUserRole = async (id, role) => {
     }
 };
 
-export const setUserBranch = async (id, branch_id) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_customers.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'set_branch', id, branch_id }),
-        });
-
-        return await response.json();
-    } catch (error) {
-        console.error('Error setting user branch:', error);
-        throw error;
-    }
-};
 
 export const toggleUserStatus = async (id, currentStatus) => {
     try {
@@ -392,10 +378,10 @@ export const fetchStoreData = async () => {
             headers: getAuthHeaders()
         });
         const result = await response.json();
-        return result.success ? result : { success: false, branches: [], locations: [] };
+        return result.success ? result : { success: false, locations: [] };
     } catch (error) {
         console.error('Error fetching store data:', error);
-        return { success: false, branches: [], locations: [] };
+        return { success: false, locations: [] };
     }
 };
 
@@ -427,19 +413,7 @@ export const deleteProductLocation = async (id) => {
     }
 };
 
-export const createBranch = async (branchData) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_locations.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'create_branch', ...branchData }),
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error creating branch:', error);
-        throw error;
-    }
-};
+
 // ─── Super User Endpoints ─────────────────────────────────────────────────────
 
 export const fetchSuperDashboard = async () => {
@@ -791,16 +765,6 @@ export const fetchAbandonedCarts = async () => {
 // --- Notifications ---
 
 
-// --- Stock Requests ---
-export const fetchStockRequests = async () => authFetch('/stock_requests.php?_t=' + Date.now());
-export const createStockRequest = async (data) => authFetch('/stock_requests.php', {
-    method: 'POST',
-    body: JSON.stringify(data)
-});
-export const updateStockRequestStatus = async (id, status) => authFetch('/stock_requests.php', {
-    method: 'PATCH',
-    body: JSON.stringify({ id, status })
-});
 
 export const fetchAdminNotifications = async () => {
     try {
@@ -829,19 +793,5 @@ export const markNotificationRead = async (id) => {
 };
 
 
-// ─── Multi-Branch Fulfillment & Picking ───────────────────────────────────────
-export const fetchPickingTasks = async (status = 'pending') => authFetch(`/picking_api.php?status=${status}&_t=${Date.now()}`);
-
-export const updatePickingTask = async (taskId, action, extra = {}) => authFetch('/picking_api.php', {
-    method: 'POST',
-    body: JSON.stringify({ task_id: taskId, action, ...extra })
-});
-
-export const confirmArrival = async (transferId) => authFetch('/admin_locations.php', {
-    method: 'POST',
-    body: JSON.stringify({ action: 'confirm_arrival', transfer_id: transferId })
-});
-
-export const fetchStockTransfers = async () => authFetch('/admin_locations.php');
 export const fetchBackend = authFetch;
 

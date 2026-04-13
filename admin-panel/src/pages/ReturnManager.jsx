@@ -140,7 +140,7 @@ export default function ReturnManager() {
             ) : returnHistory.length === 0 ? (
               <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <ClipboardList size={40} style={{ margin: '0 auto 12px', opacity: 0.2 }} />
-                <p>No return records found for this branch.</p>
+                <p>No return records found.</p>
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
@@ -292,7 +292,7 @@ export default function ReturnManager() {
                 <div style={{ padding: '16px', background: 'var(--success-bg)', borderRadius: '12px', display: 'flex', gap: '12px', alignItems: 'start', marginTop: '8px' }}>
                   <ShieldCheck size={20} style={{ color: 'var(--success)', marginTop: '2px' }} />
                   <p style={{ margin: 0, fontSize: '12px', color: 'var(--success)', fontWeight: 600, lineHeight: '1.4' }}>
-                    Authorizing this return will automatically restock the item to its assigned shelf in <strong>{user.branch_name || 'your store'}</strong>.
+                    Authorizing this return will automatically restock the item to its assigned shelf.
                   </p>
                 </div>
 

@@ -1,7 +1,5 @@
 <?php
 // backend/order_utils.php
-require_once 'fulfillment_service.php';
-
 function completeOrder($orderId, $pdo) {
     try {
         // 1. Fetch Order Details
@@ -41,18 +39,10 @@ function completeOrder($orderId, $pdo) {
         $itemStmt->execute([$orderId]);
         $items = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // 2. Intelligent Fulfillment
-        $fulfillment = new FulfillmentService($pdo);
-        $userRegion = $order['region'] ?? ''; // Ensure region exists in users or orders
-        
-        $assignedBranchId = $fulfillment->calculateBestBranch($userRegion, $items);
-        
-        // Mark as processing and assign branch
-        $pdo->prepare("UPDATE orders SET status = 'processing', assigned_branch_id = ? WHERE id = ?")
-            ->execute([$assignedBranchId, $orderId]);
-            
-        // 3. Create Picking Task
-        $fulfillment->createPickingTasks($orderId, $assignedBranchId);
+        // 2. Simplistic Fulfillment (No branch routing)
+        // Mark as processing
+        $pdo->prepare("UPDATE orders SET status = 'processing' WHERE id = ?")
+            ->execute([$orderId]);
 
         // 4. Update Global Stock (for storefront availability)
         $updateStockStmt = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?");
