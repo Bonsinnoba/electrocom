@@ -85,9 +85,77 @@ if ($config['DB_AUTO_REPAIR'] ?? false) {
         if (!$hasCategoryIndex) {
             $pdo->exec("CREATE INDEX idx_product_category ON products(category)");
         }
+
+        // Normalize empty SKUs and enforce unique product_code when present (multiple NULLs allowed)
+        try {
+            $pdo->exec("UPDATE products SET product_code = NULL WHERE product_code IS NOT NULL AND TRIM(product_code) = ''");
+            $idxRows = $pdo->query("SHOW INDEX FROM products WHERE Key_name = 'uniq_products_product_code'")->fetchAll();
+            if (empty($idxRows)) {
+                $pdo->exec("CREATE UNIQUE INDEX uniq_products_product_code ON products(product_code)");
+            }
+        } catch (Exception $e) {
+            error_log("Product code unique index skipped: " . $e->getMessage());
+        }
     } catch (Exception $e) {
         error_log("Database schema check failed: " . $e->getMessage());
     }
+}
+
+/**
+ * Empty string → NULL so UNIQUE(product_code) allows multiple unset SKUs.
+ */
+function normalizeProductCode($code)
+{
+    if ($code === null) {
+        return null;
+    }
+    $t = trim((string)$code);
+    return $t === '' ? null : $t;
+}
+
+/**
+ * Structured Aisle / Rack / Bin: if any field is set, all three are required.
+ * Format: start with alphanumeric, up to 16 chars, internal . _ - allowed (e.g. A1, R2, B03, AA-12).
+ */
+function validateShelvingComponents($aisle, $rack, $bin, $location)
+{
+    $a = trim((string)$aisle);
+    $r = trim((string)$rack);
+    $b = trim((string)$bin);
+    $loc = trim((string)$location);
+    $hasStruct = ($a !== '' || $r !== '' || $b !== '');
+    $pattern = '/^[A-Za-z0-9][A-Za-z0-9.\-_]{0,15}$/';
+    if ($hasStruct) {
+        if ($a === '' || $r === '' || $b === '') {
+            return 'Structured shelving requires Aisle, Rack, and Bin (all three). Use free-text Location instead, or fill all three.';
+        }
+        foreach (['aisle' => $a, 'rack' => $r, 'bin' => $b] as $label => $v) {
+            if (!preg_match($pattern, $v)) {
+                return "Invalid {$label} format. Use letters/numbers (e.g. A1, R2, B03). Max 16 characters.";
+            }
+        }
+    }
+    return null;
+}
+
+function assertUniqueProductCode($pdo, $code, $excludeId = null)
+{
+    if ($code === null) {
+        return null;
+    }
+    $sql = 'SELECT id FROM products WHERE product_code = ? LIMIT 1';
+    $params = [$code];
+    if ($excludeId) {
+        $sql = 'SELECT id FROM products WHERE product_code = ? AND id != ? LIMIT 1';
+        $params = [$code, (int)$excludeId];
+    }
+    $st = $pdo->prepare($sql);
+    $st->execute($params);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if ($row) {
+        return 'Product code "' . $code . '" is already used by another product.';
+    }
+    return null;
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -152,6 +220,49 @@ if ($method === 'POST') {
     }
 
     $action = $decoded['action'] ?? '';
+
+    if ($action === 'bulk_shelving') {
+        $ids = $decoded['product_ids'] ?? [];
+        if (!is_array($ids) || empty($ids)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'product_ids array is required']);
+            exit;
+        }
+        $aisle = sanitizeInput($decoded['aisle'] ?? '');
+        $rack = sanitizeInput($decoded['rack'] ?? '');
+        $bin = sanitizeInput($decoded['bin'] ?? '');
+        $location = sanitizeInput($decoded['location'] ?? '');
+        $sErr = validateShelvingComponents($aisle, $rack, $bin, $location);
+        if ($sErr) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => $sErr]);
+            exit;
+        }
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        $ids = array_filter($ids, function ($pid) {
+            return $pid > 0;
+        });
+        if (empty($ids)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'No valid product IDs']);
+            exit;
+        }
+        try {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = $pdo->prepare("UPDATE products SET aisle = ?, rack = ?, bin = ?, location = ? WHERE id IN ($placeholders)");
+            $stmt->execute(array_merge([$aisle, $rack, $bin, $location], $ids));
+            $updated = $stmt->rowCount();
+            logger('info', 'PRODUCTS', "Bulk shelving update for " . count($ids) . " products by {$userName}");
+            logAdminAudit($pdo, $userId, 'product.bulk_shelving', 'product', implode(',', $ids), [
+                'aisle' => $aisle, 'rack' => $rack, 'bin' => $bin, 'location' => $location,
+            ]);
+            echo json_encode(['success' => true, 'updated' => $updated]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Bulk update failed']);
+        }
+        exit;
+    }
     
     $name = sanitizeInput($decoded['name'] ?? '');
     $category = sanitizeInput($decoded['category'] ?? '');
@@ -165,11 +276,17 @@ if ($method === 'POST') {
     $specs = $decoded['specs'] ?? '{}';
     $included = $decoded['included'] ?? '[]';
     $directions = $decoded['directions'] ?? '';
-    $product_code = sanitizeInput($decoded['product_code'] ?? '');
+    $product_code = normalizeProductCode(sanitizeInput($decoded['product_code'] ?? ''));
     $location = sanitizeInput($decoded['location'] ?? '');
     $aisle = sanitizeInput($decoded['aisle'] ?? '');
     $rack = sanitizeInput($decoded['rack'] ?? '');
     $bin = sanitizeInput($decoded['bin'] ?? '');
+    $shelvingErr = validateShelvingComponents($aisle, $rack, $bin, $location);
+    if ($shelvingErr) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => $shelvingErr]);
+        exit;
+    }
     $gallery_input = $decoded['gallery'] ?? [];
     $variants = $decoded['variants'] ?? [];
     $discount_percent = max(0, min(100, (int)($decoded['discount_percent'] ?? 0)));
@@ -196,6 +313,13 @@ if ($method === 'POST') {
         if (!$name || !$category) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Missing required fields']);
+            exit;
+        }
+
+        $dupErr = assertUniqueProductCode($pdo, $product_code, null);
+        if ($dupErr) {
+            http_response_code(409);
+            echo json_encode(['success' => false, 'error' => $dupErr]);
             exit;
         }
 
@@ -260,6 +384,13 @@ if ($method === 'POST') {
             }
         }
         $gallery_json = json_encode($gallery_urls);
+
+        $dupErr = assertUniqueProductCode($pdo, $product_code, $id);
+        if ($dupErr) {
+            http_response_code(409);
+            echo json_encode(['success' => false, 'error' => $dupErr]);
+            exit;
+        }
 
         try {
             $stmt = $pdo->prepare("SELECT image_url, gallery, directions FROM products WHERE id = ?");

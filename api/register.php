@@ -2,10 +2,9 @@
 // backend/register.php
 require_once 'db.php';
 require_once 'security.php';
+require_once __DIR__ . '/brand_settings.php';
 
-// Load settings
-$settingsFile = __DIR__ . '/data/super_settings.json';
-$globalSettings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+$globalSettings = eh_merged_super_settings();
 
 // Check if registrations are currently allowed
 if (isset($globalSettings['allowRegistration']) && $globalSettings['allowRegistration'] === false) {
@@ -93,8 +92,9 @@ try {
         // Dispatch verification code
         require_once 'notifications.php';
         $notifier = new NotificationService();
-        $subject = "Your ElectroCom Verification Code";
-        $msg = "Welcome to ElectroCom! Your verification code is: {$verificationCode}. Please enter this code to activate your account.";
+        $bn = eh_brand_site_name();
+        $subject = "Your {$bn} Verification Code";
+        $msg = "Welcome to {$bn}! Your verification code is: {$verificationCode}. Please enter this code to activate your account.";
 
         if ($verificationMethod === 'sms') {
             $notifier->queueNotification('sms', $phone, $msg);
@@ -106,8 +106,9 @@ try {
     $userId = $pdo->lastInsertId();
 
     // Create a welcome notification
-    $welcomeStmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, 'Welcome to ElectroCom!', 'We are excited to have you here. Start exploring our premium products!', 'info')");
-    $welcomeStmt->execute([$userId]);
+    $bn = eh_brand_site_name();
+    $welcomeStmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'info')");
+    $welcomeStmt->execute([$userId, "Welcome to {$bn}!", 'We are excited to have you here. Start exploring our catalog!']);
 
     echo json_encode([
         'success' => true,

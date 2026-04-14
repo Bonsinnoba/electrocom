@@ -1,7 +1,11 @@
 import React from 'react';
 import { Truck, Package, Clock, ShieldCheck, MapPin } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function ShippingInfo() {
+  const { siteSettings } = useSettings();
+  const siteName = siteSettings.siteName || 'our store';
+
   const policies = [
     {
       icon: <Truck size={24} className="text-primary-blue" />,
@@ -31,7 +35,7 @@ export default function ShippingInfo() {
       <div style={{ textAlign: 'center', marginBottom: '40px' }}>
         <h1 style={{ fontSize: '36px', fontWeight: 800, marginBottom: '12px' }}>Shipping Information</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '16px', maxWidth: '500px', margin: '0 auto' }}>
-          Everything you need to know about getting your ElectroCom products delivered securely and on time.
+          {`Everything you need to know about getting your orders from ${siteName} delivered securely and on time.`}
         </p>
       </div>
 
@@ -53,7 +57,7 @@ export default function ShippingInfo() {
             Shipping Protection Guarantee
          </h2>
          <p style={{ color: 'var(--text-muted)', fontSize: '15px', lineHeight: '1.6' }}>
-            All orders from ElectroCom are packed with care — ICs and sensitive components are shipped in ESD-safe anti-static bags, fragile modules in foam padding, and STEM kit boxes in reinforced packaging. If your package arrives damaged or components are missing, we will replace the affected items at zero cost to you. Simply contact us within 48 hours of delivery with photos of the parcel.
+            {`All orders from ${siteName} are packed with care. Fragile items are protected where appropriate. If your package arrives damaged or items are missing, contact us within 48 hours of delivery with photos — we will work with you on a fair resolution.`}
          </p>
       </div>
       

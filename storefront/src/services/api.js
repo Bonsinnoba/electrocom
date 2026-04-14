@@ -433,3 +433,26 @@ export const fetchPickupLocations = async () => {
         return [];
     }
 };
+
+export const fetchMissingItemConfirmations = async () => {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/missing_item_confirmation.php`, getFetchOptions());
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching missing-item confirmations:', error);
+        return { success: false, data: [] };
+    }
+};
+
+export const submitMissingItemConfirmation = async (id, choice) => {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/missing_item_confirmation.php`, getFetchOptions({
+            method: 'POST',
+            body: JSON.stringify({ id, choice }),
+        }));
+        return await response.json();
+    } catch (error) {
+        console.error('Error submitting missing-item confirmation:', error);
+        return { success: false };
+    }
+};

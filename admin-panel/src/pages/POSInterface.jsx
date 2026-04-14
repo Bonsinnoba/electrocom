@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, ShoppingCart, Plus, Minus, Trash2, 
+import {
+  Search, Plus, Minus, Trash2,
   Banknote, Package, Zap,
-  CheckCircle2, ArrowRight, Printer, Mail,
-  LayoutGrid, Filter, X, Barcode
+  CheckCircle2, Printer, Mail,
+  Barcode, RotateCcw, Loader,
 } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
 import POSReceipt from '../components/POSReceipt';
 
-import { API_BASE_URL, formatImageUrl } from '../services/api';
+import { API_BASE_URL, formatImageUrl, fetchPosReturnOrder, processPosReturn } from '../services/api';
 
 export default function POSInterface() {
   const { addToast } = useNotifications();
@@ -27,11 +27,23 @@ export default function POSInterface() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const searchInputRef = useRef(null);
 
+  const [posMode, setPosMode] = useState('sale');
+  const [returnOrderInput, setReturnOrderInput] = useState('');
+  const [returnLookupLoading, setReturnLookupLoading] = useState(false);
+  const [returnOrderData, setReturnOrderData] = useState(null);
+  const [returnQtyByProduct, setReturnQtyByProduct] = useState({});
+  const [returnReason, setReturnReason] = useState('');
+  const [returnProcessing, setReturnProcessing] = useState(false);
+
   useEffect(() => {
     fetchProducts();
   }, []);
 
   useEffect(() => {
+    if (posMode === 'return') {
+      setFilteredProducts([]);
+      return;
+    }
     if (searchQuery.trim() === '') {
       setFilteredProducts([]);
       return;
@@ -52,7 +64,72 @@ export default function POSInterface() {
       setSearchQuery('');
       addToast(`Added ${exactMatch.name}`, 'success');
     }
-  }, [searchQuery, products]);
+  }, [searchQuery, products, posMode]);
+
+  const handleLookupReturnOrder = async (e) => {
+    e?.preventDefault();
+    const raw = String(returnOrderInput || '').trim();
+    if (!raw) {
+      addToast('Enter an order number (e.g. ORD-42 or 42)', 'error');
+      return;
+    }
+    setReturnLookupLoading(true);
+    setReturnOrderData(null);
+    setReturnQtyByProduct({});
+    try {
+      const res = await fetchPosReturnOrder(raw);
+      if (res.success && res.items) {
+        setReturnOrderData(res);
+        const init = {};
+        res.items.forEach((row) => {
+          init[row.product_id] = 0;
+        });
+        setReturnQtyByProduct(init);
+        addToast(`Loaded ${res.order?.display_id || 'order'} — ${res.order?.hours_remaining_return?.toFixed?.(1) ?? '?'}h left in return window`, 'success');
+      } else {
+        addToast(res.message || 'Could not load order', 'error');
+      }
+    } catch {
+      addToast('Lookup failed', 'error');
+    } finally {
+      setReturnLookupLoading(false);
+    }
+  };
+
+  const handleProcessPosReturn = async () => {
+    if (!returnOrderData?.order?.id) return;
+    const items = [];
+    Object.entries(returnQtyByProduct).forEach(([pid, q]) => {
+      const n = parseInt(q, 10);
+      if (n > 0) items.push({ product_id: parseInt(pid, 10), quantity: n });
+    });
+    if (items.length === 0) {
+      addToast('Enter a return quantity for at least one line', 'error');
+      return;
+    }
+    setReturnProcessing(true);
+    try {
+      const res = await processPosReturn({
+        order_id: returnOrderData.order.id,
+        items,
+        reason: returnReason || 'POS return',
+      });
+      if (res.success) {
+        addToast(res.message || 'Return completed', 'success');
+        setReturnOrderData(null);
+        setReturnOrderInput('');
+        setReturnQtyByProduct({});
+        setReturnReason('');
+        fetchProducts();
+      } else {
+        addToast(res.message || 'Return failed', 'error');
+      }
+    } catch {
+      addToast('Return request failed', 'error');
+    } finally {
+      setReturnProcessing(false);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -214,12 +291,40 @@ export default function POSInterface() {
 
   return (
     <div className="animate-fade-in pos-main-container" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <header className="pos-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header className="pos-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Active Checkout</h1>
-          <p style={{ color: 'var(--text-muted)' }}>High-speed point of sale terminal for real-time transactions.</p>
+          <h1 style={{ fontSize: '32px', fontWeight: 800 }}>{posMode === 'sale' ? 'Active Checkout' : 'POS return'}</h1>
+          <p style={{ color: 'var(--text-muted)' }}>
+            {posMode === 'sale'
+              ? 'High-speed point of sale terminal for real-time transactions.'
+              : 'In-store returns only — same POS receipt, within 48 hours of the sale. Stock is credited back when you confirm.'}
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-surface)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+            <button
+              type="button"
+              className={`btn ${posMode === 'sale' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ fontSize: '12px', padding: '8px 14px', borderRadius: '10px' }}
+              onClick={() => { setPosMode('sale'); setReturnOrderData(null); }}
+            >
+              Sale
+            </button>
+            <button
+              type="button"
+              className={`btn ${posMode === 'return' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ fontSize: '12px', padding: '8px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => {
+                setPosMode('return');
+                setReturnOrderData(null);
+                setReturnQtyByProduct({});
+                setSearchQuery('');
+                setFilteredProducts([]);
+              }}
+            >
+              <RotateCcw size={14} /> Return (48h)
+            </button>
+          </div>
            <div style={{ display: 'flex', gap: '12px', background: 'var(--bg-surface)', padding: '6px 12px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
               <div style={{ width: '8px', height: '8px', background: 'var(--success)', borderRadius: '50%' }}></div>
               <span style={{ fontSize: '11px', fontWeight: 800 }}>READY</span>
@@ -229,6 +334,87 @@ export default function POSInterface() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '32px', alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>
+          {posMode === 'return' ? (
+            <div className="card glass" style={{ padding: '24px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <RotateCcw size={18} /> Look up POS receipt
+              </h3>
+              <form onSubmit={handleLookupReturnOrder} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                <input
+                  type="text"
+                  placeholder="Order # e.g. ORD-128 or 128"
+                  value={returnOrderInput}
+                  onChange={(e) => setReturnOrderInput(e.target.value)}
+                  style={{ flex: 1, padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', fontWeight: 600 }}
+                />
+                <button type="submit" className="btn btn-primary" disabled={returnLookupLoading} style={{ padding: '0 20px' }}>
+                  {returnLookupLoading ? <Loader size={18} className="animate-spin" /> : 'Load'}
+                </button>
+              </form>
+
+              {returnOrderData?.items && (
+                <>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                    <strong style={{ color: 'var(--text-main)' }}>{returnOrderData.order.display_id}</strong>
+                    {' · '}
+                    {new Date(returnOrderData.order.created_at).toLocaleString()}
+                    {' · '}
+                    <span style={{ color: 'var(--primary-blue)', fontWeight: 700 }}>
+                      ~{Number(returnOrderData.order.hours_remaining_return || 0).toFixed(1)}h left to return
+                    </span>
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-light)' }}>
+                        <th style={{ padding: '10px 8px' }}>Product</th>
+                        <th style={{ padding: '10px 8px' }}>Sold</th>
+                        <th style={{ padding: '10px 8px' }}>Already returned</th>
+                        <th style={{ padding: '10px 8px' }}>Return now</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {returnOrderData.items.map((row) => (
+                        <tr key={row.product_id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                          <td style={{ padding: '12px 8px' }}>
+                            <div style={{ fontWeight: 700 }}>{row.product_name}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{row.product_code || '—'}</div>
+                          </td>
+                          <td style={{ padding: '12px 8px' }}>{row.purchased_qty}</td>
+                          <td style={{ padding: '12px 8px' }}>{row.already_returned}</td>
+                          <td style={{ padding: '12px 8px' }}>
+                            <input
+                              type="number"
+                              min={0}
+                              max={row.returnable_qty}
+                              value={returnQtyByProduct[row.product_id] ?? 0}
+                              disabled={row.returnable_qty <= 0}
+                              onChange={(e) => {
+                                let v = parseInt(e.target.value, 10);
+                                if (Number.isNaN(v)) v = 0;
+                                v = Math.max(0, Math.min(row.returnable_qty, v));
+                                setReturnQtyByProduct((prev) => ({ ...prev, [row.product_id]: v }));
+                              }}
+                              style={{ width: '72px', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-light)' }}
+                            />
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '6px' }}>max {row.returnable_qty}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <label style={{ display: 'block', marginTop: '16px', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>REASON (OPTIONAL)</label>
+                  <input
+                    type="text"
+                    value={returnReason}
+                    onChange={(e) => setReturnReason(e.target.value)}
+                    placeholder="e.g. Wrong item / defective"
+                    style={{ width: '100%', marginTop: '6px', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)' }}
+                  />
+                </>
+              )}
+            </div>
+          ) : (
+            <>
           <div className="card glass" style={{ padding: '4px', display: 'flex', alignItems: 'center', borderRadius: '16px', border: '2px solid var(--primary-blue)' }}>
             <div style={{ padding: '16px' }}>
               <Barcode size={24} color={'var(--primary-blue)'} />
@@ -272,11 +458,13 @@ export default function POSInterface() {
                })}
             </div>
           )}
+            </>
+          )}
 
           <div className="card glass" style={{ padding: '0', minHeight: '400px' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-               <h3 style={{ fontSize: '14px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Items</h3>
-               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Items: {cart.length}</span>
+               <h3 style={{ fontSize: '14px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{posMode === 'return' ? 'Return queue' : 'Current Items'}</h3>
+               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{posMode === 'return' ? 'POS 48h window' : `Items: ${cart.length}`}</span>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -289,7 +477,14 @@ export default function POSInterface() {
                 </tr>
               </thead>
               <tbody>
-                {cart.length === 0 ? (
+                {posMode === 'return' ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.6 }}>
+                      Use <strong style={{ color: 'var(--text-main)' }}>Load</strong> above to pull line items from a POS receipt.
+                      Partial returns are allowed until each line is fully returned. Online orders must use <strong>Sales → Returns</strong>.
+                    </td>
+                  </tr>
+                ) : cart.length === 0 ? (
                   <tr>
                     <td colSpan={5} style={{ padding: '100px 0', textAlign: 'center' }}>
                        <div style={{ color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
@@ -334,6 +529,23 @@ export default function POSInterface() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'sticky', top: '32px' }}>
            <div className="card glass" style={{ padding: '32px' }}>
+              {posMode === 'return' ? (
+                <>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
+                    Returns are limited to <strong>POS sales</strong> and must start within <strong>48 hours</strong> of the original transaction time. Inventory increases when you confirm.
+                  </p>
+                  <button
+                    type="button"
+                    className={`btn btn-primary ${returnProcessing ? 'spinning' : ''}`}
+                    style={{ width: '100%', height: '56px', fontSize: '15px', fontWeight: 900, borderRadius: '16px' }}
+                    onClick={handleProcessPosReturn}
+                    disabled={returnProcessing || !returnOrderData?.items}
+                  >
+                    {returnProcessing ? 'PROCESSING…' : 'CONFIRM RETURN & RESTOCK'}
+                  </button>
+                </>
+              ) : (
+                <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: 32 }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 }}>
                     <span>Items Count</span>
@@ -374,6 +586,8 @@ export default function POSInterface() {
               >
                 {processing ? 'PROCESSING...' : 'PROCESS PAYMENT'}
               </button>
+                </>
+              )}
            </div>
         </div>
       </div>

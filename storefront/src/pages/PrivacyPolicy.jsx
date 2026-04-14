@@ -1,7 +1,11 @@
 import React from 'react';
 import { Shield, Lock, Eye, ScrollText } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function PrivacyPolicy() {
+  const { siteSettings } = useSettings();
+  const { siteName, siteEmail } = siteSettings;
+  const contactEmail = siteEmail || 'support@example.com';
   return (
     <div className="privacy-policy-page" style={{ 
       display: 'flex', 
@@ -32,7 +36,7 @@ export default function PrivacyPolicy() {
             <Eye size={24} className="text-primary" /> 1. Information We Collect
           </h2>
           <p style={{ lineHeight: '1.8', color: 'var(--text-main)', opacity: 0.9 }}>
-            At ElectroCom, we collect information that allows us to provide a premium shopping experience. This includes:
+            {`At ${siteName}, we collect information that allows us to provide our services. This includes:`}
           </p>
           <ul style={{ paddingLeft: '20px', marginTop: '16px', lineHeight: '1.8', display: 'grid', gap: '10px' }}>
             <li><strong>Personal Details:</strong> Name, email address, phone number, and delivery address.</li>
@@ -70,7 +74,7 @@ export default function PrivacyPolicy() {
       </div>
 
       <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
-        <p>If you have any questions about this privacy policy, please contact us at support@electrocom.com</p>
+        <p>{`If you have any questions about this privacy policy, please contact us at ${contactEmail}`}</p>
       </div>
     </div>
   );

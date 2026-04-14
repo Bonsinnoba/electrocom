@@ -106,16 +106,16 @@ function FileUploadField({ label, description, icon, value, type, onChange, oldP
 // ── Default settings ──────────────────────────────────────────────────────────
 const DEFAULTS = {
   // Identity
-  siteName:    'ElectroCom',
-  siteEmail:   'admin@electrocom.gh',
-  phone1:      '0536683393',
-  phone2:      '0506408074',
-  whatsapp:    '233536683393',
+  siteName:    'My Store',
+  siteEmail:   'hello@example.com',
+  phone1:      '',
+  phone2:      '',
+  whatsapp:    '',
   // General
   siteLogoUrl:  '',
   faviconUrl:   '',
   storeAddress: '',
-  businessHours:'Mon–Fri, 8am–6pm',
+  businessHours:'Mon–Fri, 9am–5pm',
   socialInstagram: '',
   socialTwitter:   '',
   socialFacebook:  '',
@@ -130,6 +130,8 @@ const DEFAULTS = {
   heroBannerSubtext: '',
   heroCTAText:       'Shop Now',
   heroCTAUrl:        '/products',
+  siteTagline:       'Shop online',
+  metaDescription:   'Shop quality products online with secure checkout and support.',
   // Security
   maintenanceMode:          false,
   allowRegistration:        true,
@@ -143,9 +145,13 @@ const DEFAULTS = {
   requireNumberInPassword:  false,
   // Notifications
   emailNotify:        true,
+  emailProvider:      'smtp',
+  emailProviderSmtpEnabled: true,
+  emailProviderMailgunEnabled: false,
+  emailProviderSendgridEnabled: false,
   securityAlerts:     true,
   lowStockThreshold:  5,
-  lowStockAlertEmail: 'admin@electrocom.gh',
+  lowStockAlertEmail: 'hello@example.com',
   // System
   apiRateLimit:             60,
   debugMode:                false,
@@ -440,6 +446,12 @@ export default function GlobalSettings() {
             <Field label="Contact Email" description="System notifications and alerts are sent from this address." icon={<Mail size={14} />}>
               <input style={inputStyle} type="email" value={settings.siteEmail || ''} onChange={setVal('siteEmail')} />
             </Field>
+            <Field label="Site tagline" description="Shown after the site name in the browser tab (e.g. “My Store | Shop online”)." icon={<Type size={14} />}>
+              <input style={inputStyle} value={settings.siteTagline || ''} onChange={setVal('siteTagline')} placeholder="e.g. Shop online" />
+            </Field>
+            <Field label="Meta description (SEO)" description="Short summary for search engines; applied to the storefront on load." icon={<Globe size={14} />}>
+              <textarea style={textareaStyle} rows={2} value={settings.metaDescription || ''} onChange={setVal('metaDescription')} placeholder="A brief description of your store for search results." />
+            </Field>
             <Field label="Phone Number 1" description="Primary contact number shown on the storefront." icon={<Smartphone size={14} />}>
               <input style={inputStyle} value={settings.phone1 || ''} onChange={setVal('phone1')} />
             </Field>
@@ -597,6 +609,33 @@ export default function GlobalSettings() {
               label="Order Email Notifications"
               description="Send order confirmation and shipping updates to customers."
             />
+            <Field
+              label="Active Email Provider"
+              description="Primary provider to use when multiple providers are enabled."
+              icon={<Mail size={14} />}
+            >
+              <select
+                style={{ ...selectStyle, maxWidth: '240px' }}
+                value={settings.emailProvider || 'smtp'}
+                onChange={setVal('emailProvider')}
+              >
+                <option value="smtp">SMTP (self-hosted)</option>
+                <option value="mailgun">Mailgun</option>
+                <option value="sendgrid">SendGrid</option>
+              </select>
+            </Field>
+            <Toggle value={settings.emailProviderSmtpEnabled} onChange={set('emailProviderSmtpEnabled')}
+              label="Enable SMTP Provider"
+              description="Uses SMTP credentials from backend environment configuration."
+            />
+            <Toggle value={settings.emailProviderMailgunEnabled} onChange={set('emailProviderMailgunEnabled')}
+              label="Enable Mailgun Provider"
+              description="Requires MAILGUN_API_KEY and MAILGUN_DOMAIN in backend environment."
+            />
+            <Toggle value={settings.emailProviderSendgridEnabled} onChange={set('emailProviderSendgridEnabled')}
+              label="Enable SendGrid Provider"
+              description="Requires SENDGRID_API_KEY in backend environment."
+            />
 
             <SectionHeader title="Admin Alerts" />
             <Toggle value={settings.securityAlerts} onChange={set('securityAlerts')}
@@ -635,7 +674,7 @@ export default function GlobalSettings() {
 
             <SectionHeader title="Orders" />
             <Field label="Order Receipt Footer Note" description="Custom message printed at the bottom of every order receipt." icon={<Type size={14} />}>
-              <textarea style={textareaStyle} value={settings.orderReceiptFooterNote || ''} onChange={setVal('orderReceiptFooterNote')} placeholder="e.g. Thank you for shopping with ElectroCom!" />
+              <textarea style={textareaStyle} value={settings.orderReceiptFooterNote || ''} onChange={setVal('orderReceiptFooterNote')} placeholder="e.g. Thank you for shopping with us!" />
             </Field>
 
             <SectionHeader title="Infrastructure" />

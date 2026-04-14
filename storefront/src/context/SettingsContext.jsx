@@ -15,12 +15,14 @@ export const useSettings = () => {
 export const SettingsProvider = ({ children }) => {
   const { user, updateUser } = useUser();
   const [siteSettings, setSiteSettings] = useState({
-    // Identity
-    siteName:     'ElectroCom',
-    siteEmail:    'support@electrocom.com',
-    phone1:       '0536683393',
-    phone2:       '0506408074',
-    whatsapp:     '233536683393',
+    // Identity (overridden by get_site_settings.php)
+    siteName:     'My Store',
+    siteEmail:    'hello@example.com',
+    siteTagline:  'Shop online',
+    metaDescription: '',
+    phone1:       '',
+    phone2:       '',
+    whatsapp:     '',
     maintenanceMode: false,
     // Assets
     siteLogoUrl:  '',

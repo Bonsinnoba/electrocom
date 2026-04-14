@@ -6,6 +6,8 @@ header('Content-Type: application/json');
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
+$headers = function_exists('getallheaders') ? getallheaders() : [];
+$appId = $headers['X-App-ID'] ?? $headers['x-app-id'] ?? null;
 
 // Authenticate user
 $userId = authenticate($pdo);
@@ -21,23 +23,38 @@ if ($method === 'GET') {
                 exit;
             }
 
-            // Admins should see security, system, and order alerts
-            // We exclude generic welcome messages that are technically 'info' but for customers
+            // Admin platform scope:
+            // - Always include notifications explicitly addressed to this admin user.
+            // - Also include high-signal operations/security events across staff accounts.
             $stmt = $pdo->prepare("
                 SELECT n.*, u.name as user_name 
                 FROM notifications n 
                 LEFT JOIN users u ON n.user_id = u.id 
                 WHERE (
-                    (n.type IN ('security', 'system', 'order')) 
-                    OR (n.type = 'info' AND n.title NOT LIKE 'Welcome to%')
+                    n.user_id = ?
+                    OR (
+                        n.type IN ('security', 'system', 'order')
+                        AND u.role IN ('admin', 'super', 'marketing', 'accountant', 'store_manager', 'branch_admin')
+                    )
                 )
                 ORDER BY n.created_at DESC LIMIT 50
             ");
-            $stmt->execute();
-        } else {
-            // Standard user view: only their own
-            $stmt = $pdo->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50");
             $stmt->execute([$userId]);
+        } else {
+            // Storefront scope: customers should not receive admin/system operational alerts.
+            if ($appId === 'storefront' || $appId === 'customer') {
+                $stmt = $pdo->prepare("
+                    SELECT * FROM notifications
+                    WHERE user_id = ?
+                      AND type IN ('order', 'promo', 'info')
+                    ORDER BY created_at DESC LIMIT 50
+                ");
+                $stmt->execute([$userId]);
+            } else {
+                // Default user scope
+                $stmt = $pdo->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50");
+                $stmt->execute([$userId]);
+            }
         }
 
         $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);

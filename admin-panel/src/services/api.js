@@ -250,6 +250,20 @@ export const updatePickerOrderStage = async (id, stage) => {
     }
 };
 
+export const reportPickerMissingItems = async (id, items) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_orders.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'picker_report_missing', id, items }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error reporting missing picker items:', error);
+        throw error;
+    }
+};
+
 export const resendReceipt = async (id) => {
     try {
         const response = await fetch(`${API_BASE_URL}/admin_orders.php`, {
@@ -278,6 +292,17 @@ export const verifyDelivery = async (id, otp) => {
     }
 };
 
+export const fetchPosReturnOrder = (orderId) => {
+    const id = String(orderId || '').replace(/^ORD-/i, '').trim();
+    return authFetch(`/pos_return.php?order_id=${encodeURIComponent(id)}`);
+};
+
+export const processPosReturn = (payload) =>
+    authFetch('/pos_return.php', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+
 export const sendBroadcast = async (broadcastData) => {
     try {
         const response = await fetch(`${API_BASE_URL}/admin_broadcast.php`, {
@@ -291,6 +316,45 @@ export const sendBroadcast = async (broadcastData) => {
         throw error;
     }
 };
+
+export const fetchDeliveryAnalytics = (days = 30) =>
+    authFetch(`/admin_delivery_analytics.php?days=${encodeURIComponent(days)}`);
+
+export const fetchNotificationQueue = (status = 'failed', limit = 100) =>
+    authFetch(`/admin_notification_queue.php?status=${encodeURIComponent(status)}&limit=${encodeURIComponent(limit)}`);
+
+export const retryFailedNotificationQueue = () =>
+    authFetch('/admin_notification_queue.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'retry_failed' }),
+    });
+
+export const fetchEmailDashboard = ({ status = 'pending', days = 30, limit = 100 } = {}) =>
+    authFetch(`/admin_email_dashboard.php?status=${encodeURIComponent(status)}&days=${encodeURIComponent(days)}&limit=${encodeURIComponent(limit)}`);
+
+export const retryAllFailedEmails = () =>
+    authFetch('/admin_email_dashboard.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'retry_failed' }),
+    });
+
+export const retryEmailQueueIds = (ids = []) =>
+    authFetch('/admin_email_dashboard.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'retry_ids', ids }),
+    });
+
+export const cancelEmailQueueIds = (ids = []) =>
+    authFetch('/admin_email_dashboard.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'cancel_ids', ids }),
+    });
+
+export const bulkUpdateShelving = (payload) =>
+    authFetch('/admin_products.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'bulk_shelving', ...payload }),
+    });
 
 export const fetchSlides = async () => {
     try {
@@ -642,6 +706,33 @@ export const fetchAbandonedCarts = async () => {
         return { success: false, data: [] };
     }
 };
+
+export const fetchMissingItemsReports = async (status = 'open', limit = 100) =>
+    authFetch(`/admin_missing_items.php?status=${encodeURIComponent(status)}&limit=${encodeURIComponent(limit)}`);
+
+export const resolveMissingItemsReport = async (id, note = '') =>
+    authFetch('/admin_missing_items.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'resolve', id, note }),
+    });
+
+export const reopenMissingItemsReport = async (id) =>
+    authFetch('/admin_missing_items.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'reopen', id }),
+    });
+
+export const resolveMissingItemsWithCustomerAction = async (id, resolution, note = '') =>
+    authFetch('/admin_missing_items.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'customer_resolution', id, resolution, note }),
+    });
+
+export const requestCustomerMissingItemConfirmation = async (id) =>
+    authFetch('/admin_missing_items.php', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'request_customer_confirmation', id }),
+    });
 
 // --- Notifications ---
 

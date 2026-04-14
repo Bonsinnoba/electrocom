@@ -292,7 +292,7 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode }) {
             />
             <SettingRow 
               icon={Mail} title="Email Address" 
-              description={user?.email || 'primary@electrocom.com'}
+              description={user?.email || siteSettings.siteEmail || 'your@email.com'}
               action={<span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>PERMANENT</span>} 
             />
             <SettingRow 

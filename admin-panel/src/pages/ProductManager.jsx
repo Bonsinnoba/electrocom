@@ -28,6 +28,20 @@ const stringToSpecs = (str) => {
   return specs;
 };
 
+const validateShelvingClient = (aisle, rack, bin) => {
+  const a = String(aisle || '').trim();
+  const r = String(rack || '').trim();
+  const b = String(bin || '').trim();
+  const hasStruct = Boolean(a || r || b);
+  if (!hasStruct) return null;
+  if (!a || !r || !b) {
+    return 'Aisle, Rack, and Bin must all be filled together, or leave all three empty and use Location only.';
+  }
+  const pattern = /^[A-Za-z0-9][A-Za-z0-9.\-_]{0,15}$/;
+  const check = (label, v) => (pattern.test(v) ? null : `Invalid ${label} format. Use letters/numbers (e.g. A1, R2, B03).`);
+  return check('Aisle', a) || check('Rack', r) || check('Bin', b);
+};
+
 export default function ProductManager() {
   const { addToast } = useNotifications();
   const { confirm } = useConfirm();
@@ -215,6 +229,12 @@ export default function ProductManager() {
     if (!hasLegacyLocation && !hasStructuredShelving) {
         const confirmSave = await confirm("Shelving location is missing (Aisle/Rack/Bin). Are you sure you want to save without a shelf location?");
         if (!confirmSave) return;
+    }
+
+    const shelfErr = validateShelvingClient(formData.aisle, formData.rack, formData.bin);
+    if (shelfErr) {
+      addToast(shelfErr, 'error');
+      return;
     }
 
     setSaving(true);

@@ -1,25 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import Login from './pages/Login';
 import { API_BASE_URL } from './services/api';
-import CustomerManager from './pages/CustomerManager';
-import Settings from './pages/Settings';
-import SystemNotifications from './pages/SystemNotifications';
-import POSInterface from './pages/POSInterface';
-
-import InventoryHub from './pages/InventoryHub';
-import SalesHub from './pages/SalesHub';
-import MarketingHub from './pages/MarketingHub';
-import SuperDashboard from './pages/super-user/SuperDashboard';
-import AdminControl from './pages/super-user/AdminControl';
-import SystemLogs from './pages/super-user/SystemLogs';
-import StaffChat from './pages/StaffChat';
-import AccountantDashboard from './pages/AccountantDashboard';
-import GlobalSettings from './pages/super-user/GlobalSettings';
-import TrafficControl from './pages/super-user/TrafficControl';
-import PickupLocationManager from './pages/super-user/PickupLocationManager';
 
 
 
@@ -28,6 +10,27 @@ import { NotificationProvider, useNotifications } from './context/NotificationCo
 import { ConfirmProvider } from './context/ConfirmContext';
 import { AdminSettingsProvider, useAdminSettings } from './context/AdminSettingsContext';
 import { X } from 'lucide-react';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Login = lazy(() => import('./pages/Login'));
+const CustomerManager = lazy(() => import('./pages/CustomerManager'));
+const Settings = lazy(() => import('./pages/Settings'));
+const SystemNotifications = lazy(() => import('./pages/SystemNotifications'));
+const POSInterface = lazy(() => import('./pages/POSInterface'));
+const InventoryHub = lazy(() => import('./pages/InventoryHub'));
+const SalesHub = lazy(() => import('./pages/SalesHub'));
+const MarketingHub = lazy(() => import('./pages/MarketingHub'));
+const SuperDashboard = lazy(() => import('./pages/super-user/SuperDashboard'));
+const AdminControl = lazy(() => import('./pages/super-user/AdminControl'));
+const SystemLogs = lazy(() => import('./pages/super-user/SystemLogs'));
+const StaffChat = lazy(() => import('./pages/StaffChat'));
+const AccountantDashboard = lazy(() => import('./pages/AccountantDashboard'));
+const GlobalSettings = lazy(() => import('./pages/super-user/GlobalSettings'));
+const TrafficControl = lazy(() => import('./pages/super-user/TrafficControl'));
+const PickupLocationManager = lazy(() => import('./pages/super-user/PickupLocationManager'));
+const PickerDashboard = lazy(() => import('./pages/PickerDashboard'));
+const HelpCenter = lazy(() => import('./pages/HelpCenter'));
+const EmailDashboard = lazy(() => import('./pages/EmailDashboard'));
 
 // ─── Toast Overlay ────────────────────────────────────────────────────────────
 const AdminToasts = () => {
@@ -198,8 +201,15 @@ const ProtectedLayout = ({ children, requireSuper = false }) => {
 const DashboardSwitcher = () => {
   const { user } = useAuth();
   if (user?.role === 'accountant') return <AccountantDashboard />;
+  if (user?.role === 'picker') return <PickerDashboard />;
   return <Dashboard />;
 };
+
+const RouteLoader = ({ children }) => (
+  <Suspense fallback={<div className="loading-state">Loading module...</div>}>
+    {children}
+  </Suspense>
+);
 
 // ─── App Content ─────────────────────────────────────────────────────────────
 function AppContent() {
@@ -312,32 +322,34 @@ function AppContent() {
       </div>
 
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<RouteLoader><Login /></RouteLoader>} />
 
         <Route path="/" element={
           <ProtectedLayout>
-            <DashboardSwitcher />
+            <RouteLoader><DashboardSwitcher /></RouteLoader>
           </ProtectedLayout>
         } />
 
-        <Route path="/catalog" element={<ProtectedLayout><InventoryHub /></ProtectedLayout>} />
-        <Route path="/sales" element={<ProtectedLayout><SalesHub /></ProtectedLayout>} />
-        <Route path="/marketing" element={<ProtectedLayout><MarketingHub /></ProtectedLayout>} />
+        <Route path="/catalog" element={<ProtectedLayout><RouteLoader><InventoryHub /></RouteLoader></ProtectedLayout>} />
+        <Route path="/sales" element={<ProtectedLayout><RouteLoader><SalesHub /></RouteLoader></ProtectedLayout>} />
+        <Route path="/marketing" element={<ProtectedLayout><RouteLoader><MarketingHub /></RouteLoader></ProtectedLayout>} />
         
-        <Route path="/pos" element={<ProtectedLayout><POSInterface /></ProtectedLayout>} />
-        <Route path="/customers" element={<ProtectedLayout><CustomerManager /></ProtectedLayout>} />
-        <Route path="/notifications" element={<ProtectedLayout><SystemNotifications /></ProtectedLayout>} />
-        <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
+        <Route path="/pos" element={<ProtectedLayout><RouteLoader><POSInterface /></RouteLoader></ProtectedLayout>} />
+        <Route path="/customers" element={<ProtectedLayout><RouteLoader><CustomerManager /></RouteLoader></ProtectedLayout>} />
+        <Route path="/notifications" element={<ProtectedLayout><RouteLoader><SystemNotifications /></RouteLoader></ProtectedLayout>} />
+        <Route path="/help" element={<ProtectedLayout><RouteLoader><HelpCenter /></RouteLoader></ProtectedLayout>} />
+        <Route path="/email-dashboard" element={<ProtectedLayout><RouteLoader><EmailDashboard /></RouteLoader></ProtectedLayout>} />
+        <Route path="/settings" element={<ProtectedLayout><RouteLoader><Settings /></RouteLoader></ProtectedLayout>} />
 
-        <Route path="/super/dashboard" element={<ProtectedLayout requireSuper><SuperDashboard /></ProtectedLayout>} />
-        <Route path="/super/admins" element={<ProtectedLayout requireSuper><AdminControl /></ProtectedLayout>} />
+        <Route path="/super/dashboard" element={<ProtectedLayout requireSuper><RouteLoader><SuperDashboard /></RouteLoader></ProtectedLayout>} />
+        <Route path="/super/admins" element={<ProtectedLayout requireSuper><RouteLoader><AdminControl /></RouteLoader></ProtectedLayout>} />
 
-        <Route path="/super/logs" element={<ProtectedLayout requireSuper><SystemLogs /></ProtectedLayout>} />
-        <Route path="/super/traffic" element={<ProtectedLayout requireSuper><TrafficControl /></ProtectedLayout>} />
-        <Route path="/super/settings" element={<ProtectedLayout requireSuper><GlobalSettings /></ProtectedLayout>} />
-        <Route path="/super/pickup-locations" element={<ProtectedLayout requireSuper><PickupLocationManager /></ProtectedLayout>} />
+        <Route path="/super/logs" element={<ProtectedLayout requireSuper><RouteLoader><SystemLogs /></RouteLoader></ProtectedLayout>} />
+        <Route path="/super/traffic" element={<ProtectedLayout requireSuper><RouteLoader><TrafficControl /></RouteLoader></ProtectedLayout>} />
+        <Route path="/super/settings" element={<ProtectedLayout requireSuper><RouteLoader><GlobalSettings /></RouteLoader></ProtectedLayout>} />
+        <Route path="/super/pickup-locations" element={<ProtectedLayout requireSuper><RouteLoader><PickupLocationManager /></RouteLoader></ProtectedLayout>} />
         
-        <Route path="/staff-chat" element={<ProtectedLayout><StaffChat /></ProtectedLayout>} /> 
+        <Route path="/staff-chat" element={<ProtectedLayout><RouteLoader><StaffChat /></RouteLoader></ProtectedLayout>} /> 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

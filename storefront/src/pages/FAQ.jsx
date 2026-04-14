@@ -1,43 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState(0);
+  const { siteSettings } = useSettings();
+  const { siteName, siteEmail, phone1, phone2 } = siteSettings;
 
-  const faqs = [
-    {
-      q: "What types of products does ElectroCom sell?",
-      a: "ElectroCom specializes in electronic components (resistors, capacitors, transistors, ICs, LEDs, sensors), microcontroller modules (Arduino, ESP32, Raspberry Pi accessories), breadboards, jumper wires, soldering tools, power supplies, and complete STEM project kits for students, hobbyists, and professional engineers."
-    },
-    {
-      q: "Are your components genuine and quality-tested?",
-      a: "Yes. All components sold on ElectroCom are sourced from verified suppliers and pass quality checks before stocking. Datasheets are available on request for most ICs and modules. If you receive a defective part, we will replace it free of charge."
-    },
-    {
-      q: "Can I modify or cancel my order?",
-      a: "Orders can be modified or cancelled within 1 hour of placement. Once an order enters the 'processing' or 'shipped' phase, it cannot be altered. You will need to wait for delivery and initiate a standard return for eligible items."
-    },
-    {
-      q: "Do you sell components in bulk for schools or businesses?",
-      a: "Yes! We offer bulk pricing for institutions, schools, universities, and businesses. Contact us at support@electrocom.com with your component list and quantities and we'll provide a custom quote within 24 hours."
-    },
-    {
-      q: "What payment methods are accepted?",
-      a: "We accept Visa, MasterCard, Mobile Money (MTN, Vodafone, AirtelTigo), and direct bank transfers. All transactions are securely encrypted."
-    },
-    {
-      q: "Do I need an account to place an order?",
-      a: "Yes. An account is required to place an order so we can provide accurate tracking, order history, and dedicated customer support."
-    },
-    {
-      q: "Do you carry STEM kits suitable for beginners?",
-      a: "Absolutely. We stock beginner-friendly STEM kits that include everything needed to complete guided projects — components, a breadboard, jumper wires, and step-by-step instructions. They are ideal for students from secondary school through university level."
-    },
-    {
-      q: "How do I contact customer support?",
-      a: "You can reach us via the 'Support' tab in your dashboard, email us at support@electrocom.com, call us on 0536683393 / 0506408074, or message us on WhatsApp for quick replies."
-    }
-  ];
+  const faqs = useMemo(() => {
+    const phoneLine = [phone1, phone2].filter(Boolean).join(' / ') || 'our support number';
+    const email = siteEmail || 'support@example.com';
+
+    return [
+      {
+        q: `What types of products does ${siteName} sell?`,
+        a: `${siteName} offers a curated catalog of products. Check the shop and categories for current availability, specifications, and pricing.`
+      },
+      {
+        q: 'Are products genuine and quality-checked?',
+        a: `We work with verified suppliers and perform quality checks before stocking. If you receive a defective item, contact us for a replacement where eligible.`
+      },
+      {
+        q: 'Can I modify or cancel my order?',
+        a: "Orders can be modified or cancelled within 1 hour of placement in many cases. Once an order enters the 'processing' or 'shipped' phase, it may not be altered. You may return eligible items after delivery according to our returns policy."
+      },
+      {
+        q: 'Do you offer bulk or institutional pricing?',
+        a: `Yes — contact us at ${email} with your list and quantities for a quote.`
+      },
+      {
+        q: 'What payment methods are accepted?',
+        a: 'We accept major cards, mobile money, and other methods shown at checkout. All transactions are processed securely.'
+      },
+      {
+        q: 'Do I need an account to place an order?',
+        a: 'An account helps us provide order history, tracking, and support. Sign-up may be required depending on store settings.'
+      },
+      {
+        q: 'How do I contact customer support?',
+        a: `Use the Support section in your account, email ${email}, call ${phoneLine}, or reach us on WhatsApp if listed on the site.`
+      }
+    ];
+  }, [siteName, siteEmail, phone1, phone2]);
 
   return (
     <div className="faq-page" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -48,7 +52,7 @@ export default function FAQ() {
          </div>
         <h1 style={{ fontSize: '36px', fontWeight: 800, marginBottom: '12px' }}>Frequently Asked Questions</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '16px', maxWidth: '600px', margin: '0 auto' }}>
-          Find quick answers to the most common questions regarding your ElectroCom experience.
+          {`Find quick answers to common questions about shopping with ${siteName}.`}
         </p>
       </div>
 
@@ -106,7 +110,7 @@ export default function FAQ() {
 
       <div style={{ marginTop: '60px', textAlign: 'center', padding: '40px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px dashed var(--border-light)' }}>
          <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>Still have questions?</h3>
-         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>Our dedicated support team is available 24/7 to assist you.</p>
+         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>Our support team is here to help.</p>
          <button className="btn-primary" style={{ padding: '12px 24px', fontWeight: 600 }}>Contact Support</button>
       </div>
       

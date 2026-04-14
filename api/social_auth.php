@@ -3,6 +3,7 @@
 require __DIR__ . '/cors_middleware.php';
 require __DIR__ . '/db.php';
 require __DIR__ . '/security.php';
+require_once __DIR__ . '/brand_settings.php';
 require __DIR__ . '/vendor/autoload.php';
 
 use League\OAuth2\Client\Provider\GenericProvider;
@@ -137,7 +138,7 @@ try {
                     stream_context_create(['http' => [
                         'header' => [
                             'Authorization: Bearer ' . $accessToken->getToken(),
-                            'User-Agent: ElectroCom-App',
+                            'User-Agent: ' . preg_replace('/[^a-zA-Z0-9.-]/', '-', eh_brand_site_name()) . '-App',
                             'Accept: application/vnd.github+json'
                         ]
                     ]])
@@ -207,6 +208,9 @@ try {
 
     // issue token
     $token = generateToken($user['id']);
+
+    require_once __DIR__ . '/auth_login_log.php';
+    logSuccessfulAuthLogin($pdo, (int) $user['id'], $provider);
 
     // Set HttpOnly Cookie for session persistence (matches login.php)
     setcookie('ehub_session', $token, [

@@ -4,6 +4,7 @@ require_once 'db.php';
 require_once 'security.php';
 require_once 'order_utils.php';
 require_once 'inventory_utils.php';
+require_once __DIR__ . '/email/EmailEngine.php';
 
 // Lazy-cancel stale reservations at the start of every order operation
 lazyCancelOrders($pdo);
@@ -95,6 +96,14 @@ if ($config['DB_AUTO_REPAIR'] ?? false) {
 // Authenticate User for all order operations
 $authenticatedUserId = authenticate($pdo);
 $authenticatedUserName = getUserName($authenticatedUserId, $pdo);
+$authenticatedUserEmail = null;
+try {
+    $ueStmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
+    $ueStmt->execute([$authenticatedUserId]);
+    $authenticatedUserEmail = $ueStmt->fetchColumn() ?: null;
+} catch (Throwable $e) {
+    $authenticatedUserEmail = null;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // If a specific order ID is requested
@@ -317,6 +326,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $pdo->beginTransaction();
     try {
+        $minPhysicalStockInCart = PHP_INT_MAX;
         foreach ($items as &$item) {
             $pId = (int)$item['id'];
             $qty = (int)$item['quantity'];
@@ -324,6 +334,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pQuery->execute([$pId]);
             $prod = $pQuery->fetch(PDO::FETCH_ASSOC);
             if (!$prod) throw new Exception("Product #{$pId} not found");
+
+            $phys = (int)$prod['stock_quantity'];
+            if ($phys < $minPhysicalStockInCart) {
+                $minPhysicalStockInCart = $phys;
+            }
 
             $available = getAvailableStock($pId, $pdo);
             if ($available < $qty) {
@@ -355,12 +370,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $pdo->commit();
-        $responsePayload = ['success' => true, 'order_id' => $orderId, 'payment_reference' => $paymentReference];
+        $reservationMinutes = ($minPhysicalStockInCart < 10) ? 5 : 20;
+        $responsePayload = [
+            'success' => true,
+            'order_id' => $orderId,
+            'payment_reference' => $paymentReference,
+            'reservation_minutes' => $reservationMinutes,
+            'reservation_expires_at' => gmdate('c', time() + $reservationMinutes * 60),
+        ];
         if ($idempotencyRowId) {
             $respJson = json_encode($responsePayload);
             $doneStmt = $pdo->prepare("UPDATE order_idempotency SET status = 'completed', order_id = ?, payment_reference = ?, response_json = ? WHERE id = ?");
             $doneStmt->execute([$orderId, $paymentReference, $respJson, $idempotencyRowId]);
         }
+
+        if (!empty($authenticatedUserEmail)) {
+            try {
+                $emailEngine = new EmailEngine($pdo, $config);
+                $emailEngine->queueTemplate($authenticatedUserEmail, 'order_confirmation', [
+                    'name' => $authenticatedUserName,
+                    'order_reference' => $paymentReference,
+                    'order_total' => number_format($totalAmount, 2, '.', ''),
+                    'delivery_method' => $deliveryMethod,
+                    'delivery_address' => $shippingAddress,
+                ]);
+            } catch (Throwable $e) {
+                logger('error', 'ORDER_EMAIL', 'Failed to queue order confirmation email: ' . $e->getMessage());
+            }
+        }
+
         echo json_encode($responsePayload);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();

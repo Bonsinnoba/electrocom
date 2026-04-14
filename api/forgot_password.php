@@ -3,6 +3,8 @@
 require_once 'db.php';
 require_once 'security.php';
 require_once 'notifications.php';
+require_once __DIR__ . '/email/EmailEngine.php';
+require_once __DIR__ . '/brand_settings.php';
 
 // Rate limit: 4 password reset attempts per IP per hour
 checkRateLimit($pdo, 4, 3600);
@@ -61,18 +63,28 @@ try {
         $stmt->execute([$email, $token, $expiresAt]);
 
         $notifier = new NotificationService();
+        $emailEngine = new EmailEngine($pdo, $config);
+        $bn = eh_brand_site_name();
 
         if ($method === 'sms' && !empty($user['phone'])) {
             // Send SMS
-            $msg = "ElectroCom: Your password reset code is {$token}. It expires in 10 minutes.";
+            $msg = "{$bn}: Your password reset code is {$token}. It expires in 10 minutes.";
             $notifier->queueNotification('sms', $user['phone'], $msg);
             logger('ok', 'AUTH_FORGOT_SMS', "Password reset code queued/sent via SMS to {$user['phone']}");
             $actualMethod = 'sms';
         } else {
             // Default to Email
-            $subject = "Your ElectroCom Password Reset Code";
-            $msg = "Hello {$user['name']},\n\nWe received a request to reset your password. Your 6-digit reset code is:\n\n{$token}\n\nThis code will expire in 10 minutes. If you didn't request this, please safely ignore this email.";
-            $notifier->queueNotification('email', $email, $msg, $subject);
+            $queued = $emailEngine->queueTemplate($email, 'password_reset_otp', [
+                'name' => $user['name'],
+                'otp' => $token,
+                'expires_minutes' => 10,
+            ]);
+            if (!$queued) {
+                // Fallback to legacy notification queue for continuity.
+                $subject = "Your {$bn} Password Reset Code";
+                $msg = "Hello {$user['name']},\n\nWe received a request to reset your password. Your 6-digit reset code is:\n\n{$token}\n\nThis code will expire in 10 minutes. If you didn't request this, please safely ignore this email.";
+                $notifier->queueNotification('email', $email, $msg, $subject);
+            }
             logger('ok', 'AUTH_FORGOT_EMAIL', "Password reset code sent to {$email}");
             $actualMethod = 'email';
         }

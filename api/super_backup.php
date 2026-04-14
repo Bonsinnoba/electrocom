@@ -2,6 +2,7 @@
 // api/super_backup.php
 require 'db.php';
 require 'security.php';
+require_once __DIR__ . '/brand_settings.php';
 
 header('Content-Type: application/json');
 
@@ -66,7 +67,7 @@ try {
                 $tables[] = $row[0];
             }
 
-            $sqlDump = "-- ElectroCom Database Backup\n";
+            $sqlDump = '-- ' . eh_brand_site_name() . " Database Backup\n";
             $sqlDump .= "-- Date: " . date('Y-m-d H:i:s') . "\n\n";
             $sqlDump .= "SET FOREIGN_KEY_CHECKS = 0;\n\n";
 

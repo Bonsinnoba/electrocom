@@ -150,6 +150,8 @@ export default function Checkout() {
       addToast('Payment successful! Your order is being processed.', 'success');
       clearCart();
       checkoutIdempotencyKeyRef.current = '';
+      setReservationDeadlineMs(null);
+      setPaymentInterrupted(false);
       navigate(`/order-success?ref=${reference.reference}`);
       setLoading(false);
       isProcessingOrder.current = false;
@@ -158,7 +160,8 @@ export default function Checkout() {
   const onClose = () => {
       setLoading(false);
       isProcessingOrder.current = false;
-      addToast('Payment cancelled', 'info');
+      setPaymentInterrupted(true);
+      addToast('Payment window closed. Your stock hold may expire—try again or contact support if this persists.', 'info');
   };
 
   const handleChange = (e) => {
@@ -206,6 +209,13 @@ export default function Checkout() {
             const response = await createOrder(orderData);
 
             if (response.success && response.payment_reference) {
+                if (response.reservation_expires_at) {
+                  const t = Date.parse(response.reservation_expires_at);
+                  if (!Number.isNaN(t)) setReservationDeadlineMs(t);
+                } else if (response.reservation_minutes) {
+                  setReservationDeadlineMs(Date.now() + Number(response.reservation_minutes) * 60 * 1000);
+                }
+                setPaymentInterrupted(false);
                 // Trigger Paystack via the useEffect by setting the pending reference
                 setPendingRef(response.payment_reference);
             } else {
@@ -223,6 +233,24 @@ export default function Checkout() {
   };
 
   const [pendingRef, setPendingRef] = useState(null);
+  const [reservationDeadlineMs, setReservationDeadlineMs] = useState(null);
+  const [, setReservationTick] = useState(0);
+  const [paymentInterrupted, setPaymentInterrupted] = useState(false);
+
+  useEffect(() => {
+    if (!reservationDeadlineMs) return undefined;
+    const id = setInterval(() => setReservationTick((x) => x + 1), 1000);
+    return () => clearInterval(id);
+  }, [reservationDeadlineMs]);
+
+  const reservationRemainingSec = reservationDeadlineMs != null
+    ? Math.max(0, Math.floor((reservationDeadlineMs - Date.now()) / 1000))
+    : null;
+  const formatCountdown = (sec) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     if (pendingRef) {
@@ -613,6 +641,27 @@ export default function Checkout() {
                   </div>
                 </div>
               </div>
+              {reservationRemainingSec != null && reservationRemainingSec > 0 && (
+                <div style={{ marginTop: '12px', padding: '14px 16px', borderRadius: '12px', background: 'var(--info-bg)', border: '1px solid var(--border-light)', fontSize: '14px', fontWeight: 600, color: 'var(--text-main)' }}>
+                  Stock reserved for checkout: <span style={{ color: reservationRemainingSec < 120 ? 'var(--danger)' : 'var(--primary-blue)' }}>{formatCountdown(reservationRemainingSec)}</span>
+                  <span style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginTop: '6px' }}>
+                    Complete payment before the timer ends to reduce the risk of an oversell. Low-stock carts get a shorter hold.
+                  </span>
+                </div>
+              )}
+
+              {paymentInterrupted && (
+                <div style={{ marginTop: '16px', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)' }}>
+                  <div style={{ fontWeight: 700, marginBottom: '8px' }}>Payment did not finish</div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.5 }}>
+                    You can safely try again. If Paystack closed or your bank timed out, use the button below to reopen checkout.
+                  </p>
+                  <button type="button" className="btn-primary" style={{ width: '100%' }} onClick={() => { setPaymentInterrupted(false); handleCompletePurchase(); }}>
+                    Retry payment
+                  </button>
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
                 <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setStep(2)}>
                   <ArrowLeft size={18} />
@@ -622,6 +671,11 @@ export default function Checkout() {
                   <CheckCircle size={18} />
                   {loading ? 'Processing...' : 'Complete Purchase'}
                 </button>
+              </div>
+              <div style={{ marginTop: '14px', padding: '14px 16px', borderRadius: '12px', background: 'var(--bg-main)', border: '1px solid var(--border-light)', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--text-main)' }}>Returns:</strong>{' '}
+                Unopened items in original packaging may be returned within 14 days of pickup or delivery, unless marked final sale.
+                See our <Link to="/returns" style={{ color: 'var(--primary-blue)', fontWeight: 600 }}>Returns</Link> page for steps and exceptions.
               </div>
               <div style={{ marginTop: '16px', padding: '16px', borderRadius: '12px', border: '1px dashed var(--border-light)', color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.6 }}>
                 <strong style={{ color: 'var(--text-main)' }}>What happens next:</strong><br />

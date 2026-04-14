@@ -236,7 +236,7 @@ export default function SystemLogs() {
             {/* Terminal top bar */}
             <div style={{ padding: '12px 20px', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} style={{ width: '12px', height: '12px', borderRadius: '50%', background: c }} />)}
-              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>electrocom-core — system.log</span>
+              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>app-core — system.log</span>
             </div>
 
             {loading ? (

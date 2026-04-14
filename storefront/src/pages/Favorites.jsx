@@ -114,6 +114,7 @@ export default function Favorites({ onProductClick, searchQuery }) {
                 rating={p.rating}
                 discount_percent={p.discount_percent}
                 sale_ends_at={p.sale_ends_at}
+                stock_quantity={p.stock_quantity}
                 onClick={() => onProductClick(p)}
                 onRemove={() => toggleWishlist(p)}
               />

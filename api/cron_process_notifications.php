@@ -10,13 +10,20 @@ require_once 'notifications.php';
 $notifier = new NotificationService();
 $config = $notifier->config;
 
+$heartbeatFile = __DIR__ . '/data/queue_worker_heartbeat.txt';
+$heartbeatDir = dirname($heartbeatFile);
+if (!is_dir($heartbeatDir)) {
+    @mkdir($heartbeatDir, 0755, true);
+}
+
 // Limit number of messages per run to avoid timeouts
 $limit = 50;
 
 try {
     // 1. Fetch pending notifications
     $stmt = $pdo->prepare("SELECT * FROM notification_queue WHERE status = 'pending' AND scheduled_at <= NOW() ORDER BY created_at ASC LIMIT ?");
-    $stmt->execute([$limit]);
+    $stmt->bindValue(1, $limit, PDO::PARAM_INT);
+    $stmt->execute();
     $queue = $stmt->fetchAll();
 
     if (empty($queue)) {
@@ -57,3 +64,5 @@ try {
 } catch (Exception $e) {
     logger('error', 'NOTIF_WORKER', "Fatal worker error: " . $e->getMessage());
 }
+
+@file_put_contents($heartbeatFile, gmdate('c') . "\n" . (function_exists('gethostname') ? gethostname() : 'worker'), LOCK_EX);

@@ -6,6 +6,13 @@ import { useNotifications } from '../context/NotificationContext';
 import { useUser } from '../context/UserContext';
 import { useSettings } from '../context/SettingsContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  applySynonymsToQuery,
+  normalizeSearchText,
+  isFuzzyPartMatch,
+  rememberSearch,
+  getRecentSearches,
+} from '../utils/searchUtils';
 
 
 export default function Navbar({ 
@@ -40,24 +47,38 @@ export default function Navbar({
     { name: 'User Profile', path: '/profile', icon: '👤' },
   ];
 
+  const productPages = ['/', '/shop', '/favorites', '/cart', '/checkout', '/transactions', '/orders'];
+  const isProductPage = productPages.includes(location.pathname);
+
   const results = React.useMemo(() => {
     if (!searchQuery?.trim()) return { pages: [], products: [] };
-    const q = (searchQuery || '').toLowerCase();
-    
+    const effective = applySynonymsToQuery(searchQuery).toLowerCase().trim();
+    const q = effective;
+    const normalizedQuery = normalizeSearchText(q);
+
     return {
-      pages: pages.filter(p => p.name.toLowerCase().includes(q)),
-      products: products.filter(p => 
-        p.name.toLowerCase().includes(q) || 
-        (p.product_code && p.product_code.toLowerCase().includes(q))
-      ).slice(0, 5)
+      pages: pages.filter((p) => p.name.toLowerCase().includes(q)),
+      products: products
+        .filter((p) => {
+          const name = (p.name || '').toLowerCase();
+          const code = (p.product_code || '').toLowerCase();
+          const exact = name.includes(q) || (code && code.includes(q));
+          const fuzzy =
+            !exact &&
+            (isFuzzyPartMatch(normalizedQuery, name) ||
+              isFuzzyPartMatch(normalizedQuery, code));
+          return exact || fuzzy;
+        })
+        .slice(0, 5),
     };
   }, [searchQuery, products]);
 
+  const recentSearches = React.useMemo(() => (isProductPage ? getRecentSearches() : []), [isProductPage, searchQuery]);
+
   const hasResults = results.pages.length > 0 || results.products.length > 0;
+  const showRecentRow = isProductPage && isFocused && !String(searchQuery || '').trim() && recentSearches.length > 0;
+  const showSearchDropdown = isFocused && (hasResults || showRecentRow);
   const showFilter = location.pathname === '/' || location.pathname === '/shop';
-  
-  const productPages = ['/', '/shop', '/favorites', '/cart', '/checkout', '/transactions', '/orders'];
-  const isProductPage = productPages.includes(location.pathname);
   const searchPlaceholder = isProductPage ? "Search for products..." : "Search settings & notifications...";
 
   useEffect(() => {
@@ -104,6 +125,11 @@ export default function Navbar({
           aria-label="Search products and sections"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && String(searchQuery || '').trim()) {
+              rememberSearch(searchQuery);
+            }
+          }}
           onFocus={() => setIsFocused(true)}
           autoComplete="off"
         />
@@ -117,8 +143,31 @@ export default function Navbar({
         )}
 
         {/* Search Results Dropdown */}
-        {isFocused && hasResults && (
+        {showSearchDropdown && (
           <div className="search-results-dropdown glass animate-fade-in">
+            {showRecentRow && (
+              <div className="results-section">
+                <div className="section-label">Recent searches</div>
+                {recentSearches.map((term) => (
+                  <button
+                    key={term}
+                    type="button"
+                    className="result-item"
+                    style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                    onClick={() => {
+                      setSearchQuery(term);
+                      setIsFocused(true);
+                    }}
+                  >
+                    <div className="result-info">
+                      <span className="result-name">{term}</span>
+                      <span className="result-meta">Search again</span>
+                    </div>
+                    <ArrowRight size={14} className="result-arrow" />
+                  </button>
+                ))}
+              </div>
+            )}
             {results.pages.length > 0 && (
               <div className="results-section">
                 <div className="section-label">Sections</div>
@@ -152,6 +201,7 @@ export default function Navbar({
                     key={product.id} 
                     className="result-item"
                     onClick={() => {
+                      rememberSearch(searchQuery || product.name);
                       if (onProductClick) {
                         onProductClick(product);
                       } else {
@@ -162,7 +212,7 @@ export default function Navbar({
                       setIsSearchOpen(false);
                     }}
                   >
-                    <img src={product.image} alt={product.name} className="result-thumb" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '10px' }} />
+                    <img src={product.image || product.image_url} alt={product.name} className="result-thumb" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '10px' }} />
                     <div className="result-info">
                       <span className="result-name">{product.name}</span>
                       <span className="result-meta">GH₵{product.price} • View Details</span>

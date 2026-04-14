@@ -2,6 +2,7 @@
 // backend/invoice.php — Generates a printable HTML invoice for an order
 require_once 'db.php';
 require_once 'security.php';
+require_once __DIR__ . '/brand_settings.php';
 
 $userId = authenticate($pdo);
 $orderId = (int)($_GET['order_id'] ?? 0);
@@ -43,6 +44,8 @@ try {
         echo "Order not found";
         exit;
     }
+
+    $brandInv = eh_brand_invoice_block();
 
     // Fetch order items
     $itemStmt = $pdo->prepare("
@@ -266,10 +269,10 @@ try {
                     <div class="order-id">ORD-<?= $orderId ?></div>
                 </div>
                 <div class="company">
-                    <strong style="font-size: 18px;">ElectroCom</strong><br>
-                    support@electrocom.com<br>
-                    0536683393 / 0506408074<br>
-                    Accra, Kumasi & Wa, Ghana
+                    <strong style="font-size: 18px;"><?= htmlspecialchars($brandInv['name']) ?></strong><br>
+                    <?= htmlspecialchars($brandInv['email']) ?><br>
+                    <?= $brandInv['phone_line'] !== '' ? htmlspecialchars($brandInv['phone_line']) . '<br>' : '' ?>
+                    <?= $brandInv['address'] !== '' ? nl2br(htmlspecialchars($brandInv['address'])) : '' ?>
                 </div>
             </div>
 
@@ -331,7 +334,7 @@ try {
             </div>
 
             <div class="footer">
-                <p>Thank you for shopping with ElectroCom! &mdash; Your Trusted Electronics Partner</p>
+                <p><?= $brandInv['footer_note'] !== '' ? htmlspecialchars($brandInv['footer_note']) : ('Thank you for shopping with ' . htmlspecialchars($brandInv['name']) . '!') ?></p>
                 <p style="margin-top: 4px;">This invoice was generated on <?= date('d M Y') ?></p>
             </div>
         </div>

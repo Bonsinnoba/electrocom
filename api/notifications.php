@@ -1,6 +1,7 @@
 <?php
 // backend/notifications.php
 require_once 'security.php';
+require_once __DIR__ . '/brand_settings.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -78,8 +79,8 @@ class NotificationService
             }
 
             // Recipients
-            $from = $this->config['MAIL_FROM'] ?? 'no-reply@electrocom.com';
-            $mail->setFrom($from, 'ElectroCom');
+            $from = $this->config['MAIL_FROM'] ?? 'no-reply@example.com';
+            $mail->setFrom($from, eh_brand_site_name());
             $mail->addAddress($to);
 
             // Content
@@ -109,7 +110,7 @@ class NotificationService
     {
         $clientId = $this->config['SMS_CLIENT_ID'] ?? '';
         $clientSecret = $this->config['SMS_CLIENT_SECRET'] ?? '';
-        $from = $this->config['SMS_FROM'] ?? 'ElectroCom';
+        $from = $this->config['SMS_FROM'] ?: eh_brand_site_name();
 
         if (!$clientId || !$clientSecret) {
             logger('warning', 'SMS_SERVICE', "Hubtel credentials missing in .env.php. Falling back to log.");
@@ -117,13 +118,26 @@ class NotificationService
             return false;
         }
 
+        $normalizedTo = preg_replace('/\s+/', '', (string)$to);
+        $normalizedTo = preg_replace('/[^\d+]/', '', $normalizedTo);
+        if (strpos($normalizedTo, '+233') === 0) {
+            $normalizedTo = '233' . substr($normalizedTo, 4);
+        } elseif (strpos($normalizedTo, '0') === 0 && strlen($normalizedTo) === 10) {
+            $normalizedTo = '233' . substr($normalizedTo, 1);
+        }
+
+        if (!preg_match('/^233\d{9}$/', $normalizedTo)) {
+            logger('error', 'SMS_SERVICE', "Invalid recipient phone format for Hubtel: {$to}");
+            return false;
+        }
+
         // Hubtel SMS API call (V1)
-        $url = $this->config['SMS_API_URL'] ?? "https://smsc.hubtel.com/v1/messages/send";
+        $url = rtrim($this->config['SMS_API_URL'] ?: "https://smsc.hubtel.com/v1/messages/send", '?');
         $auth = base64_encode("$clientId:$clientSecret");
 
         $postData = [
             'From' => $from,
-            'To' => $to,
+            'To' => $normalizedTo,
             'Content' => $message,
             'Type' => 0 // 0 for Quick Message
         ];
@@ -132,6 +146,8 @@ class NotificationService
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             "Authorization: Basic $auth",
@@ -139,14 +155,30 @@ class NotificationService
         ]);
 
         $response = curl_exec($ch);
+        $curlError = curl_error($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        if ($response === false) {
+            logger('error', 'SMS_SERVICE', "Hubtel transport error: " . ($curlError ?: 'Unknown cURL error'));
+            return false;
+        }
+
+        $decoded = json_decode((string)$response, true);
+        $providerCode = is_array($decoded) ? ($decoded['ResponseCode'] ?? $decoded['responseCode'] ?? null) : null;
+        $providerMessage = is_array($decoded) ? ($decoded['Message'] ?? $decoded['message'] ?? '') : '';
+
         if ($httpCode >= 200 && $httpCode < 300) {
-            logger('info', 'SMS_SERVICE', "Successfully sent SMS to {$to} via Hubtel");
+            // Hubtel can return HTTP 200 with an application-level failure code.
+            if ($providerCode !== null && !in_array((string)$providerCode, ['0', '0000'], true)) {
+                logger('error', 'SMS_SERVICE', "Hubtel rejected SMS to {$normalizedTo}. Code {$providerCode}. {$providerMessage}. Raw: {$response}");
+                return false;
+            }
+
+            logger('info', 'SMS_SERVICE', "Successfully sent SMS to {$normalizedTo} via Hubtel");
             return true;
         } else {
-            logger('error', 'SMS_SERVICE', "Hubtel API error (Code {$httpCode}): " . $response);
+            logger('error', 'SMS_SERVICE', "Hubtel API error (HTTP {$httpCode}) for {$normalizedTo}: " . $response);
             return false;
         }
     }

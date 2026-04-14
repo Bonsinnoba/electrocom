@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Truck, CheckCircle, Clock, X, MapPin, User, Package, Calendar, Mail, ShieldCheck, RotateCcw } from 'lucide-react';
+import { Eye, Truck, CheckCircle, Clock, X, MapPin, User, Package, Calendar, Mail, ShieldCheck, RotateCcw, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { fetchOrders, updateOrderStatus, updatePickerOrderStage, resendReceipt, verifyDelivery, API_BASE_URL } from '../services/api';
+import { fetchOrders, updateOrderStatus, updatePickerOrderStage, resendReceipt, verifyDelivery, reportPickerMissingItems, API_BASE_URL } from '../services/api';
 import { useConfirm } from '../context/ConfirmContext';
 import { formatPrice } from '../utils/formatPrice';
 
@@ -12,6 +12,7 @@ export default function OrderManager() {
   const [liveStats, setLiveStats] = useState({ review: 0, shipped: 0, deliveredToday: 0 });
   const [otp, setOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [reportingMissing, setReportingMissing] = useState(false);
   const { confirm } = useConfirm();
   const navigate = useNavigate();
   
@@ -20,6 +21,64 @@ export default function OrderManager() {
   const isMarketing = user.role === 'marketing';
   const isPicker = user.role === 'picker';
   const canUsePickerWorkflow = ['picker', 'super', 'admin', 'store_manager', 'branch_admin'].includes(user.role);
+
+  const getPickLocation = (item) => {
+    const aisle = String(item?.aisle || '').trim();
+    const rack = String(item?.rack || '').trim();
+    const bin = String(item?.bin || '').trim();
+    const location = String(item?.location || '').trim();
+
+    if (aisle || rack || bin) {
+      const parts = [];
+      if (aisle) parts.push(`Aisle ${aisle}`);
+      if (rack) parts.push(`Rack ${rack}`);
+      if (bin) parts.push(`Bin ${bin}`);
+      return parts.join(' • ');
+    }
+    if (location) {
+      return `Shelf ${location}`;
+    }
+    return '';
+  };
+
+  const normalizeSortToken = (value) => {
+    const v = String(value || '').trim();
+    if (!v) return 'ZZZZZZ';
+    const m = v.match(/^([A-Za-z]+)?(\d+)?(.*)$/);
+    if (!m) return v.toUpperCase();
+    const alpha = (m[1] || '').toUpperCase();
+    const num = m[2] ? String(m[2]).padStart(6, '0') : '999999';
+    const rest = (m[3] || '').toUpperCase();
+    return `${alpha}|${num}|${rest}`;
+  };
+
+  const getSortedItems = (items = []) => {
+    return [...items].sort((a, b) => {
+      const aHasStruct = !!(String(a?.aisle || '').trim() || String(a?.rack || '').trim() || String(a?.bin || '').trim());
+      const bHasStruct = !!(String(b?.aisle || '').trim() || String(b?.rack || '').trim() || String(b?.bin || '').trim());
+      if (aHasStruct !== bHasStruct) return aHasStruct ? -1 : 1;
+
+      const aHasAnyLoc = !!(getPickLocation(a));
+      const bHasAnyLoc = !!(getPickLocation(b));
+      if (aHasAnyLoc !== bHasAnyLoc) return aHasAnyLoc ? -1 : 1;
+
+      const aKey = [
+        normalizeSortToken(a?.aisle),
+        normalizeSortToken(a?.rack),
+        normalizeSortToken(a?.bin),
+        normalizeSortToken(a?.location),
+        String(a?.name || '').toUpperCase(),
+      ].join('||');
+      const bKey = [
+        normalizeSortToken(b?.aisle),
+        normalizeSortToken(b?.rack),
+        normalizeSortToken(b?.bin),
+        normalizeSortToken(b?.location),
+        String(b?.name || '').toUpperCase(),
+      ].join('||');
+      return aKey.localeCompare(bKey);
+    });
+  };
 
   useEffect(() => {
     if (isMarketing) return;
@@ -105,6 +164,40 @@ export default function OrderManager() {
       }
     } catch (error) {
       alert('Failed to update picker stage');
+    }
+  };
+
+  const handleReportMissingItem = async (item) => {
+    if (!selectedOrder?.id) return;
+    const maxQty = Math.max(1, Number(item.qty || 1));
+    const qtyInput = window.prompt(`How many units are missing for "${item.name}"? (1-${maxQty})`, '1');
+    if (qtyInput === null) return;
+    const qtyMissing = Math.max(1, Math.min(maxQty, parseInt(String(qtyInput), 10) || 1));
+    const reason = window.prompt(`Why is "${item.name}" missing?`, 'Not found on shelf');
+    if (reason === null) return;
+    const cleanReason = String(reason || '').trim();
+    if (!cleanReason) {
+      alert('Please provide a reason before reporting.');
+      return;
+    }
+
+    setReportingMissing(true);
+    try {
+      const res = await reportPickerMissingItems(selectedOrder.id, [{
+        product_id: item.product_id,
+        name: item.name,
+        qty: qtyMissing,
+        reason: cleanReason,
+      }]);
+      if (!res.success) {
+        alert(res.error || 'Failed to report missing item');
+        return;
+      }
+      alert('Missing item reported. Admin team has been notified.');
+    } catch (error) {
+      alert('Failed to report missing item');
+    } finally {
+      setReportingMissing(false);
     }
   };
 
@@ -302,20 +395,44 @@ export default function OrderManager() {
                 <Package size={16} /> Order Items
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {selectedOrder.items.map((item, i) => (
+                {getSortedItems(selectedOrder.items || []).map((item, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '10px', background: 'var(--bg-surface-secondary)' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '14px' }}>{item.name}</div>
+                      {item.product_code && (
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, marginTop: '3px' }}>
+                          SKU: {item.product_code}
+                        </div>
+                      )}
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Qty: {item.qty}</span>
-                        {(item.aisle || item.rack || item.bin) ? (
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            {item.aisle && <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>A:{item.aisle}</span>}
-                            {item.rack && <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>R:{item.rack}</span>}
-                            {item.bin && <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>B:{item.bin}</span>}
-                          </div>
+                        {getPickLocation(item) ? (
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.12)', padding: '2px 7px', borderRadius: '4px' }}>
+                            {getPickLocation(item)}
+                          </span>
                         ) : (
-                          item.location && <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--primary-blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>Shelf: {item.location}</span>
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--warning)', background: 'rgba(245, 158, 11, 0.15)', padding: '2px 7px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <AlertTriangle size={10} /> Location not assigned
+                          </span>
+                        )}
+                        {canUsePickerWorkflow && (
+                          <button
+                            type="button"
+                            onClick={() => handleReportMissingItem(item)}
+                            disabled={reportingMissing}
+                            style={{
+                              border: '1px solid rgba(245, 158, 11, 0.45)',
+                              background: 'rgba(245, 158, 11, 0.14)',
+                              color: 'var(--warning)',
+                              borderRadius: '6px',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              cursor: reportingMissing ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            Report missing
+                          </button>
                         )}
                       </div>
                     </div>

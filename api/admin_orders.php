@@ -68,7 +68,17 @@ if ($method === 'GET') {
             $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
             
             $itemStmt = $pdo->prepare("
-                SELECT oi.order_id, p.name, p.location, oi.quantity as qty, oi.price_at_purchase as price
+                SELECT
+                    oi.order_id,
+                    oi.product_id,
+                    p.name,
+                    p.product_code,
+                    p.location,
+                    p.aisle,
+                    p.rack,
+                    p.bin,
+                    oi.quantity as qty,
+                    oi.price_at_purchase as price
                 FROM order_items oi
                 JOIN products p ON oi.product_id = p.id
                 WHERE oi.order_id IN ($placeholders)
@@ -241,6 +251,110 @@ if ($method === 'GET') {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
+    } elseif ($action === 'picker_report_missing') {
+        if (!in_array($role, ['picker', 'super', 'admin', 'store_manager', 'branch_admin'], true)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Forbidden']);
+            exit;
+        }
+
+        $idStr = $decoded['id'] ?? null;
+        $items = $decoded['items'] ?? [];
+        if (!$idStr || !is_array($items) || empty($items)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Order ID and missing items are required']);
+            exit;
+        }
+
+        $id = (int)str_replace('ORD-', '', (string)$idStr);
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid order ID']);
+            exit;
+        }
+
+        try {
+            $pdo->beginTransaction();
+
+            $pdo->exec("CREATE TABLE IF NOT EXISTS order_missing_items (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                order_id INT NOT NULL,
+                product_id INT DEFAULT NULL,
+                product_name VARCHAR(255) NOT NULL,
+                qty_missing INT NOT NULL DEFAULT 1,
+                reason VARCHAR(255) DEFAULT NULL,
+                reported_by INT NOT NULL,
+                status ENUM('open', 'resolved') DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_order_created (order_id, created_at),
+                INDEX idx_status_created (status, created_at)
+            )");
+
+            $orderStmt = $pdo->prepare("SELECT user_id FROM orders WHERE id = ? FOR UPDATE");
+            $orderStmt->execute([$id]);
+            $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$order) {
+                throw new Exception('Order not found');
+            }
+
+            $ins = $pdo->prepare("
+                INSERT INTO order_missing_items (order_id, product_id, product_name, qty_missing, reason, reported_by)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+
+            $reported = 0;
+            $summaryParts = [];
+            foreach ($items as $it) {
+                $name = sanitizeInput($it['name'] ?? '');
+                $reason = sanitizeInput($it['reason'] ?? '');
+                $qty = max(1, (int)($it['qty'] ?? 1));
+                $productId = isset($it['product_id']) ? (int)$it['product_id'] : null;
+                if ($name === '') {
+                    continue;
+                }
+                $ins->execute([$id, $productId ?: null, $name, $qty, $reason ?: null, $userId]);
+                $summaryParts[] = "{$name} (x{$qty})";
+                $reported++;
+            }
+
+            if ($reported === 0) {
+                throw new Exception('No valid missing items supplied');
+            }
+
+            $orderRef = 'ORD-' . $id;
+            $summary = implode(', ', array_slice($summaryParts, 0, 5));
+            if (count($summaryParts) > 5) {
+                $summary .= ', ...';
+            }
+            $logMessage = "Picker {$userName} reported missing item(s) for {$orderRef}: {$summary}";
+            $pdo->prepare("INSERT INTO order_status_logs (order_id, status_key, message) VALUES (?, 'processing', ?)")
+                ->execute([$id, $logMessage]);
+
+            // Notify privileged staff
+            $staffStmt = $pdo->query("SELECT id FROM users WHERE role IN ('super', 'admin', 'store_manager', 'branch_admin') AND status = 'active'");
+            $staffIds = $staffStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            if (!empty($staffIds)) {
+                $notif = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, 'Missing Item Alert', ?, 'warning')");
+                foreach ($staffIds as $sid) {
+                    $notif->execute([(int)$sid, $logMessage]);
+                }
+            }
+
+            // Notify customer that substitution/contact may follow
+            $userMsg = "We're reviewing item availability for {$orderRef}. Our team may contact you with substitution options.";
+            $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, 'Order Update', ?, 'order')")
+                ->execute([(int)$order['user_id'], $userMsg]);
+
+            logger('warn', 'PICKER', $logMessage);
+            $pdo->commit();
+            echo json_encode(['success' => true, 'reported' => $reported]);
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
     } elseif ($action === 'resend_receipt') {
         if ($role === 'picker') {
             http_response_code(403);
@@ -277,7 +391,9 @@ if ($method === 'GET') {
             $items = $itemStmt->fetchAll();
 
             require_once 'notifications.php';
+            require_once __DIR__ . '/brand_settings.php';
             $notifier = new NotificationService();
+            $bn = eh_brand_site_name();
 
             $subject = "Receipt for Order #{$idStr}";
             $itemsList = "";
@@ -285,7 +401,7 @@ if ($method === 'GET') {
                 $itemsList .= "- {$item['name']} x {$item['qty']} (GHS " . number_format($item['price'], 2) . ")\n";
             }
 
-            $msg = "Hello {$order['name']},\n\nHere is your receipt for order #{$idStr}.\n\nItems:\n{$itemsList}\nTotal: GHS " . number_format($order['total_amount'], 2) . "\n\nThank you for shopping with ElectroCom!";
+            $msg = "Hello {$order['name']},\n\nHere is your receipt for order #{$idStr}.\n\nItems:\n{$itemsList}\nTotal: GHS " . number_format($order['total_amount'], 2) . "\n\nThank you for shopping with {$bn}!";
 
             $notifier->queueNotification('email', $order['email'], $msg, $subject);
 

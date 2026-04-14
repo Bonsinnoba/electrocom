@@ -399,7 +399,11 @@ export default function Dashboard() {
             <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px', flexWrap: 'wrap' }}>
               <Globe size={18} color="#3b82f6" />
               <h2 style={{ fontSize:'18px', fontWeight:800 }}>Auth Origins</h2>
-              <span style={{ marginLeft:'auto', fontSize:'12px', color:'var(--text-muted)', fontWeight:700 }}>How users sign in</span>
+              <span style={{ marginLeft:'auto', fontSize:'12px', color:'var(--text-muted)', fontWeight:700 }}>
+                {data?.auth_origins_window_days
+                  ? `Successful sign-ins (last ${data.auth_origins_window_days} days)`
+                  : 'How users sign in (by account)'}
+              </span>
             </div>
             {data?.auth_origins?.length ? (
               <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>

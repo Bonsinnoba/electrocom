@@ -49,13 +49,24 @@ $config = [
     'GITHUB_CLIENT_SECRET' => $_ENV['GITHUB_CLIENT_SECRET'] ?? '',
     'GITHUB_REDIRECT'      => $_ENV['GITHUB_REDIRECT'] ?? '',
     
-    // Notification: Email (SendGrid)
+    // Notification: Email
+    'EMAIL_PROVIDER'    => $_ENV['EMAIL_PROVIDER'] ?? 'smtp',
+    'EMAIL_QUEUE_ENABLED' => filter_var($_ENV['EMAIL_QUEUE_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN),
+    'EMAIL_MAX_ATTEMPTS'  => (int)($_ENV['EMAIL_MAX_ATTEMPTS'] ?? 5),
+    'EMAIL_SMTP_ENABLED'    => filter_var($_ENV['EMAIL_SMTP_ENABLED'] ?? true, FILTER_VALIDATE_BOOLEAN),
+    'EMAIL_MAILGUN_ENABLED' => filter_var($_ENV['EMAIL_MAILGUN_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN),
+    'EMAIL_SENDGRID_ENABLED'=> filter_var($_ENV['EMAIL_SENDGRID_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN),
+    'MAIL_FROM_NAME'      => $_ENV['MAIL_FROM_NAME'] ?? 'EssentialsHub',
     'MAIL_FROM'       => $_ENV['MAIL_FROM'] ?? '',
     'SMTP_HOST'       => $_ENV['SMTP_HOST'] ?? '',
     'SMTP_PORT'       => (int)($_ENV['SMTP_PORT'] ?? 587),
     'SMTP_USER'       => $_ENV['SMTP_USER'] ?? '',
     'SMTP_PASS'       => $_ENV['SMTP_PASS'] ?? '',
     'SMTP_ENCRYPTION' => $_ENV['SMTP_ENCRYPTION'] ?? 'tls',
+    'MAILGUN_API_KEY' => $_ENV['MAILGUN_API_KEY'] ?? '',
+    'MAILGUN_DOMAIN'  => $_ENV['MAILGUN_DOMAIN'] ?? '',
+    'MAILGUN_REGION'  => $_ENV['MAILGUN_REGION'] ?? 'us',
+    'SENDGRID_API_KEY' => $_ENV['SENDGRID_API_KEY'] ?? '',
     
     // Notification: SMS (Hubtel)
     'SMS_CLIENT_ID'     => $_ENV['SMS_CLIENT_ID'] ?? '',

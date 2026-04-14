@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { loginUser, API_BASE_URL } from '../services/api';
+import { loginUser, API_BASE_URL, fetchAnalytics, fetchProducts } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useAdminSettings } from '../context/AdminSettingsContext';
 import { Lock, Mail, Loader, AlertCircle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
   const { login } = useAuth();
-  const { siteName } = useAdminSettings();
+  const { siteName, siteEmail } = useAdminSettings();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,6 +31,9 @@ export default function Login() {
             } else {
                 // Use the login function from context to update state reactively
                 login(result.data.token, user);
+
+                fetchAnalytics().catch(() => {});
+                fetchProducts().catch(() => {});
                 
                 if (user.role === 'super') {
                     navigate('/super/dashboard');
@@ -109,7 +112,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-field" 
-                placeholder="admin@electrocom.com" 
+                placeholder={siteEmail || 'admin@example.com'} 
                 required
                 style={{ paddingLeft: '40px' }}
               />

@@ -1,38 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  DollarSign, 
-  ShoppingBag, 
-  Users, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  ShoppingCart, 
-  Package, 
-  TrendingUp, 
-  Calendar, 
-  Search, 
-  Bell, 
-  Clock, 
-  Activity, 
-  ExternalLink,
+import {
+  DollarSign,
+  ShoppingBag,
+  Users,
+  ArrowUpRight,
+  TrendingUp,
+  Calendar,
+  Activity,
   Zap,
   Layers,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-react';
 import { fetchAnalytics } from '../services/api';
 import { useAdminSettings } from '../context/AdminSettingsContext';
-import { 
-  AreaChart, 
-  Area, 
-  BarChart,
-  Bar,
-  Cell,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip as RechartsTooltip, 
-  ResponsiveContainer 
-} from 'recharts';
+import { useAuth } from '../context/AuthContext';
+
+const DashboardRevenueCharts = lazy(() => import('./DashboardRevenueCharts'));
 
 const toDateKey = (value) => {
   const date = new Date(value);
@@ -105,6 +89,9 @@ const StatCard = ({ icon, label, value, trend, trendLabel, color = 'var(--primar
 
 export default function Dashboard() {
   const { siteName } = useAdminSettings();
+  const { user } = useAuth();
+  const role = user?.role || 'admin';
+  const isMarketing = role === 'marketing';
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -163,7 +150,7 @@ export default function Dashboard() {
       detail: `${data.low_stock_count} products are low in stock and may block new sales.`,
       actionPath: '/catalog',
     } : null,
-    (data?.strategic_insights?.ship_efficiency || 0) > 24 ? {
+    !isMarketing && (data?.strategic_insights?.ship_efficiency || 0) > 24 ? {
       level: 'medium',
       title: 'Speed up dispatch operations',
       detail: `Average dispatch time is ${data.strategic_insights.ship_efficiency} hours. Consider assigning more picker capacity.`,
@@ -209,45 +196,49 @@ export default function Dashboard() {
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px' }}>
-        <StatCard 
-          icon={<DollarSign size={24} />} 
-          label="Total Revenue" 
-          value={`GH₵ ${Number(data?.total_revenue || 0).toLocaleString()}`} 
-          trend="+15.4%" 
+        <StatCard
+          icon={<DollarSign size={24} />}
+          label="Total Revenue"
+          value={`GH₵ ${Number(data?.total_revenue || 0).toLocaleString()}`}
+          trend="+15.4%"
           trendLabel="Combined Growth"
           color="var(--primary-blue)"
         />
-        <StatCard 
-          icon={<ShoppingBag size={24} />} 
-          label="Online Sales" 
-          value={`GH₵ ${Number(data?.revenue_online || 0).toLocaleString()}`} 
+        <StatCard
+          icon={<ShoppingBag size={24} />}
+          label="Online Sales"
+          value={`GH₵ ${Number(data?.revenue_online || 0).toLocaleString()}`}
           trendLabel="Platform Revenue"
         />
-        <StatCard 
-          icon={<Zap size={24} />} 
-          label="POS Sales" 
-          value={`GH₵ ${Number(data?.revenue_pos || 0).toLocaleString()}`} 
-          color="var(--accent-gold)"
-          trendLabel="Store Revenue"
-        />
-        <StatCard 
-          icon={<Layers size={24} />} 
-          label="Total Orders" 
-          value={String(data?.total_orders || 0)} 
+        {!isMarketing && (
+          <StatCard
+            icon={<Zap size={24} />}
+            label="POS Sales"
+            value={`GH₵ ${Number(data?.revenue_pos || 0).toLocaleString()}`}
+            color="var(--accent-gold)"
+            trendLabel="Store Revenue"
+          />
+        )}
+        <StatCard
+          icon={<Layers size={24} />}
+          label="Total Orders"
+          value={String(data?.total_orders || 0)}
           color="var(--primary-blue)"
           trendLabel="Completed Volume"
         />
-        <StatCard 
-          icon={<Activity size={24} />} 
-          label="Avg Order" 
-          value={`GH₵ ${Number(data?.avg_order_value || 0).toLocaleString()}`} 
-          color="var(--info)"
-          trendLabel="Per Transaction"
-        />
-        <StatCard 
-          icon={<Users size={24} />} 
-          label="Customers" 
-          value={String(data?.total_customers || 0)} 
+        {!isMarketing && (
+          <StatCard
+            icon={<Activity size={24} />}
+            label="Avg Order"
+            value={`GH₵ ${Number(data?.avg_order_value || 0).toLocaleString()}`}
+            color="var(--info)"
+            trendLabel="Per Transaction"
+          />
+        )}
+        <StatCard
+          icon={<Users size={24} />}
+          label="Customers"
+          value={String(data?.total_customers || 0)}
           color="var(--success)"
           trendLabel="Direct Reach"
         />
@@ -280,107 +271,35 @@ export default function Dashboard() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
-        {/* Economic Velocity (Chart) */}
-        <div className="card glass" style={{ gridColumn: 'span 2', padding: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-            <div>
-              <h3 style={{ fontSize: '18px', fontWeight: 800 }}>Economic Velocity</h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Revenue trends across selected period</p>
+        <Suspense
+          fallback={(
+            <div className="card glass shimmer" style={{ gridColumn: 'span 2', padding: '32px', minHeight: '360px' }}>
+              <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Loading charts…</p>
             </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[7, 30, 90].map((days) => (
-                  <button key={days} type="button" className={`btn ${chartRange === days ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartRange(days)}>
-                    {days}d
-                  </button>
-                ))}
-                <button type="button" className={`btn ${chartMode === 'area' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartMode('area')}>
-                  Area
-                </button>
-                <button type="button" className={`btn ${chartMode === 'bar' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartMode('bar')}>
-                  Bar
-                </button>
-            </div>
-          </div>
-          <div style={{ width: '100%', height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              {chartMode === 'area' ? (
-              <AreaChart data={filteredRevenueChart}>
-                <defs>
-                  <linearGradient id="onlineFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="posFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-gold)" stopOpacity={0.25}/>
-                    <stop offset="95%" stopColor="var(--accent-gold)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-light)" />
-                <XAxis
-                  dataKey="date"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-                  tickFormatter={formatChartTick}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-                  tickFormatter={(v) => `GH₵${v >= 1000 ? `${Math.round(v / 1000)}k` : v}`}
-                />
-                <RechartsTooltip
-                  contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '12px', color: 'var(--text-main)' }}
-                  formatter={(value, name, ctx) => {
-                    const baseLabel = name === 'online_revenue' ? 'Online' : 'POS';
-                    return [`GH₵ ${Number(value || 0).toLocaleString()}`, ctx?.payload?._isFilled ? `${baseLabel} (auto-filled)` : baseLabel];
-                  }}
-                  labelFormatter={(label) => {
-                    const d = new Date(label);
-                    return Number.isNaN(d.getTime()) ? label : d.toLocaleDateString();
-                  }}
-                />
-                <Area type="monotone" dataKey="online_revenue" stroke="var(--accent-blue)" strokeWidth={2.5} fill="url(#onlineFill)" />
-                <Area type="monotone" dataKey="pos_revenue" stroke="var(--accent-gold)" strokeWidth={2.5} fill="url(#posFill)" />
-              </AreaChart>
-              ) : (
-              <BarChart data={filteredRevenueChart}>
-                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-light)" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} tickFormatter={formatChartTick} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} tickFormatter={(v) => `GH₵${v >= 1000 ? `${Math.round(v / 1000)}k` : v}`} />
-                <RechartsTooltip
-                  contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '12px', color: 'var(--text-main)' }}
-                  formatter={(value, name, ctx) => {
-                    const baseLabel = name === 'online_revenue' ? 'Online' : 'POS';
-                    return [`GH₵ ${Number(value || 0).toLocaleString()}`, ctx?.payload?._isFilled ? `${baseLabel} (auto-filled)` : baseLabel];
-                  }}
-                />
-                <Bar dataKey="online_revenue" fill="var(--accent-blue)" radius={[6, 6, 0, 0]} barSize={10} maxBarSize={12}>
-                  {filteredRevenueChart.map((entry, idx) => (
-                    <Cell key={`online-cell-${idx}`} fill={entry._isFilled ? 'rgba(var(--accent-blue-rgb), 0.35)' : 'var(--accent-blue)'} />
-                  ))}
-                </Bar>
-                <Bar dataKey="pos_revenue" fill="var(--accent-gold)" radius={[6, 6, 0, 0]} barSize={10} maxBarSize={12}>
-                  {filteredRevenueChart.map((entry, idx) => (
-                    <Cell key={`pos-cell-${idx}`} fill={entry._isFilled ? 'rgba(251, 191, 36, 0.35)' : 'var(--accent-gold)'} />
-                  ))}
-                </Bar>
-              </BarChart>
-              )}
-            </ResponsiveContainer>
-          </div>
-        </div>
+          )}
+        >
+          <DashboardRevenueCharts
+            filteredRevenueChart={filteredRevenueChart}
+            chartRange={chartRange}
+            setChartRange={setChartRange}
+            chartMode={chartMode}
+            setChartMode={setChartMode}
+            formatChartTick={formatChartTick}
+          />
+        </Suspense>
 
         {/* Strategic Insights */}
         <div className="card glass" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
            <h3 style={{ fontSize: '18px', fontWeight: 800 }}>Strategic Insights</h3>
            
            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {!isMarketing && (
               <div style={{ borderLeft: '4px solid var(--primary-blue)', paddingLeft: '16px' }}>
                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Fulfillment Efficiency</div>
                  <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '4px' }}>{data?.strategic_insights?.ship_efficiency ?? '—'} Hours</div>
                  <div style={{ fontSize: '10px', color: 'var(--success)', marginTop: '4px' }}>Avg time to dispatch</div>
               </div>
+              )}
 
               <div style={{ borderLeft: '4px solid var(--accent-gold)', paddingLeft: '16px' }}>
                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Revenue Peak</div>
@@ -388,11 +307,13 @@ export default function Dashboard() {
                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Highest daily volume</div>
               </div>
 
+              {!isMarketing && (
               <div style={{ borderLeft: '4px solid var(--danger)', paddingLeft: '16px' }}>
                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Low Stock Alert</div>
                  <div style={{ fontSize: '20px', fontWeight: 900, marginTop: '4px' }}>{data?.low_stock_count ?? 0} Products</div>
                  <div style={{ fontSize: '10px', color: 'var(--danger)', marginTop: '4px' }}>Requires immediate restocking</div>
               </div>
+              )}
            </div>
 
             <div className="glass" style={{ marginTop: 'auto', padding: '16px', borderRadius: '12px', background: 'rgba(var(--accent-blue-rgb), 0.05)' }}>

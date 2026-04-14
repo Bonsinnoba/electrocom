@@ -7,7 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useNotifications } from '../context/NotificationContext';
 
 
-export default function ProductCard({ id, name, price, image, rating, discount_percent, sale_ends_at, onClick, onRemove }) {
+export default function ProductCard({ id, name, price, image, rating, discount_percent, sale_ends_at, stock_quantity, onClick, onRemove }) {
   const { formatPrice } = useSettings();
   const safeRating = parseFloat(rating) || 0;
   
@@ -15,6 +15,7 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
   const isSaleActive = discount > 0 && (!sale_ends_at || new Date(sale_ends_at) > new Date());
   const discountedPrice = isSaleActive ? price * (1 - discount / 100) : price;
   const effectivePrice = isSaleActive ? discountedPrice : price;
+  const stockQty = Number.isFinite(Number(stock_quantity)) ? Number(stock_quantity) : null;
   
   // Use hooks for wishlist and user state
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -137,6 +138,11 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
                 </div>
             )}
         </div>
+        {stockQty !== null && (
+          <p style={{ margin: '6px 0 0', fontSize: '12px', color: stockQty > 0 ? 'var(--text-muted)' : 'var(--danger)', fontWeight: 600 }}>
+            {stockQty > 0 ? `Available: ${stockQty}` : 'Out of stock'}
+          </p>
+        )}
       </div>
     </div>
   );

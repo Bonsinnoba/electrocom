@@ -3,41 +3,11 @@ import ProductCard from '../components/ProductCard';
 import FilterPanel from '../components/FilterPanel';
 import ProductSkeleton from '../components/ProductSkeleton';
 import { Filter as FilterIcon } from 'lucide-react';
-
-const normalizeSearchText = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-const levenshteinDistance = (a, b) => {
-  const s = normalizeSearchText(a);
-  const t = normalizeSearchText(b);
-  if (!s.length) return t.length;
-  if (!t.length) return s.length;
-  const matrix = Array.from({ length: s.length + 1 }, () => Array(t.length + 1).fill(0));
-  for (let i = 0; i <= s.length; i += 1) matrix[i][0] = i;
-  for (let j = 0; j <= t.length; j += 1) matrix[0][j] = j;
-  for (let i = 1; i <= s.length; i += 1) {
-    for (let j = 1; j <= t.length; j += 1) {
-      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost
-      );
-    }
-  }
-  return matrix[s.length][t.length];
-};
-
-const isFuzzyPartMatch = (query, rawTarget) => {
-  const target = normalizeSearchText(rawTarget);
-  if (!query || !target) return false;
-  if (target.includes(query)) return true;
-  if (query.length < 3) return false;
-  const words = String(rawTarget || '').toLowerCase().split(/[\s/>-]+/).filter(Boolean);
-  return words.some((word) => {
-    const distance = levenshteinDistance(query, word);
-    return distance <= (query.length >= 6 ? 2 : 1);
-  });
-};
+import {
+  normalizeSearchText,
+  isFuzzyPartMatch,
+  applySynonymsToQuery,
+} from '../utils/searchUtils';
 
 export default function Shop({ products, onProductClick, searchQuery, loading }) {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -49,10 +19,15 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
     minRating: 0
   });
 
+  const effectiveSearch = useMemo(
+    () => applySynonymsToQuery(searchQuery).toLowerCase().trim(),
+    [searchQuery],
+  );
+
   // Reset visible count when filters or search change
   useEffect(() => {
     setVisibleCount(9);
-  }, [filters, searchQuery]);
+  }, [filters, effectiveSearch]);
 
   // Dynamically extract categories from the product list
   const availableCategories = useMemo(() => {
@@ -79,7 +54,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
 
   const filteredProducts = useMemo(() => {
     const filtered = products.filter(p => {
-      const query = searchQuery.toLowerCase().trim();
+      const query = effectiveSearch;
       const normalizedQuery = normalizeSearchText(query);
       const name = String(p.name || '').toLowerCase();
       const category = String(p.category || '').toLowerCase();
@@ -105,7 +80,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
       return matchSearch && matchCategory && matchPrice && matchRating;
     });
     return filtered;
-  }, [filters, searchQuery, products]);
+  }, [filters, effectiveSearch, products]);
 
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
@@ -142,6 +117,12 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
   const displayedProducts = useMemo(() => {
     return sortedProducts.slice(0, visibleCount);
   }, [sortedProducts, visibleCount]);
+
+  const popularFallback = useMemo(() => {
+    const list = [...products];
+    list.sort((a, b) => Number(b.total_sold || b.sold || 0) - Number(a.total_sold || a.sold || 0));
+    return list.slice(0, 6);
+  }, [products]);
 
   const resetFilters = () => {
     setFilters({
@@ -267,13 +248,58 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => <ProductSkeleton key={i} />)}
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="card glass" style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
+            <div className="card glass" style={{ textAlign: 'center', padding: '48px 20px 64px', color: 'var(--text-muted)' }}>
               <div style={{ width: '64px', height: '64px', background: 'var(--bg-main)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
                 <FilterIcon size={32} />
               </div>
-              <h3 style={{ color: 'var(--text-main)', marginBottom: '8px' }}>No products found</h3>
-              <p>Try adjusting your search or filters to find what you're looking for.</p>
-              <button className="btn-outline" onClick={resetFilters} style={{ marginTop: '24px' }}>Clear All Filters</button>
+              <h3 style={{ color: 'var(--text-main)', marginBottom: '8px' }}>No exact matches</h3>
+              <p style={{ maxWidth: 480, margin: '0 auto 16px', lineHeight: 1.5 }}>
+                Try a shorter keyword, check spelling, or browse a category below. We also expanded common typos (for example “capasitor” → capacitor).
+              </p>
+              {availableCategories.length > 1 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginBottom: '20px' }}>
+                  {availableCategories.filter((c) => c !== 'All').slice(0, 8).map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      className="btn-outline"
+                      style={{ fontSize: '12px', padding: '6px 12px' }}
+                      onClick={() => setFilters((f) => ({ ...f, category: cat }))}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button className="btn-outline" onClick={resetFilters} style={{ marginBottom: '32px' }}>Clear All Filters</button>
+              {popularFallback.length > 0 && (
+                <>
+                  <h4 style={{ color: 'var(--text-main)', marginBottom: '16px', fontSize: '16px' }}>Popular picks</h4>
+                  <div className="product-grid" style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                    gap: '20px',
+                    textAlign: 'left',
+                    maxWidth: 900,
+                    margin: '0 auto',
+                  }}>
+                    {popularFallback.map((p) => (
+                      <ProductCard
+                        key={p.id}
+                        id={p.id}
+                        name={p.name}
+                        price={p.price}
+                        image={p.image}
+                        rating={p.rating}
+                        discount_percent={p.discount_percent}
+                        sale_ends_at={p.sale_ends_at}
+                        stock_quantity={p.stock_quantity}
+                        onClick={() => onProductClick(p)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="product-grid" style={{

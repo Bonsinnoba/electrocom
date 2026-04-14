@@ -5,6 +5,7 @@
 
 require_once 'db.php';
 require_once 'notifications.php';
+require_once __DIR__ . '/brand_settings.php';
 
 $output = [];
 $output[] = "Starting Abandoned Cart Recovery Scan - " . date('Y-m-d H:i:s');
@@ -67,13 +68,13 @@ try {
 
         $subject = "You left something behind! 🛒";
         $message = "Hi {$cart['name']},\n\n";
-        $message .= "We noticed you left some great items in your shopping cart at ElectroCom. ";
+        $message .= "We noticed you left some great items in your shopping cart at " . eh_brand_site_name() . ". ";
         $message .= "Your items are waiting for you, but stock is limited!\n\n";
         $frontendUrl = $notifier->config['FRONTEND_URL'] ?? 'http://localhost:5173';
         $message .= "Your Cart:\n- {$itemListStr}\n\n";
         $message .= "Click here to complete your checkout: {$frontendUrl}/cart\n\n";
         $message .= "We've also included a special 5% discount code to help you along: COMEBACK5\n\n";
-        $message .= "Best regards,\nThe ElectroCom Team";
+        $message .= "Best regards,\nThe " . eh_brand_site_name() . " Team";
 
         // Send Email
         try {

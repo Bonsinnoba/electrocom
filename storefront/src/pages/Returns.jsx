@@ -1,7 +1,11 @@
 import React from 'react';
-import { RefreshCcw, HandCoins, AlertCircle, FileText, CheckCircle } from 'lucide-react';
+import { RefreshCcw, HandCoins, AlertCircle, FileText, CheckCircle, Package, Truck } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Returns() {
+  const { siteSettings } = useSettings();
+  const siteName = siteSettings.siteName || 'us';
+
   const steps = [
     {
       icon: <FileText size={20} />,
@@ -61,7 +65,7 @@ export default function Returns() {
              <ul style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.8', paddingLeft: '20px' }}>
                  <li>Dead-on-arrival (DOA) components</li>
                  <li>Items that are clearly defective or damaged upon delivery</li>
-                 <li>Wrong item shipped by ElectroCom</li>
+                 <li>{`Wrong item shipped by ${siteName}`}</li>
                  <li>Unopened STEM kits in original sealed packaging</li>
                  <li>Modules and breakout boards that never powered on</li>
              </ul>
@@ -83,6 +87,3 @@ export default function Returns() {
     </div>
   );
 }
-
-// Needed because Package and Truck are referenced in steps but missing from imports
-import { Package, Truck } from 'lucide-react';

@@ -5,6 +5,7 @@
 
 require_once 'db.php';
 require_once 'notifications.php';
+require_once __DIR__ . '/brand_settings.php';
 
 $output = [];
 $output[] = "Starting Automated Review Request Scan - " . date('Y-m-d H:i:s');
@@ -52,7 +53,7 @@ try {
         $message .= "Could you take a minute to tell us what you think? Your feedback helps other shoppers and helps us improve.\n\n";
         $message .= "Review your items here: {$frontendUrl}/orders\n\n";
         $message .= "As a thank you for your feedback, you'll be entered into our monthly giveaway!\n\n";
-        $message .= "Best regards,\nThe ElectroCom Team";
+        $message .= "Best regards,\nThe " . eh_brand_site_name() . " Team";
 
         // Send Email
         try {

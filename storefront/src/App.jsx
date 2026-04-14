@@ -1,14 +1,8 @@
-import React, { useState, useEffect, useRef, Component } from 'react'
+import React, { useState, useEffect, useRef, Component, lazy, Suspense } from 'react'
 import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
-import ProductCard from './components/ProductCard'
-import ProductModal from './components/ProductModal'
-import MapCard from './components/MapCard'
-import AuthModal from './components/AuthModal'
 import Footer from './components/Footer'
-import Drawer from './components/Drawer'
 import { X } from 'lucide-react'
-import ToastContainer from './components/ToastContainer'
 import BackToTop from './components/BackToTop'
 import { secureStorage } from './utils/secureStorage';
 
@@ -20,31 +14,37 @@ import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { ConfirmProvider } from './context/ConfirmContext';
 
 import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import Home from './pages/Home';
-import Shop from './pages/Shop';
-import Cart from './pages/Cart';
-import Favorites from './pages/Favorites';
-import Orders from './pages/Orders';
-import Notifications from './pages/Notifications';
-import Transactions from './pages/Transactions';
-import Support from './pages/Support';
-import Settings from './pages/Settings';
-import Profile from './pages/Profile';
-import Checkout from './pages/Checkout';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import CookiePolicy from './pages/CookiePolicy';
-import ShippingInfo from './pages/ShippingInfo';
-import Returns from './pages/Returns';
-import FAQ from './pages/FAQ';
+const ProductModal = lazy(() => import('./components/ProductModal'));
+const MapCard = lazy(() => import('./components/MapCard'));
+const AuthModal = lazy(() => import('./components/AuthModal'));
+const Drawer = lazy(() => import('./components/Drawer'));
+const ToastContainer = lazy(() => import('./components/ToastContainer'));
+
+const Cart = lazy(() => import('./pages/Cart'));
+const Favorites = lazy(() => import('./pages/Favorites'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Checkout = lazy(() => import('./pages/Checkout'));
 import { fetchOrders, fetchProducts } from './services/api';
 import { useUser } from './context/UserContext';
 import { formatRelativeTime, formatDate } from './utils/dateFormatter';
 import MaintenancePage from './pages/MaintenancePage';
-import ResetPassword from './pages/ResetPassword';
-import TrackOrder from './pages/TrackOrder';
-import CMSPage from './pages/CMSPage';
-import OrderSuccess from './pages/OrderSuccess';
+const Home = lazy(() => import('./pages/Home'));
+const Shop = lazy(() => import('./pages/Shop'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Transactions = lazy(() => import('./pages/Transactions'));
+const Support = lazy(() => import('./pages/Support'));
+const Settings = lazy(() => import('./pages/Settings'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
+const ShippingInfo = lazy(() => import('./pages/ShippingInfo'));
+const Returns = lazy(() => import('./pages/Returns'));
+const FAQ = lazy(() => import('./pages/FAQ'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const TrackOrder = lazy(() => import('./pages/TrackOrder'));
+const CMSPage = lazy(() => import('./pages/CMSPage'));
+const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -53,6 +53,12 @@ const ScrollToTop = () => {
   }, [pathname]);
   return null;
 };
+
+const RouteLoader = ({ children }) => (
+  <Suspense fallback={<div className="loading-state">Loading page...</div>}>
+    {children}
+  </Suspense>
+);
 
 function AppContent() {
   const navigate = useNavigate();
@@ -164,7 +170,7 @@ function AppContent() {
 
   // Apply dynamic site branding
   useEffect(() => {
-    const { primaryColor, accentColor, headerBg, fontFamily, siteName, faviconUrl, maintenanceMode } = siteSettings;
+    const { primaryColor, accentColor, headerBg, fontFamily, siteName, siteTagline, metaDescription, faviconUrl, maintenanceMode } = siteSettings;
     
     if (primaryColor) {
       document.documentElement.style.setProperty('--primary-blue', primaryColor);
@@ -190,9 +196,20 @@ function AppContent() {
     }
 
     if (siteName && !location.pathname.includes('/settings')) {
-       document.title = `${siteName} | Your Tech Partner`;
+      const tag = (siteTagline && String(siteTagline).trim()) ? String(siteTagline).trim() : 'Shop';
+      document.title = `${siteName} | ${tag}`;
     }
-    
+
+    if (metaDescription && String(metaDescription).trim()) {
+      let meta = document.querySelector('meta[name="description"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'description');
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', String(metaDescription).trim());
+    }
+
     if (faviconUrl) {
       let link = document.querySelector("link[rel~='icon']");
       if (!link) {
@@ -382,28 +399,28 @@ function AppContent() {
 
         <main className="dashboard-grid full-width">
           <Routes>
-            <Route path="/" element={<Home products={products} onProductClick={handleProductClick} searchQuery={searchQuery} loading={loading} />} />
-            <Route path="/shop" element={<Shop products={products} onProductClick={handleProductClick} searchQuery={searchQuery} loading={loading} />} />
+            <Route path="/" element={<RouteLoader><Home products={products} onProductClick={handleProductClick} searchQuery={searchQuery} loading={loading} /></RouteLoader>} />
+            <Route path="/shop" element={<RouteLoader><Shop products={products} onProductClick={handleProductClick} searchQuery={searchQuery} loading={loading} /></RouteLoader>} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/favorites" element={<Favorites onProductClick={handleProductClick} searchQuery={searchQuery} />} />
-            <Route path="/orders" element={<Orders searchQuery={searchQuery} />} />
-            <Route path="/notifications" element={<Notifications searchQuery={searchQuery} />} />
-            <Route path="/support" element={<Support searchQuery={searchQuery} />} />
-            <Route path="/settings" element={<Settings searchQuery={searchQuery} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />} />
+            <Route path="/orders" element={<RouteLoader><Orders searchQuery={searchQuery} /></RouteLoader>} />
+            <Route path="/notifications" element={<RouteLoader><Notifications searchQuery={searchQuery} /></RouteLoader>} />
+            <Route path="/support" element={<RouteLoader><Support searchQuery={searchQuery} /></RouteLoader>} />
+            <Route path="/settings" element={<RouteLoader><Settings searchQuery={searchQuery} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} /></RouteLoader>} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/checkout" element={<Checkout />} />
-            <Route path="/order-success" element={<OrderSuccess />} />
-            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/order-success" element={<RouteLoader><OrderSuccess /></RouteLoader>} />
+            <Route path="/transactions" element={<RouteLoader><Transactions /></RouteLoader>} />
 
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/cookie-policy" element={<CookiePolicy />} />
-            <Route path="/shipping-info" element={<ShippingInfo />} />
-            <Route path="/returns" element={<Returns />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/track" element={<TrackOrder />} />
-            <Route path="/p/:slug" element={<CMSPage />} />
+            <Route path="/reset-password" element={<RouteLoader><ResetPassword /></RouteLoader>} />
+            <Route path="/privacy-policy" element={<RouteLoader><PrivacyPolicy /></RouteLoader>} />
+            <Route path="/terms-of-service" element={<RouteLoader><TermsOfService /></RouteLoader>} />
+            <Route path="/cookie-policy" element={<RouteLoader><CookiePolicy /></RouteLoader>} />
+            <Route path="/shipping-info" element={<RouteLoader><ShippingInfo /></RouteLoader>} />
+            <Route path="/returns" element={<RouteLoader><Returns /></RouteLoader>} />
+            <Route path="/faq" element={<RouteLoader><FAQ /></RouteLoader>} />
+            <Route path="/track" element={<RouteLoader><TrackOrder /></RouteLoader>} />
+            <Route path="/p/:slug" element={<RouteLoader><CMSPage /></RouteLoader>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
@@ -411,40 +428,42 @@ function AppContent() {
         <Footer />
       </div>
 
-      <ProductModal 
-        product={selectedProduct}
-        products={products}
-        isOpen={!!selectedProduct}
-        onClose={() => setSelectedProduct(null)}
-        onAddToCart={handleAddToCart}
-        onAddToWishlist={handleAddToWishlist}
-        onProductClick={setSelectedProduct}
-      />
+      {(!!selectedProduct || authModal.isOpen || !!activeDrawer) && (
+        <Suspense fallback={null}>
+          <ProductModal 
+            product={selectedProduct}
+            products={products}
+            isOpen={!!selectedProduct}
+            onClose={() => setSelectedProduct(null)}
+            onAddToCart={handleAddToCart}
+            onAddToWishlist={handleAddToWishlist}
+            onProductClick={setSelectedProduct}
+          />
 
-      <AuthModal 
-        isOpen={authModal.isOpen} 
-        initialMode={authModal.mode}
-        onClose={() => {
-            closeAuthModal();
-        }} 
-      />
+          <AuthModal 
+            isOpen={authModal.isOpen} 
+            initialMode={authModal.mode}
+            onClose={() => {
+                closeAuthModal();
+            }} 
+          />
 
-      <Drawer 
-        id="drawer-map" 
-        title="Our Location" 
-        isOpen={activeDrawer === 'map'} 
-        onClose={closeDrawers}
-      >
-        <MapCard />
-      </Drawer>
+          <Drawer 
+            id="drawer-map" 
+            title="Our Location" 
+            isOpen={activeDrawer === 'map'} 
+            onClose={closeDrawers}
+          >
+            <MapCard />
+          </Drawer>
 
-      <Drawer 
-        id="drawer-orders" 
-        title="My Orders" 
-        isOpen={activeDrawer === 'orders'} 
-        onClose={closeDrawers}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Drawer 
+            id="drawer-orders" 
+            title="My Orders" 
+            isOpen={activeDrawer === 'orders'} 
+            onClose={closeDrawers}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {!user ? (
             <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                 Please login to view your orders.
@@ -476,16 +495,16 @@ function AppContent() {
                 </div>
             ))
           )}
-        </div>
-      </Drawer>
+            </div>
+          </Drawer>
 
-      <Drawer 
-        id="drawer-notifications" 
-        title="Recent Updates" 
-        isOpen={activeDrawer === 'notifications'} 
-        onClose={closeDrawers}
-      >
-        <div className="notifications-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Drawer 
+            id="drawer-notifications" 
+            title="Recent Updates" 
+            isOpen={activeDrawer === 'notifications'} 
+            onClose={closeDrawers}
+          >
+            <div className="notifications-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {notifications.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>No new notifications</div>
           ) : (
@@ -499,9 +518,13 @@ function AppContent() {
               </div>
             ))
           )}
-        </div>
-      </Drawer>
-      <ToastContainer />
+            </div>
+          </Drawer>
+        </Suspense>
+      )}
+      <Suspense fallback={null}>
+        <ToastContainer />
+      </Suspense>
       <BackToTop />
     </div>
   );

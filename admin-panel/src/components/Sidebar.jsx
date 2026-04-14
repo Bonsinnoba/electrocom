@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, Package, ShoppingCart, Users, Settings, Tag,
   LogOut, MapPin, ShieldAlert, Database, Globe, Zap, Activity, ShieldCheck,
-  Star, Bell, ShoppingBag, RotateCcw, ClipboardList, MessageSquare, Truck, Megaphone
+  Star, Bell, ShoppingBag, RotateCcw, ClipboardList, MessageSquare, Truck, Megaphone,
+  BookOpen, Mail
 } from 'lucide-react';
 import { useAdminSettings } from '../context/AdminSettingsContext';
 
@@ -20,7 +21,7 @@ export default function Sidebar() {
 
   // Define visibility for items based on role
   const navItems = [
-    { icon: <LayoutDashboard size={20} />, label: isAccountant ? 'Finance Dash' : 'Dashboard', path: '/', visible: !isPicker },
+    { icon: <LayoutDashboard size={20} />, label: isPicker ? 'Picker Hub' : (isAccountant ? 'Finance Dash' : 'Dashboard'), path: '/', visible: true },
     { icon: <Package size={20} />, label: 'Inventory Hub', path: '/catalog', visible: !isAccountant && !isPicker },
     { icon: <ShoppingCart size={20} />, label: isPicker ? 'Picker Workflow' : 'Sales & Fulfillment', path: '/sales', visible: !isMarketing },
     { icon: <Zap size={20} />, label: 'POS Checkout', path: '/pos', visible: !isMarketing && !isAccountant && !isPicker },
@@ -28,6 +29,8 @@ export default function Sidebar() {
     { icon: <Megaphone size={20} />, label: 'Marketing & Growth', path: '/marketing', visible: !isPicker && (!isAccountant || !isMarketing) },
     { icon: <MessageSquare size={20} />, label: 'Staff Hub', path: '/staff-chat', visible: !isAccountant },
     { icon: <Bell size={20} />, label: 'System Alerts', path: '/notifications', visible: true },
+    { icon: <Mail size={20} />, label: 'Email Engine', path: '/email-dashboard', visible: isManager && !isPicker && !isMarketing },
+    { icon: <BookOpen size={20} />, label: 'Help & guides', path: '/help', visible: true },
     { icon: <Settings size={20} />, label: 'Settings', path: '/settings', visible: !isMarketing },
   ].filter(item => item.visible);
 

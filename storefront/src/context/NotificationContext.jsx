@@ -3,6 +3,7 @@ import { useUser } from './UserContext';
 import { secureStorage } from '../utils/secureStorage';
 
 const NotificationContext = createContext();
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
@@ -35,7 +36,14 @@ export const NotificationProvider = ({ children }) => {
   const fetchServerNotifications = async () => {
     if (!user) return;
     try {
-      const response = await fetch('/api/get_notifications.php');
+      const token = secureStorage.getItem('token', 'shared');
+      const response = await fetch(`${API_BASE_URL}/get_notifications.php`, {
+        credentials: 'include',
+        headers: {
+          'X-App-ID': 'storefront',
+          ...(token ? { 'X-Session-Token': token } : {})
+        }
+      });
       const result = await response.json();
       if (result.success) {
         // Map server notifications to local format
@@ -84,9 +92,15 @@ export const NotificationProvider = ({ children }) => {
     // Server update if it's a persistent ID
     if (typeof id === 'number' && id < 1000000000000) { // Simple check for non-timestamp ID
         try {
-            await fetch('/api/get_notifications.php?action=mark_read', {
+            const token = secureStorage.getItem('token', 'shared');
+            await fetch(`${API_BASE_URL}/get_notifications.php?action=mark_read`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-App-ID': 'storefront',
+                  ...(token ? { 'X-Session-Token': token } : {})
+                },
                 body: JSON.stringify({ id })
             });
         } catch (error) {
@@ -104,6 +118,22 @@ export const NotificationProvider = ({ children }) => {
 
   const deleteNotification = (id) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+
+    if (typeof id === 'number' && id < 1000000000000) {
+      const token = secureStorage.getItem('token', 'shared');
+      fetch(`${API_BASE_URL}/get_notifications.php?action=delete`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-App-ID': 'storefront',
+          ...(token ? { 'X-Session-Token': token } : {})
+        },
+        body: JSON.stringify({ id })
+      }).catch((error) => {
+        console.error("Failed to delete notification on server", error);
+      });
+    }
   };
 
   const clearAllNotifications = () => {

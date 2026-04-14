@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import OrderManager from './OrderManager';
 import ReturnManager from './ReturnManager';
 import AbandonedCartManager from './AbandonedCartManager';
-import { ShoppingCart, RotateCcw, ShoppingBag } from 'lucide-react';
+import MissingItemsManager from './MissingItemsManager';
+import { ShoppingCart, RotateCcw, ShoppingBag, AlertTriangle } from 'lucide-react';
 
 export default function SalesHub() {
   const { user } = useAuth();
@@ -36,6 +37,14 @@ export default function SalesHub() {
       label: 'Abandoned Carts', 
       icon: <ShoppingBag size={16} />, 
       component: <AbandonedCartManager /> 
+    });
+  }
+  if (!isMarketing && !isPicker) {
+    availableTabs.push({
+      id: 'missing-items',
+      label: 'Missing Items',
+      icon: <AlertTriangle size={16} />,
+      component: <MissingItemsManager />
     });
   }
 

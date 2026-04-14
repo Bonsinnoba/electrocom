@@ -85,10 +85,8 @@ function completeOrder($orderId, $pdo) {
             require_once 'notifications.php';
             $notifier = new NotificationService();
 
-            // Load dynamic site name for branding
-            $settingsFile = __DIR__ . '/data/super_settings.json';
-            $siteConfig = file_exists($settingsFile) ? json_decode(file_get_contents($settingsFile), true) : [];
-            $brandName = $siteConfig['siteName'] ?? 'ElectroCom';
+            require_once __DIR__ . '/brand_settings.php';
+            $brandName = eh_brand_site_name();
 
             if ($order['email'] && ($order['email_notif'] ?? true)) {
                 $itemsList = "";

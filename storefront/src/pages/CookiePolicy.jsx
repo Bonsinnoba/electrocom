@@ -1,7 +1,11 @@
 import React from 'react';
 import { Cookie, Info, Settings, MousePointerClick } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function CookiePolicy() {
+  const { siteSettings } = useSettings();
+  const siteName = siteSettings.siteName || 'This store';
+
   return (
     <div className="cookie-policy-page" style={{ 
       display: 'flex', 
@@ -38,7 +42,7 @@ export default function CookiePolicy() {
 
         <section style={{ marginBottom: '40px' }}>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '24px', fontWeight: 800, marginBottom: '20px' }}>
-            <Cookie size={24} className="text-primary" /> 2. How ElectroCom Uses Cookies
+            <Cookie size={24} className="text-primary" /> {`2. How ${siteName} Uses Cookies`}
           </h2>
           <p style={{ lineHeight: '1.8', color: 'var(--text-main)', opacity: 0.9 }}>
             When you use and access the Service, we may place a number of cookies files in your web browser. We use cookies for the following purposes:

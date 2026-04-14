@@ -110,9 +110,14 @@ if ($method === 'GET') {
             // Send Email if applicable
             if (($type === 'email' || $type === 'both') && !empty($user['email'])) {
                 // We honor the general email preference for marketing broadcasts
-                if ($user['email_notif']) {
+                    if ($user['email_notif']) {
                     $hadEligibleChannel = true;
-                    if ($notifier->queueNotification('email', $user['email'], $message, $title)) {
+                    $emailPayload = [
+                        'broadcast' => true,
+                        'audience_role' => $user['role'] ?? 'unknown',
+                        'channel' => 'email',
+                    ];
+                    if ($notifier->queueNotification('email', $user['email'], $message, $title, $emailPayload)) {
                         $emailCount++;
                     }
                 }
@@ -124,7 +129,12 @@ if ($method === 'GET') {
                 // Since this is a promo, we check if they have any notifications on
                 if ($user['sms_tracking']) {
                     $hadEligibleChannel = true;
-                    if ($notifier->queueNotification('sms', $user['phone'], $message)) {
+                    $smsPayload = [
+                        'broadcast' => true,
+                        'audience_role' => $user['role'] ?? 'unknown',
+                        'channel' => 'sms',
+                    ];
+                    if ($notifier->queueNotification('sms', $user['phone'], $message, null, $smsPayload)) {
                         $smsCount++;
                     }
                 }

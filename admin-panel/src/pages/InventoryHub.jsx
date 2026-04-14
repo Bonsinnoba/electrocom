@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ProductManager from './ProductManager';
-import { Package } from 'lucide-react';
+import BulkShelvingTool from './BulkShelvingTool';
+import { Package, Layers } from 'lucide-react';
 
 export default function InventoryHub() {
   const { user } = useAuth();
@@ -18,6 +19,12 @@ export default function InventoryHub() {
       label: 'Product Catalog', 
       icon: <Package size={16} />, 
       component: <ProductManager /> 
+    });
+    availableTabs.push({
+      id: 'bulk_shelving',
+      label: 'Bulk shelving',
+      icon: <Layers size={16} />,
+      component: <BulkShelvingTool />,
     });
   }
   

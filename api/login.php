@@ -2,6 +2,7 @@
 // backend/login.php
 require_once 'db.php';
 require_once 'security.php';
+require_once __DIR__ . '/brand_settings.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -167,7 +168,7 @@ try {
         // Dispatch new code
         require_once 'notifications.php';
         $notifier = new NotificationService();
-        $subject = "Your ElectroCom Verification Code";
+        $subject = 'Your ' . eh_brand_site_name() . ' Verification Code';
         $msg = "Your verification code is: {$newCode}. Please enter this code to activate your account.";
 
         if ($user['verification_method'] === 'sms') {
@@ -210,6 +211,9 @@ try {
     ]);
 
     logger('ok', 'AUTH', "User {$user['email']} logged in successfully as " . strtoupper($user['role']));
+
+    require_once __DIR__ . '/auth_login_log.php';
+    logSuccessfulAuthLogin($pdo, (int) $user['id'], 'local');
 
     if (ob_get_length()) ob_clean();
     echo json_encode([

@@ -6,6 +6,7 @@ require_once 'cors_middleware.php';
 require_once 'security.php';
 require_once 'db.php';
 require_once 'notifications.php';
+require_once __DIR__ . '/brand_settings.php';
 
 // Authenticate staff only
 try {
@@ -163,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     if ($send_sms && !empty($staffMem['phone'])) {
-                        $smsMsg = "ElectroCom {$prefix}: \"{$message}\" - From: {$user['name']}";
+                        $smsMsg = eh_brand_site_name() . " {$prefix}: \"{$message}\" - From: {$user['name']}";
                         $notifier->queueNotification('sms', $staffMem['phone'], substr($smsMsg, 0, 160));
                         $smsSent++;
                     }

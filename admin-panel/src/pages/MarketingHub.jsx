@@ -4,7 +4,8 @@ import SliderManager from './SliderManager';
 import CouponManager from './CouponManager';
 import ReviewManager from './ReviewManager';
 import BroadcastManager from './BroadcastManager';
-import { Megaphone, LayoutDashboard, Tag, Star, Zap } from 'lucide-react';
+import BroadcastDeliveryAnalytics from './BroadcastDeliveryAnalytics';
+import { Megaphone, LayoutDashboard, Tag, Star, Zap, BarChart3 } from 'lucide-react';
 
 export default function MarketingHub() {
   const { user } = useAuth();
@@ -29,6 +30,12 @@ export default function MarketingHub() {
       icon: <Zap size={16} />, 
       component: <BroadcastManager /> 
     });
+    availableTabs.push({
+      id: 'delivery',
+      label: 'Delivery analytics',
+      icon: <BarChart3 size={16} />,
+      component: <BroadcastDeliveryAnalytics />,
+    });
   }
   
   if (!isAccountant && !isPicker) {
@@ -49,9 +56,9 @@ export default function MarketingHub() {
     });
   }
 
-  // Sort logically (Coupons, Slider, Reviews, Broadcasts)
+  // Sort logically (Coupons, Slider, Reviews, Broadcasts, Delivery analytics)
   availableTabs.sort((a, b) => {
-    const order = ['coupons', 'slider', 'reviews', 'broadcast'];
+    const order = ['coupons', 'slider', 'reviews', 'broadcast', 'delivery'];
     return order.indexOf(a.id) - order.indexOf(b.id);
   });
 

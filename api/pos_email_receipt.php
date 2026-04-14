@@ -3,6 +3,7 @@ require_once 'db.php';
 require_once 'config.php';
 require_once 'notifications.php';
 require_once 'security.php';
+require_once __DIR__ . '/brand_settings.php';
 
 header('Content-Type: application/json');
 
@@ -47,15 +48,7 @@ try {
     $itemStmt->execute([$orderId]);
     $items = $itemStmt->fetchAll();
 
-    // Fetch site name from super_settings if available
-    $siteName = 'Retail Store';
-    $settingsFile = __DIR__ . '/data/super_settings.json';
-    if (file_exists($settingsFile)) {
-        $settingsData = json_decode(file_get_contents($settingsFile), true);
-        if ($settingsData && isset($settingsData['siteName'])) {
-            $siteName = escapeshellcmd($settingsData['siteName']);
-        }
-    }
+    $siteName = htmlspecialchars(eh_brand_site_name(), ENT_QUOTES, 'UTF-8');
 
     $html = "<div style='font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;'>";
     $html .= "<h2 style='text-align: center;'>{$siteName}</h2>";

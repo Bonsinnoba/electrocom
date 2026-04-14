@@ -1,7 +1,11 @@
 import React from 'react';
 import { FileText, CheckCircle, AlertCircle, Scale } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function TermsOfService() {
+  const { siteSettings } = useSettings();
+  const siteName = siteSettings.siteName || 'this store';
+
   return (
     <div className="terms-page" style={{ 
       display: 'flex', 
@@ -32,7 +36,7 @@ export default function TermsOfService() {
             <FileText size={24} className="text-primary" /> 1. Agreement to Terms
           </h2>
           <p style={{ lineHeight: '1.8', color: 'var(--text-main)', opacity: 0.9 }}>
-            By accessing or using ElectroCom, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this site.
+            {`By accessing or using ${siteName}, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this site.`}
           </p>
         </section>
 
@@ -41,7 +45,7 @@ export default function TermsOfService() {
             <CheckCircle size={24} className="text-primary" /> 2. Use License
           </h2>
           <p style={{ lineHeight: '1.8', color: 'var(--text-main)', opacity: 0.9 }}>
-            Permission is granted to temporarily download one copy of the materials (information or software) on ElectroCom's website for personal, non-commercial transitory viewing only.
+            {`Permission is granted to temporarily download one copy of the materials (information or software) on ${siteName}'s website for personal, non-commercial transitory viewing only.`}
           </p>
         </section>
 
@@ -50,7 +54,7 @@ export default function TermsOfService() {
             <AlertCircle size={24} className="text-primary" /> 3. Disclaimer
           </h2>
           <p style={{ lineHeight: '1.8', color: 'var(--text-main)', opacity: 0.9 }}>
-            The materials on ElectroCom's website are provided on an 'as is' basis. ElectroCom makes no warranties, expressed or implied, regarding the fitness of any electronic component, module, or STEM kit for a specific application or circuit design. Users are responsible for verifying component specifications against their own project requirements before purchase. Datasheets are available on request and should be consulted prior to use in critical applications.
+            {`The materials on ${siteName}'s website are provided on an 'as is' basis. ${siteName} makes no warranties, expressed or implied, beyond those required by law. Please verify product specifications and suitability before purchase.`}
           </p>
         </section>
 

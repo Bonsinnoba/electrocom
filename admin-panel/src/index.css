@@ -693,6 +693,35 @@ textarea:focus-visible {
     box-shadow: 0 0 0 3px rgba(var(--accent-blue-rgb), 0.1);
 }
 
+/* Premium dark input used across dashboard utility forms */
+.input-premium {
+    min-width: 160px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    background: var(--bg-surface-secondary);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.input-premium:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(var(--accent-blue-rgb), 0.12);
+}
+
+select.input-premium {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 16px) calc(50% - 3px), calc(100% - 11px) calc(50% - 3px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 28px;
+}
+
 .btn-secondary {
     background: var(--bg-surface-secondary);
     color: var(--text-main);
@@ -889,4 +918,148 @@ textarea:focus-visible {
     .receipt-totals {
         font-size: 14px;
     }
+}
+
+/* ─── Help Center ─────────────────────────────────────────────────────────── */
+.help-page {
+    padding-bottom: 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.help-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 28px;
+    align-items: start;
+}
+
+@media (max-width: 960px) {
+    .help-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .help-toc {
+        position: static !important;
+    }
+}
+
+.help-toc {
+    position: sticky;
+    top: 24px;
+    padding: 20px 18px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+}
+
+.help-toc ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.help-toc li {
+    margin-bottom: 6px;
+}
+
+.help-toc a {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+
+.help-toc a:hover {
+    background: var(--bg-surface-secondary);
+    color: var(--primary-blue);
+}
+
+.dark-mode .help-toc a:hover {
+    color: var(--accent-blue);
+}
+
+.help-articles {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.help-section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 16px;
+    letter-spacing: -0.02em;
+}
+
+.help-section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-blue);
+}
+
+.dark-mode .help-section-icon {
+    color: var(--accent-blue);
+}
+
+.help-section-body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.help-lead {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.help-steps {
+    margin: 0;
+    padding-left: 22px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-main);
+}
+
+.help-steps li {
+    margin-bottom: 8px;
+}
+
+.help-steps li::marker {
+    color: var(--accent-blue);
+    font-weight: 800;
+}
+
+.help-jump-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: rgba(var(--accent-blue-rgb), 0.1);
+    color: var(--primary-blue);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid rgba(var(--accent-blue-rgb), 0.25);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.dark-mode .help-jump-link {
+    color: var(--accent-blue);
+}
+
+.help-jump-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--primary-blue-rgb), 0.15);
 }

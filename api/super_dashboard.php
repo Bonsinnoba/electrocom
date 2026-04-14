@@ -13,6 +13,7 @@
 require 'cors_middleware.php';
 require 'db.php';
 require 'security.php';
+require_once __DIR__ . '/auth_login_log.php';
 header('Content-Type: application/json');
 
 try {
@@ -54,15 +55,34 @@ try {
 
 
 
-    // ── Auth Origins (social login distribution) ──────────────────────────────
-    $authOrigins = $pdo->query("
-        SELECT
-            COALESCE(NULLIF(auth_provider, ''), 'local') AS provider,
-            COUNT(*) AS count
-        FROM users
-        GROUP BY provider
-        ORDER BY count DESC
-    ")->fetchAll();
+    // ── Auth origins: successful sign-ins by provider (last 30 days), incl. GitHub OAuth
+    $authOrigins = [];
+    $authLogTotal = 0;
+    try {
+        ensureAuthLoginLogTable($pdo);
+        $authOrigins = $pdo->query("
+            SELECT provider, COUNT(*) AS count
+            FROM auth_login_log
+            WHERE created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
+            GROUP BY provider
+            ORDER BY count DESC
+        ")->fetchAll();
+        $authLogTotal = (int) array_sum(array_map(static function ($r) {
+            return (int) ($r['count'] ?? 0);
+        }, $authOrigins));
+    } catch (Throwable $e) {
+        error_log('super_dashboard auth_login_log: ' . $e->getMessage());
+    }
+    if ($authLogTotal === 0) {
+        $authOrigins = $pdo->query("
+            SELECT
+                COALESCE(NULLIF(auth_provider, ''), 'local') AS provider,
+                COUNT(*) AS count
+            FROM users
+            GROUP BY provider
+            ORDER BY count DESC
+        ")->fetchAll();
+    }
 
     // ── Server Health ─────────────────────────────────────────────────────────
     $diskTotal  = @disk_total_space(__DIR__) ?: 0;
@@ -113,6 +133,7 @@ try {
         'recent_orders'  => $recent,
 
         'auth_origins'   => $authOrigins,
+        'auth_origins_window_days' => $authLogTotal > 0 ? 30 : null,
         'server_health'  => [
             'disk_total_gb'  => round($diskTotal / 1073741824, 1),
             'disk_used_gb'   => round($diskUsed  / 1073741824, 1),
