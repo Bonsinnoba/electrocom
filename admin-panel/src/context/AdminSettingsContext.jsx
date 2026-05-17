@@ -13,7 +13,8 @@ export const AdminSettingsProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   const refreshSettings = useCallback(async () => {
-    if (!isAuthenticated) return;
+    const token = localStorage.getItem('ehub_token');
+    if (!isAuthenticated || !token) return;
     
     setLoading(true);
     try {

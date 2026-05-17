@@ -290,9 +290,21 @@ export default function SystemLogs() {
                             {s.label}
                           </div>
                           {/* Source */}
-                          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary-gold)', minWidth: '100px', flexShrink: 0, paddingTop: '2px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary-gold)', minWidth: '80px', flexShrink: 0, paddingTop: '2px' }}>
                             [{log.source}]
                           </div>
+                          {/* Request Context */}
+                          {log.context && (
+                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace', background: 'rgba(255,255,255,0.03)', padding: '2px 6px', borderRadius: '4px', flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={log.context}>
+                              {log.context}
+                            </div>
+                          )}
+                          {/* IP */}
+                          {log.ip && (
+                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', padding: '2px 0' }}>
+                              {log.ip}
+                            </div>
+                          )}
                           {/* User ID Badge */}
                           {log.uid && (
                             <div style={{ 

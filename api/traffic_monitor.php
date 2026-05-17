@@ -33,6 +33,25 @@ function monitorTraffic()
     $url = $_SERVER['REQUEST_URI'] ?? 'Unknown';
     $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
 
+    // 0. Filter Noise (Ignore polling and background analytics)
+    $exclusions = [
+        'get_notifications.php',
+        'check_user_status.php',
+        'admin_analytics.php',
+        'admin_traffic.php',
+        'get_site_settings.php',
+        'admin_notification_queue.php',
+        'cron_', // Ignore all cron triggers
+        '.map',   // Ignore source map requests
+        '/cache/' // Ignore internal cache hits
+    ];
+
+    foreach ($exclusions as $term) {
+        if (stripos($url, $term) !== false) {
+            return; // Skip logging for this noisy request
+        }
+    }
+
     // Real GeoIP detection using ip-api.com (free tier)
     $country = 'Unknown';
     if ($ip === '127.0.0.1' || $ip === '::1') {

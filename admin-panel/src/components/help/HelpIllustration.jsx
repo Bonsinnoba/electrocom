@@ -19,7 +19,7 @@ export function HelpScreenshot({ file, title, urlBar, children }) {
           <span className="help-browser-dots" aria-hidden>
             <i /><i /><i />
           </span>
-          <span className="help-browser-title">{title || 'EssentialsHub Admin'}</span>
+          <span className="help-browser-title">{title || 'ElectrCom Admin'}</span>
         </div>
         <div className="help-browser-chrome">
           <div className="help-browser-url">

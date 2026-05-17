@@ -26,11 +26,9 @@ const SystemLogs = lazy(() => import('./pages/super-user/SystemLogs'));
 const StaffChat = lazy(() => import('./pages/StaffChat'));
 const AccountantDashboard = lazy(() => import('./pages/AccountantDashboard'));
 const GlobalSettings = lazy(() => import('./pages/super-user/GlobalSettings'));
-const TrafficControl = lazy(() => import('./pages/super-user/TrafficControl'));
 const PickupLocationManager = lazy(() => import('./pages/super-user/PickupLocationManager'));
 const PickerDashboard = lazy(() => import('./pages/PickerDashboard'));
 const HelpCenter = lazy(() => import('./pages/HelpCenter'));
-const EmailDashboard = lazy(() => import('./pages/EmailDashboard'));
 const CMSManager = lazy(() => import('./pages/CMSManager'));
 
 // ─── Toast Overlay ────────────────────────────────────────────────────────────
@@ -138,16 +136,9 @@ const ProtectedLayout = ({ children, requireSuper = false }) => {
     if (!isAuthenticated) return;
     const check = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/super_settings.php`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('ehub_token')}` }
-        });
-        if (res.status === 401 || res.status === 403) {
-          logout();
-          return;
-        }
-        if (res.status === 503) {
-          const data = await res.json();
-          if (data.maintenance && user?.role !== 'super') {
+        const data = await authFetch('/super_settings.php');
+        if (data && data.success) {
+          if (data.data?.maintenance && user?.role !== 'super') {
             setIsMaintenance(true);
           }
         }
@@ -201,7 +192,6 @@ const ProtectedLayout = ({ children, requireSuper = false }) => {
 
 const DashboardSwitcher = () => {
   const { user } = useAuth();
-  if (user?.role === 'accountant') return <AccountantDashboard />;
   if (user?.role === 'picker') return <PickerDashboard />;
   return <Dashboard />;
 };
@@ -304,12 +294,16 @@ function AppContent() {
   // passive session expiry listener (401 from API)
   useEffect(() => {
     const handleUnauthorized = () => {
-      logout();
-      addToast('Session expired. Please log in again.', 'warning');
+      // Only trigger session expiry if we were actually logged in
+      // and NOT already on the login page
+      if (isAuthenticated && window.location.pathname !== '/login') {
+        logout();
+        addToast('Session expired. Please log in again.', 'warning');
+      }
     };
     window.addEventListener('auth_unauthorized', handleUnauthorized);
     return () => window.removeEventListener('auth_unauthorized', handleUnauthorized);
-  }, [logout, addToast]);
+  }, [isAuthenticated, logout, addToast]);
 
   return (
     <Router>
@@ -339,7 +333,6 @@ function AppContent() {
         <Route path="/customers" element={<ProtectedLayout><RouteLoader><CustomerManager /></RouteLoader></ProtectedLayout>} />
         <Route path="/notifications" element={<ProtectedLayout><RouteLoader><SystemNotifications /></RouteLoader></ProtectedLayout>} />
         <Route path="/help" element={<ProtectedLayout><RouteLoader><HelpCenter /></RouteLoader></ProtectedLayout>} />
-        <Route path="/email-dashboard" element={<ProtectedLayout><RouteLoader><EmailDashboard /></RouteLoader></ProtectedLayout>} />
         <Route path="/cms" element={<ProtectedLayout><RouteLoader><CMSManager /></RouteLoader></ProtectedLayout>} />
         <Route path="/settings" element={<ProtectedLayout><RouteLoader><Settings /></RouteLoader></ProtectedLayout>} />
 
@@ -347,7 +340,6 @@ function AppContent() {
         <Route path="/super/admins" element={<ProtectedLayout requireSuper><RouteLoader><AdminControl /></RouteLoader></ProtectedLayout>} />
 
         <Route path="/super/logs" element={<ProtectedLayout requireSuper><RouteLoader><SystemLogs /></RouteLoader></ProtectedLayout>} />
-        <Route path="/super/traffic" element={<ProtectedLayout requireSuper><RouteLoader><TrafficControl /></RouteLoader></ProtectedLayout>} />
         <Route path="/super/settings" element={<ProtectedLayout requireSuper><RouteLoader><GlobalSettings /></RouteLoader></ProtectedLayout>} />
         <Route path="/super/pickup-locations" element={<ProtectedLayout requireSuper><RouteLoader><PickupLocationManager /></RouteLoader></ProtectedLayout>} />
         

@@ -8,9 +8,9 @@ require_once 'db.php';
 require_once 'notifications.php';
 require_once __DIR__ . '/brand_settings.php';
 
-// Authenticate staff only
+// Authenticate staff only (allow all admins, super admins, pickers, marketing, and POS cashiers)
 try {
-    $userId = requireRole(RBAC_STAFF_GROUP, $pdo);
+    $userId = requireRole(array_merge(RBAC_ALL_ADMINS, ['pos_cashier']), $pdo);
 } catch (Exception $e) {
     sendResponse(false, 'Unauthorized: Staff access required.', null, 401);
 }
@@ -29,7 +29,7 @@ $action = $_GET['action'] ?? '';
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($action === 'users') {
         // Fetch all staff members except the current user
-        $stmt = $pdo->prepare("SELECT id, name, email, role, avatar_text, profile_image FROM users WHERE role IN ('super', 'admin', 'manager', 'pos_cashier') AND id != ?");
+        $stmt = $pdo->prepare("SELECT id, name, email, role, avatar_text, profile_image FROM users WHERE role IN ('super', 'admin', 'manager', 'store_manager', 'marketing', 'accountant', 'picker', 'pos_cashier') AND id != ?");
         $stmt->execute([$user['id']]);
         $staff = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -149,6 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $staffStmt = $pdo->prepare("SELECT name, email, phone FROM users WHERE role IN ('super', 'admin', 'manager', 'pos_cashier') AND id != ?");
                 $staffStmt->execute([$user['id']]);
                 $staffList = $staffStmt->fetchAll(PDO::FETCH_ASSOC);
+                $config = $GLOBALS['config'] ?? require_once __DIR__ . '/config.php';
                 
                 $emailsSent = 0;
                 $smsSent = 0;

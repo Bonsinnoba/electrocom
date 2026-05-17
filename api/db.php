@@ -34,6 +34,35 @@ try {
     if (file_exists('security.php')) {
         require_once 'security.php';
 
+        // --- NEW: Enhanced Error & Exception Handling ---
+        // Capture warnings/notices and pipe to custom logger
+        set_error_handler(function($errno, $errstr, $errfile, $errline) {
+            if (!(error_reporting() & $errno)) return false;
+            $msg = "PHP Error [$errno]: $errstr in $errfile on line $errline";
+            logger('warn', 'PHP_ERROR', $msg);
+            return false; // Let standard PHP error handling continue as well
+        });
+
+        // Capture uncaught exceptions
+        set_exception_handler(function($e) {
+            $msg = "Uncaught Exception: " . $e->getMessage() . "\nStack Trace:\n" . $e->getTraceAsString();
+            logger('error', 'EXCEPTION', $msg);
+            // Default behavior after logging
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'An unexpected server error occurred. Details have been logged.']);
+            exit;
+        });
+
+        // Capture Fatal Errors (Shutdown)
+        register_shutdown_function(function() {
+            $error = error_get_last();
+            if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+                $msg = "FATAL ERROR [{$error['type']}]: {$error['message']} in {$error['file']} on line {$error['line']}";
+                logger('error', 'FATAL', $msg);
+            }
+        });
+        // -------------------------------------------------
+
         // --- NEW: Debug Mode Logic ---
         if (isDebugEnabled()) {
             ini_set('display_errors', 1);

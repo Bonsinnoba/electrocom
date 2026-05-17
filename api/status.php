@@ -1,6 +1,6 @@
 <?php
 /**
- * EssentialsHub - System Status & Health Check
+ * ElectrCom - System Status & Health Check
  */
 
 require_once 'db.php';

@@ -78,6 +78,13 @@ function completeOrder($orderId, $pdo) {
         $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) SELECT id, ?, ?, 'order' FROM users WHERE role IN ('admin', 'super')")
             ->execute(["New Order Received", "Order {$paymentRef} has been placed by {$order['user_name']} for GH\xc2\xa2 {$order['total_amount']}."]);
 
+        // 7b. Award new Loyalty Points (1 point per GHS 10 spent)
+        $pointsEarned = (int)floor($order['total_amount'] / 10);
+        if ($pointsEarned > 0) {
+            $pdo->prepare("UPDATE users SET loyalty_points = loyalty_points + ? WHERE id = ?")
+                ->execute([$pointsEarned, $order['user_id']]);
+        }
+
         $pdo->commit();
 
         // 8. Communications (Email/SMS)

@@ -12,7 +12,7 @@ try {
     $userName = getUserName($userId, $pdo);
     
     // Restricted to Super, Admin, Branch Admin, and Store Manager
-    requireRole(['super', 'admin', 'branch_admin', 'store_manager'], $pdo);
+    requireRole(['super', 'store_manager'], $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);

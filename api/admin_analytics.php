@@ -5,13 +5,18 @@ require_once 'security.php';
 
 header('Content-Type: application/json');
 
-// Only Admins/Super Admins and Accountants/Pickers/BranchAdmins
-$userId = requireRole(['super', 'admin', 'accountant', 'picker'], $pdo);
+// Only Admins/Super Admins and Accountants/Pickers/Marketing/BranchAdmins
+$userId = requireRole(['super', 'store_manager', 'accountant', 'picker', 'marketing'], $pdo);
 // No branch scope - single warehouse system
 $branchId = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
+        // --- Pseudo-Cron for Weekly Staff Reports ---
+        require_once __DIR__ . '/cron_generate_weekly_report.php';
+        generateWeeklyReport($pdo);
+        // ------------------------------------------
+
         $settingsFile = __DIR__ . '/data/super_settings.json';
         $storedSettings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
         $insightDefaults = [

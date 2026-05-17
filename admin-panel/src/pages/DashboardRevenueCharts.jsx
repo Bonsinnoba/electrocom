@@ -28,7 +28,7 @@ export default function DashboardRevenueCharts({
           <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Revenue trends across selected period</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {[7, 30, 90].map((days) => (
+          {[7, 30, 90, 365].map((days) => (
             <button
               key={days}
               type="button"
@@ -36,7 +36,7 @@ export default function DashboardRevenueCharts({
               style={{ padding: '5px 10px', fontSize: '11px' }}
               onClick={() => setChartRange(days)}
             >
-              {days}d
+              {days === 365 ? '1y' : `${days}d`}
             </button>
           ))}
           <button

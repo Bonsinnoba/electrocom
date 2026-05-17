@@ -103,7 +103,6 @@ export default function HelpCenter() {
     ...(!isMarketing && !isPicker ? [{ id: 'customers', label: 'Customers' }] : []),
     ...(!isAccountant ? [{ id: 'staffhub', label: 'Staff Hub' }] : []),
     ...(isManager ? [{ id: 'cms', label: 'Content Management' }] : []),
-    ...(isManager ? [{ id: 'email-engine', label: 'Email Engine' }] : []),
     { id: 'alerts', label: 'Alerts' },
     ...(!isMarketing ? [{ id: 'settings', label: 'Settings' }] : []),
     ...(isSuper ? [{ id: 'super', label: 'Super admin' }] : []),
@@ -269,7 +268,7 @@ export default function HelpCenter() {
             <Callout type="note">
               If you see fewer sidebar items than a colleague, your roles differ. Speak to your super admin if you believe a section has been hidden incorrectly.
             </Callout>
-            <HelpScreenshot title="EssentialsHub Admin" urlBar="admin.example.com / Dashboard">
+            <HelpScreenshot title="ElectrCom Admin" urlBar="admin.example.com / Dashboard">
               <MockSidebar activeLabel="Dashboard" />
               <div className="help-mock-main">
                 <div className="help-mock-h1" />
@@ -290,7 +289,7 @@ export default function HelpCenter() {
               <StepList
                 items={[
                   'Review the stat cards at the top row: today\'s revenue, total orders, pending orders, and low-stock count give a fast health check.',
-                  'Use the chart range toggles (7d / 30d / 90d) to change the revenue and orders graph window without reloading the page.',
+                  'Use the chart range toggles (7d / 30d / 90d / 1y) to change the revenue and orders graph window without reloading the page.',
                   'The Suggested Actions panel highlights items that need attention — low stock items, pending orders awaiting processing, and marketing opportunities.',
                   'Click any suggested action card to navigate directly to the relevant module (e.g. clicking a low-stock card opens Inventory Hub pre-filtered).',
                   'The Revenue chart plots gross sales by day. Hover over any data point to see the exact figure for that date.',
@@ -302,7 +301,7 @@ export default function HelpCenter() {
               <Callout type="note">
                 Charts are loaded after the initial page render to keep the dashboard fast. If a chart appears empty, wait 2–3 seconds or do a soft refresh — a blank chart on first load is normal, not an error.
               </Callout>
-              <HelpScreenshot file="dashboard.png" title="Dashboard — EssentialsHub" urlBar="…/ (home)">
+              <HelpScreenshot file="dashboard.png" title="Dashboard — ElectrCom" urlBar="…/ (home)">
                 <MockSidebar activeLabel="Dashboard" />
                 <div className="help-mock-main">
                   <div className="help-mock-h1" />
@@ -733,60 +732,6 @@ export default function HelpCenter() {
             </Section>
           )}
 
-          {isManager && (
-            <Section id="email-engine" icon={<Mail size={22} />} title="Email Engine">
-              <p className="help-lead">
-                The <strong>Email Engine Dashboard</strong> gives admins full visibility into the outgoing email queue — covering provider
-                performance, delivery trends, failure diagnosis, and recovery tooling all without needing server access.
-              </p>
-              <JumpLink to="/email-dashboard">Open Email Engine</JumpLink>
-
-              <h3 style={{ fontSize: 15, fontWeight: 800, margin: '20px 0 8px', color: 'var(--text-main)' }}>Reading the dashboard</h3>
-              <StepList
-                items={[
-                  'Five overview cards at the top show a live count of all jobs by status: pending, retrying, sent, failed, and cancelled.',
-                  'Use the date range selector (7d / 30d / 90d) and status filter to narrow the data shown across all panels.',
-                  'Provider performance table shows sent vs. failed counts per provider — useful for spotting if a specific SMTP or API key is underperforming.',
-                  'Daily delivery trend chart displays sent (green bars) and failed (red bars) side-by-side per day. Hover a bar to see the exact count.',
-                  'Recent failures table lists the last batch of failed jobs with recipient email, provider used, and the raw error message — use this to diagnose root causes without touching logs.',
-                ]}
-              />
-              <Callout type="tip">
-                If you see a spike of failures on a specific day in the trend chart, change the date range to that narrow window, set the status filter to "failed", and check Recent Failures for the error — 9 times out of 10 it is a provider API key expiry or rate limit.
-              </Callout>
-
-              <h3 style={{ fontSize: 15, fontWeight: 800, margin: '20px 0 8px', color: 'var(--text-main)' }}>Recovering failed jobs</h3>
-              <StepList
-                items={[
-                  'To retry all failed jobs at once, click Retry all failed in the top toolbar — all failed-status jobs are re-queued immediately.',
-                  'For selective recovery: go to the Queue entries table, filter by status "failed", select specific rows using the checkboxes, then click Retry selected.',
-                  'To permanently discard jobs that will never succeed (e.g. invalid recipient addresses), select them and click Cancel selected — they move to cancelled status and are excluded from future retries.',
-                  'Export CSV downloads the current filtered queue to a spreadsheet for offline review or sharing with your email provider support team.',
-                  'Super admins can click Provider Settings to jump directly to Super Settings → Email configuration, where SMTP credentials and API keys are managed.',
-                ]}
-              />
-              <Callout type="warning">
-                "Retry all failed" touches every failed job regardless of the failure reason. If the root cause (e.g. wrong API key) has not been fixed yet, retrying will only re-fail them and consume provider quota. Fix the underlying issue in Super Settings first.
-              </Callout>
-              <Callout type="note">
-                Transactional emails (order confirmations, receipts) and broadcast emails share the same queue. A large broadcast send can temporarily push transactional jobs into a retrying state — this is normal and self-resolves as the queue drains.
-              </Callout>
-              <HelpScreenshot file="email-engine.png" title="Email Engine Dashboard" urlBar="…/email-dashboard">
-                <MockSidebar activeLabel="Email Engine" />
-                <div className="help-mock-main">
-                  <div className="help-mock-h1" />
-                  <MockCard>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 10 }}>
-                      {[1, 2, 3, 4, 5].map((k) => (
-                        <div key={k} style={{ height: 40, borderRadius: 8, background: 'var(--bg-surface-secondary)' }} />
-                      ))}
-                    </div>
-                    <MockTable rows={3} />
-                  </MockCard>
-                </div>
-              </HelpScreenshot>
-            </Section>
-          )}
 
           <Section id="alerts" icon={<Bell size={22} />} title="System alerts">
             <p className="help-lead">

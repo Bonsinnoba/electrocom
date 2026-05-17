@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { fetchSuperDashboard as getDashboard, fetchAnalytics } from '../../services/api';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Brush,
   BarChart, Bar, PieChart, Pie, Cell, Legend
 } from 'recharts';
 
@@ -63,7 +63,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
-  const [chartRange, setChartRange] = useState(30);
+  const [chartRange, setChartRange] = useState(365);
   const [chartMode, setChartMode] = useState('area');
 
   const load = async () => {
@@ -223,9 +223,9 @@ export default function Dashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom:'16px', gap: '8px', flexWrap: 'wrap' }}>
                 <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:0, color:'var(--text-muted)' }}>Revenue</h3>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {[7, 30, 90].map((days) => (
+                  {[7, 30, 90, 365].map((days) => (
                     <button key={days} type="button" className={`btn ${chartRange === days ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartRange(days)}>
-                      {days}d
+                      {days === 365 ? '1y' : `${days}d`}
                     </button>
                   ))}
                   <button type="button" className={`btn ${chartMode === 'area' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartMode('area')}>

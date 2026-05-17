@@ -13,6 +13,7 @@ import {
   formatImageUrl 
 } from '../../services/api';
 import { useAdminSettings } from '../../context/AdminSettingsContext';
+import { useConfirm } from '../../context/ConfirmContext';
 
 // ── File Upload Helper ────────────────────────────────────────────────────────
 function FileUploadField({ label, description, icon, value, type, onChange, oldPath }) {
@@ -136,6 +137,8 @@ const DEFAULTS = {
   maintenanceMode:          false,
   allowRegistration:        true,
   allowDoorToDoorDelivery:  false,
+  doorToDoorThreshold:      0,
+  allowCardPayment:         true,
   maxLoginAttempts:         5,
   sessionTimeout:           60,
   twoFactorAdmin:           false,
@@ -145,10 +148,6 @@ const DEFAULTS = {
   requireNumberInPassword:  false,
   // Notifications
   emailNotify:        true,
-  emailProvider:      'smtp',
-  emailProviderSmtpEnabled: true,
-  emailProviderMailgunEnabled: false,
-  emailProviderSendgridEnabled: false,
   securityAlerts:     true,
   lowStockThreshold:  5,
   lowStockAlertEmail: 'hello@example.com',
@@ -172,6 +171,9 @@ const DEFAULTS = {
   homepageSectionTitle:     'Product Catalog',
   homepageFeaturedCategory: '',
   vatRate:                  10,
+  // Loyalty
+  integrityDiscountThreshold: 500,
+  integrityDiscountPct:       10,
 };
 
 // ── Reusable UI components ────────────────────────────────────────────────────
@@ -293,6 +295,7 @@ function SocialField({ label, icon, value, onChange, placeholder }) {
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function GlobalSettings() {
   const { refreshSettings } = useAdminSettings();
+  const { confirm } = useConfirm();
   const [settings, setSettings] = useState(DEFAULTS);
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
@@ -510,6 +513,27 @@ export default function GlobalSettings() {
               label="Enable Door to Door Delivery"
               description="When disabled, checkout will only allow pickup locations."
             />
+            {settings.allowDoorToDoorDelivery && (
+              <div className="form-group animate-slide-in">
+                <label className="input-label">Door to Door Min. Threshold (GHS)</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    className="input-premium"
+                    value={settings.doorToDoorThreshold || 0}
+                    onChange={(e) => setSettings(s => ({ ...s, doorToDoorThreshold: Math.max(0, parseInt(e.target.value) || 0) }))}
+                    style={{ flex: 1 }}
+                  />
+                </div>
+                <p className="input-description">Minimum order subtotal required to qualify for door-to-door delivery. Set to 0 to disable the minimum requirement.</p>
+              </div>
+            )}
+            <Toggle value={settings.allowCardPayment} onChange={set('allowCardPayment')}
+              label="Enable Card Payment"
+              description="When disabled, checkout will not offer card payment as an option."
+            />
           </>
         )}
 
@@ -609,33 +633,6 @@ export default function GlobalSettings() {
               label="Order Email Notifications"
               description="Send order confirmation and shipping updates to customers."
             />
-            <Field
-              label="Active Email Provider"
-              description="Primary provider to use when multiple providers are enabled."
-              icon={<Mail size={14} />}
-            >
-              <select
-                style={{ ...selectStyle, maxWidth: '240px' }}
-                value={settings.emailProvider || 'smtp'}
-                onChange={setVal('emailProvider')}
-              >
-                <option value="smtp">SMTP (self-hosted)</option>
-                <option value="mailgun">Mailgun</option>
-                <option value="sendgrid">SendGrid</option>
-              </select>
-            </Field>
-            <Toggle value={settings.emailProviderSmtpEnabled} onChange={set('emailProviderSmtpEnabled')}
-              label="Enable SMTP Provider"
-              description="Uses SMTP credentials from backend environment configuration."
-            />
-            <Toggle value={settings.emailProviderMailgunEnabled} onChange={set('emailProviderMailgunEnabled')}
-              label="Enable Mailgun Provider"
-              description="Requires MAILGUN_API_KEY and MAILGUN_DOMAIN in backend environment."
-            />
-            <Toggle value={settings.emailProviderSendgridEnabled} onChange={set('emailProviderSendgridEnabled')}
-              label="Enable SendGrid Provider"
-              description="Requires SENDGRID_API_KEY in backend environment."
-            />
 
             <SectionHeader title="Admin Alerts" />
             <Toggle value={settings.securityAlerts} onChange={set('securityAlerts')}
@@ -670,6 +667,14 @@ export default function GlobalSettings() {
             </Field>
             <Field label="Featured Category" description="Slug or ID of the category whose products populate the homepage grid." icon={<Package size={14} />}>
               <input style={inputStyle} value={settings.homepageFeaturedCategory || ''} onChange={setVal('homepageFeaturedCategory')} placeholder="e.g. smartphones" />
+            </Field>
+
+            <SectionHeader title="Loyalty & Rewards" />
+            <Field label="Integrity Points Threshold" description="Number of integrity points required to unlock the automatic storefront discount." icon={<Shield size={14} />}>
+              <input style={narrowInput} type="number" min={0} value={settings.integrityDiscountThreshold} onChange={setNum('integrityDiscountThreshold')} />
+            </Field>
+            <Field label="Integrity Discount (%)" description="Percentage discount automatically applied to subtotal for qualifying customers." icon={<Percent size={14} />}>
+              <input style={narrowInput} type="number" min={0} max={100} step={1} value={settings.integrityDiscountPct} onChange={setNum('integrityDiscountPct')} />
             </Field>
 
             <SectionHeader title="Orders" />
@@ -738,7 +743,7 @@ export default function GlobalSettings() {
               </p>
               <button
                 onClick={async () => {
-                  if (confirm('🚨 WARNING: This will WIPE all products and slider images. Are you absolutely sure?')) {
+                  if (await confirm('🚨 WARNING: This will WIPE all products and slider images. Are you absolutely sure?', { title: 'Factory Reset' })) {
                     try {
                       const res = await (await import('../../services/api')).wipeDemoData();
                       if (res.success) alert(res.message);

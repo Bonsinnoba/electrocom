@@ -1,5 +1,5 @@
 /*
- * EssentialsHub - Service Worker for Push Notifications
+ * ElectrCom - Service Worker for Push Notifications
  */
 
 self.addEventListener('install', (event) => {
@@ -11,7 +11,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', function(event) {
-  let data = { title: 'New Notification', body: 'You have a new update from EssentialsHub!', url: '/' };
+  let data = { title: 'New Notification', body: 'You have a new update from ElectrCom!', url: '/' };
   
   if (event.data) {
     try {

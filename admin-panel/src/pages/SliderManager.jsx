@@ -5,6 +5,19 @@ import { useConfirm } from '../context/ConfirmContext';
 
 import { Plus, Edit2, Trash2, CheckCircle, XCircle, Upload } from 'lucide-react';
 
+const PREDEFINED_LINKS = [
+  { value: '/shop', label: 'Shop Homepage' },
+  { value: '/cart', label: 'Cart' },
+  { value: '/favorites', label: 'Favorites' },
+  { value: '/profile', label: 'User Profile' },
+  { value: '/orders', label: 'Order History' },
+  { value: '/about', label: 'About Us' },
+  { value: '/support', label: 'Support & Help' },
+  { value: '/track-order', label: 'Track Order' },
+  { value: '/returns', label: 'Returns Policy' },
+  { value: 'custom', label: 'Custom Path / URL...' }
+];
+
 export default function SliderManager() {
   const { addToast } = useNotifications();
   const { confirm } = useConfirm();
@@ -224,210 +237,401 @@ export default function SliderManager() {
       )}
 
       {isModalOpen && (
-        <div className="modal-overlay" onClick={closeModal} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="modal-content glass" onClick={e => e.stopPropagation()} style={{ width: '500px', maxWidth: '90%', padding: '32px', borderRadius: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2 style={{ marginTop: 0 }}>{editingSlide ? 'Edit Slide' : 'Add New Slide'}</h2>
+        <div className="modal-overlay" onClick={closeModal} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-content glass animate-fade-in" onClick={e => e.stopPropagation()} style={{ width: '1100px', maxWidth: '95%', padding: '32px', borderRadius: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ marginTop: 0, marginBottom: '24px', fontWeight: 800 }}>{editingSlide ? 'Edit Slide' : 'Add New Slide'}</h2>
             
-            <form onSubmit={handleSave} style={{ display: 'grid', gap: '16px' }}>
-              <div className="form-group">
-                <label>Slide Image</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <label style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: '8px',
-                    padding: '32px', 
-                    border: '2px dashed var(--border-light)', 
-                    borderRadius: '8px', 
-                    cursor: 'pointer',
-                    background: 'var(--bg-surface-secondary)',
-                    transition: 'all 0.2s',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    minHeight: '120px'
-                  }}>
-                    {formData.image_url ? (
-                        <>
-                            <img src={formatImageUrl(formData.image_url)} alt="Preview" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }} />
-                            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.6)', padding: '8px 16px', borderRadius: '20px', color: 'white', fontWeight: 600 }}>
-                                <Upload size={18} /> Change Image
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <Upload size={20} />
-                            <span style={{ fontSize: '14px', fontWeight: 600 }}>Click to upload slide image</span>
-                        </>
-                    )}
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-                  <input type="text" name="image_url" value={formData.image_url.startsWith('data:') ? 'Custom Upload' : formData.image_url} onChange={handleChange} className="input-field" placeholder="Or paste image URL here..." />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Title</label>
-                <input type="text" name="title" value={formData.title} onChange={handleChange} className="input-field" placeholder="Big Sale!" />
-              </div>
-
-              <div className="form-group">
-                <label>Subtitle</label>
-                <input type="text" name="subtitle" value={formData.subtitle} onChange={handleChange} className="input-field" placeholder="Get 50% off today" />
-              </div>
-
-              <div className="form-group">
-                <label>Text Content Position</label>
-                <select name="text_position" value={formData.text_position} onChange={handleChange} className="input-field">
-                  <option value="left">Left (Default)</option>
-                  <option value="right">Right</option>
-                  <option value="center">Center</option>
-                  <option value="top">Top Center</option>
-                  <option value="bottom">Bottom Center</option>
-                </select>
-              </div>
-
-              <div className="form-group" style={{ border: '1px solid var(--border-light)', padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <label style={{ margin: 0, fontWeight: 700 }}>Additional Content Blocks</label>
-                      <button type="button" onClick={addBlock} className="btn-secondary" style={{ padding: '4px 12px', fontSize: '12px' }}>
-                          <Plus size={14} /> Add Block
-                      </button>
-                  </div>
-                  
-                  <div style={{ display: 'grid', gap: '16px' }}>
-                      {formData.content_blocks.map((block, index) => (
-                          <div key={index} style={{ display: 'grid', gap: '12px', padding: '20px', background: 'var(--bg-surface-secondary)', borderRadius: '16px', border: '1px solid var(--border-light)', position: 'relative' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Block #{index + 1}</span>
-                                  <button type="button" onClick={() => removeBlock(index)} className="btn-danger" style={{ padding: '6px', borderRadius: '6px' }}>
-                                      <Trash2 size={14} />
-                                  </button>
+            <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '32px', alignItems: 'start' }}>
+              {/* Left Column: Editor Form */}
+              <form onSubmit={handleSave} style={{ flex: '1 1 500px', display: 'grid', gap: '16px' }}>
+                <div className="form-group">
+                  <label>Slide Image</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <label style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '8px',
+                      padding: '32px', 
+                      border: '2px dashed var(--border-light)', 
+                      borderRadius: '8px', 
+                      cursor: 'pointer',
+                      background: 'var(--bg-surface-secondary)',
+                      transition: 'all 0.2s',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      minHeight: '120px'
+                    }}>
+                      {formData.image_url ? (
+                          <>
+                              <img src={formData.image_url.startsWith('data:') ? formData.image_url : formatImageUrl(formData.image_url)} alt="Preview" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }} />
+                              <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.6)', padding: '8px 16px', borderRadius: '20px', color: 'white', fontWeight: 600 }}>
+                                  <Upload size={18} /> Change Image
                               </div>
-
-                              <div className="form-group">
-                                  <label style={{ fontSize: '11px' }}>Text Content</label>
-                                  <input 
-                                      type="text" 
-                                      value={block.text} 
-                                      onChange={(e) => updateBlock(index, 'text', e.target.value)} 
-                                      className="input-field" 
-                                      placeholder="What should this block say?" 
-                                  />
-                              </div>
-
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                                  <div className="form-group">
-                                      <label style={{ fontSize: '11px' }}>Type</label>
-                                      <select 
-                                          value={block.type} 
-                                          onChange={(e) => updateBlock(index, 'type', e.target.value)} 
-                                          className="input-field"
-                                          style={{ fontSize: '12px' }}
-                                      >
-                                          <option value="paragraph">Paragraph</option>
-                                          <option value="heading">Heading</option>
-                                          <option value="subheading">Sub-heading</option>
-                                      </select>
-                                  </div>
-                                  <div className="form-group">
-                                      <label style={{ fontSize: '11px' }}>Font Size</label>
-                                      <input 
-                                          type="text" 
-                                          value={block.fontSize} 
-                                          onChange={(e) => updateBlock(index, 'fontSize', e.target.value)} 
-                                          className="input-field" 
-                                          placeholder="e.g. 24px"
-                                          style={{ fontSize: '12px' }}
-                                      />
-                                  </div>
-                                  <div className="form-group">
-                                      <label style={{ fontSize: '11px' }}>Color</label>
-                                      <input 
-                                          type="color" 
-                                          value={block.color || '#ffffff'} 
-                                          onChange={(e) => updateBlock(index, 'color', e.target.value)} 
-                                          className="input-field"
-                                          style={{ height: '38px', padding: '4px' }}
-                                      />
-                                  </div>
-                              </div>
-
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', borderTop: '1px solid var(--border-light)', paddingTop: '12px' }}>
-                                  <div className="form-group">
-                                      <label style={{ fontSize: '11px' }}>Top (%)</label>
-                                      <input 
-                                          type="number" 
-                                          value={block.top} 
-                                          onChange={(e) => updateBlock(index, 'top', e.target.value)} 
-                                          className="input-field"
-                                          style={{ fontSize: '12px' }}
-                                      />
-                                  </div>
-                                  <div className="form-group">
-                                      <label style={{ fontSize: '11px' }}>Left (%)</label>
-                                      <input 
-                                          type="number" 
-                                          value={block.left} 
-                                          onChange={(e) => updateBlock(index, 'left', e.target.value)} 
-                                          className="input-field"
-                                          style={{ fontSize: '12px' }}
-                                      />
-                                  </div>
-                                  <div className="form-group">
-                                      <label style={{ fontSize: '11px' }}>Alignment</label>
-                                      <select 
-                                          value={block.textAlign || 'center'} 
-                                          onChange={(e) => updateBlock(index, 'textAlign', e.target.value)} 
-                                          className="input-field"
-                                          style={{ fontSize: '12px' }}
-                                      >
-                                          <option value="left">Left</option>
-                                          <option value="center">Center</option>
-                                          <option value="right">Right</option>
-                                      </select>
-                                  </div>
-                              </div>
-                          </div>
-                      ))}
-                      {formData.content_blocks.length === 0 && (
-                          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', margin: '20px 0' }}>No custom text blocks. Only main Title/Subtitle will show.</p>
+                          </>
+                      ) : (
+                          <>
+                              <Upload size={20} />
+                              <span style={{ fontSize: '14px', fontWeight: 600 }}>Click to upload slide image</span>
+                          </>
                       )}
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                    <input type="text" name="image_url" value={formData.image_url.startsWith('data:') ? 'Custom Upload' : formData.image_url} onChange={handleChange} className="input-field" placeholder="Or paste image URL here..." />
                   </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Title</label>
+                  <input type="text" name="title" value={formData.title} onChange={handleChange} className="input-field" placeholder="Big Sale!" />
+                </div>
+
+                <div className="form-group">
+                  <label>Subtitle</label>
+                  <input type="text" name="subtitle" value={formData.subtitle} onChange={handleChange} className="input-field" placeholder="Get 50% off today" />
+                </div>
+
+                <div className="form-group">
+                  <label>Text Content Position</label>
+                  <select name="text_position" value={formData.text_position} onChange={handleChange} className="input-field">
+                    <option value="left">Left (Default)</option>
+                    <option value="right">Right</option>
+                    <option value="center">Center</option>
+                    <option value="top">Top Center</option>
+                    <option value="bottom">Bottom Center</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ border: '1px solid var(--border-light)', padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <label style={{ margin: 0, fontWeight: 700 }}>Additional Content Blocks</label>
+                        <button type="button" onClick={addBlock} className="btn-secondary" style={{ padding: '4px 12px', fontSize: '12px' }}>
+                            <Plus size={14} /> Add Block
+                        </button>
+                    </div>
+                    
+                    <div style={{ display: 'grid', gap: '16px' }}>
+                        {formData.content_blocks.map((block, index) => (
+                            <div key={index} style={{ display: 'grid', gap: '12px', padding: '20px', background: 'var(--bg-surface-secondary)', borderRadius: '16px', border: '1px solid var(--border-light)', position: 'relative' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Block #{index + 1}</span>
+                                    <button type="button" onClick={() => removeBlock(index)} className="btn-danger" style={{ padding: '6px', borderRadius: '6px' }}>
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+
+                                <div className="form-group">
+                                    <label style={{ fontSize: '11px' }}>Text Content</label>
+                                    <input 
+                                        type="text" 
+                                        value={block.text} 
+                                        onChange={(e) => updateBlock(index, 'text', e.target.value)} 
+                                        className="input-field" 
+                                        placeholder="What should this block say?" 
+                                    />
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                                    <div className="form-group">
+                                        <label style={{ fontSize: '11px' }}>Type</label>
+                                        <select 
+                                            value={block.type} 
+                                            onChange={(e) => updateBlock(index, 'type', e.target.value)} 
+                                            className="input-field"
+                                            style={{ fontSize: '12px' }}
+                                        >
+                                            <option value="paragraph">Paragraph</option>
+                                            <option value="heading">Heading</option>
+                                            <option value="subheading">Sub-heading</option>
+                                            <option value="cta">CTA Button</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={{ fontSize: '11px' }}>Font Size</label>
+                                        <input 
+                                            type="text" 
+                                            value={block.fontSize} 
+                                            onChange={(e) => updateBlock(index, 'fontSize', e.target.value)} 
+                                            className="input-field" 
+                                            placeholder="e.g. 24px"
+                                            style={{ fontSize: '12px' }}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={{ fontSize: '11px' }}>Color</label>
+                                        <input 
+                                            type="color" 
+                                            value={block.color || '#ffffff'} 
+                                            onChange={(e) => updateBlock(index, 'color', e.target.value)} 
+                                            className="input-field"
+                                            style={{ height: '38px', padding: '4px' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {block.type === 'cta' && (
+                                  <div className="form-group">
+                                      <label style={{ fontSize: '11px' }}>CTA Button Link</label>
+                                      <div style={{ display: 'grid', gap: '8px' }}>
+                                        <select 
+                                          value={PREDEFINED_LINKS.some(opt => opt.value === block.link) ? block.link : 'custom'} 
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val !== 'custom') {
+                                              updateBlock(index, 'link', val);
+                                            } else {
+                                              updateBlock(index, 'link', '');
+                                            }
+                                          }}
+                                          className="input-field"
+                                          style={{ fontSize: '12px' }}
+                                        >
+                                          {PREDEFINED_LINKS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                          ))}
+                                        </select>
+                                        {(!PREDEFINED_LINKS.some(opt => opt.value === block.link) || block.link === 'custom') && (
+                                          <input 
+                                            type="text" 
+                                            value={block.link === 'custom' ? '' : (block.link || '')} 
+                                            onChange={(e) => updateBlock(index, 'link', e.target.value)} 
+                                            className="input-field animate-fade-in" 
+                                            placeholder="Enter custom path (e.g. /category/deals)..."
+                                            style={{ fontSize: '12px' }}
+                                          />
+                                        )}
+                                      </div>
+                                  </div>
+                                )}
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', borderTop: '1px solid var(--border-light)', paddingTop: '12px' }}>
+                                    <div className="form-group">
+                                        <label style={{ fontSize: '11px', display: 'flex', justifyContent: 'space-between' }}>
+                                          <span>Top (%)</span>
+                                          <span style={{ fontWeight: 'bold' }}>{block.top || 50}%</span>
+                                        </label>
+                                        <input 
+                                            type="range" 
+                                            min="0"
+                                            max="100"
+                                            value={block.top || 50} 
+                                            onChange={(e) => updateBlock(index, 'top', e.target.value)} 
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={{ fontSize: '11px', display: 'flex', justifyContent: 'space-between' }}>
+                                          <span>Left (%)</span>
+                                          <span style={{ fontWeight: 'bold' }}>{block.left || 50}%</span>
+                                        </label>
+                                        <input 
+                                            type="range" 
+                                            min="0"
+                                            max="100"
+                                            value={block.left || 50} 
+                                            onChange={(e) => updateBlock(index, 'left', e.target.value)} 
+                                            style={{ width: '100%' }}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={{ fontSize: '11px' }}>Alignment</label>
+                                        <select 
+                                            value={block.textAlign || 'center'} 
+                                            onChange={(e) => updateBlock(index, 'textAlign', e.target.value)} 
+                                            className="input-field"
+                                            style={{ fontSize: '12px' }}
+                                        >
+                                            <option value="left">Left</option>
+                                            <option value="center">Center</option>
+                                            <option value="right">Right</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {formData.content_blocks.length === 0 && (
+                            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', margin: '20px 0' }}>No custom text blocks. Only main Title/Subtitle will show.</p>
+                        )}
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                      <label>Button Text</label>
+                      <input type="text" name="button_text" value={formData.button_text} onChange={handleChange} className="input-field" />
+                  </div>
+                  <div className="form-group">
+                      <label>Button Link</label>
+                      <div style={{ display: 'grid', gap: '8px' }}>
+                        <select 
+                          value={PREDEFINED_LINKS.some(opt => opt.value === formData.button_link) ? formData.button_link : 'custom'} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val !== 'custom') {
+                              setFormData(prev => ({ ...prev, button_link: val }));
+                            } else {
+                              setFormData(prev => ({ ...prev, button_link: '' }));
+                            }
+                          }}
+                          className="input-field"
+                        >
+                          {PREDEFINED_LINKS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                        {(!PREDEFINED_LINKS.some(opt => opt.value === formData.button_link) || formData.button_link === 'custom') && (
+                          <input 
+                            type="text" 
+                            name="button_link" 
+                            value={formData.button_link === 'custom' ? '' : formData.button_link} 
+                            onChange={handleChange} 
+                            className="input-field animate-fade-in" 
+                            placeholder="Enter custom path (e.g. /category/electronics)..." 
+                          />
+                        )}
+                      </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                      <label>Display Order</label>
+                      <input type="number" name="display_order" value={formData.display_order} onChange={handleChange} className="input-field" />
+                  </div>
+                  <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '30px' }}>
+                      <input type="checkbox" name="is_active" checked={formData.is_active === 1} onChange={handleChange} id="active_check" style={{ width: '20px', height: '20px' }} />
+                      <label htmlFor="active_check" style={{ margin: 0, cursor: 'pointer' }}>Active</label>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                  <button type="button" onClick={closeModal} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
+                  <button type="submit" className="btn-primary" style={{ flex: 1 }}>Save Slide</button>
+                </div>
+              </form>
+
+              {/* Right Column: Visual Preview Dashboard */}
+              <div style={{ flex: '1 1 400px', display: 'grid', gap: '20px', position: 'sticky', top: '10px' }}>
+                <div style={{ background: 'var(--bg-surface-secondary)', border: '1px solid var(--border-light)', borderRadius: '24px', padding: '24px' }}>
+                  <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: 800 }}>Live Visual Preview</h3>
+                  
+                  <div style={{ 
+                    position: 'relative', 
+                    width: '100%', 
+                    aspectRatio: '16/9', 
+                    borderRadius: '16px', 
+                    overflow: 'hidden', 
+                    backgroundImage: formData.image_url ? `url(${formData.image_url.startsWith('data:') ? formData.image_url : formatImageUrl(formData.image_url)})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundColor: '#1a1a2e',
+                    border: '1px solid var(--border-light)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+                    transition: 'all 0.3s'
+                  }}>
+                    {/* Positioning Styles Overlay (replicating storefront styling) */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      background: (() => {
+                        const pos = formData.text_position || 'left';
+                        if (pos === 'left') return 'linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 100%)';
+                        if (pos === 'right') return 'linear-gradient(to left, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 100%)';
+                        if (pos === 'center') return 'radial-gradient(circle, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 80%)';
+                        if (pos === 'top') return 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 100%)';
+                        if (pos === 'bottom') return 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 100%)';
+                        return 'rgba(0,0,0,0.4)';
+                      })(),
+                      display: 'flex',
+                      justifyContent: (() => {
+                        const pos = formData.text_position || 'left';
+                        if (pos === 'left') return 'flex-start';
+                        if (pos === 'right') return 'flex-end';
+                        return 'center';
+                      })(),
+                      alignItems: (() => {
+                        const pos = formData.text_position || 'left';
+                        if (pos === 'top') return 'flex-start';
+                        if (pos === 'bottom') return 'flex-end';
+                        return 'center';
+                      })(),
+                      padding: '24px',
+                      boxSizing: 'border-box'
+                    }}>
+                      {/* Main Slide Content */}
+                      <div style={{ 
+                        maxWidth: '80%', 
+                        color: 'white', 
+                        textAlign: (() => {
+                          const pos = formData.text_position || 'left';
+                          if (pos === 'left') return 'left';
+                          if (pos === 'right') return 'right';
+                          return 'center';
+                        })()
+                      }}>
+                        {formData.title && (
+                          <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 6px 0', lineHeight: 1.1 }}>
+                            {formData.title}
+                          </h2>
+                        )}
+                        {formData.subtitle && (
+                          <p style={{ fontSize: '11px', margin: '0 0 10px 0', opacity: 0.9 }}>
+                            {formData.subtitle}
+                          </p>
+                        )}
+                        {formData.button_text && (
+                          <span className="btn-primary" style={{ padding: '4px 12px', fontSize: '10px', display: 'inline-block', cursor: 'default', pointerEvents: 'none' }}>
+                            {formData.button_text}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Custom Overlay Blocks */}
+                      {formData.content_blocks.map((block, i) => {
+                        const top = parseFloat(block.top) || 50;
+                        const left = parseFloat(block.left) || 50;
+                        const blockStyle = {
+                          position: 'absolute',
+                          top: `${top}%`,
+                          left: `${left}%`,
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: block.fontSize ? `calc(${block.fontSize} * 0.7)` : '11px',
+                          color: block.color || '#ffffff',
+                          textAlign: block.textAlign || 'center',
+                          fontWeight: block.type === 'heading' ? 800 : (block.type === 'subheading' ? 600 : 400),
+                          lineHeight: 1.3,
+                          maxWidth: '90%',
+                          zIndex: 5,
+                          textShadow: '0 2px 10px rgba(0,0,0,0.8)',
+                          pointerEvents: 'none',
+                          whiteSpace: 'nowrap'
+                        };
+                        if (block.type === 'cta') {
+                          return (
+                            <span key={i} className="btn-primary" style={{ ...blockStyle, padding: '3px 10px', fontSize: '9px' }}>
+                              {block.text || 'Learn More'}
+                            </span>
+                          );
+                        }
+                        return <span key={i} style={blockStyle}>{block.text || `Block #${i+1}`}</span>;
+                      })}
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', margin: '12px 0 0 0' }}>
+                    💡 Slide coordinates are live! Drag top/left sliders to instantly reposition.
+                  </p>
+                </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="form-group">
-                    <label>Button Text</label>
-                    <input type="text" name="button_text" value={formData.button_text} onChange={handleChange} className="input-field" />
-                </div>
-                <div className="form-group">
-                    <label>Button Link</label>
-                    <input type="text" name="button_link" value={formData.button_link} onChange={handleChange} className="input-field" />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="form-group">
-                    <label>Display Order</label>
-                    <input type="number" name="display_order" value={formData.display_order} onChange={handleChange} className="input-field" />
-                </div>
-                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '30px' }}>
-                    <input type="checkbox" name="is_active" checked={formData.is_active === 1} onChange={handleChange} id="active_check" style={{ width: '20px', height: '20px' }} />
-                    <label htmlFor="active_check" style={{ margin: 0, cursor: 'pointer' }}>Active</label>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                <button type="button" onClick={closeModal} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
-                <button type="submit" className="btn-primary" style={{ flex: 1 }}>Save Slide</button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

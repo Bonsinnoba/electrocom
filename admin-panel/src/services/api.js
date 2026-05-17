@@ -15,6 +15,7 @@ const decodeHtml = (html) => {
  */
 export const formatImageUrl = (url) => {
     if (!url) return url;
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
     // Fix hardcoded dev URLs from DB
     const cleaningBases = [
         'http://localhost:8000/api/',
@@ -53,11 +54,17 @@ const getAuthHeaders = (contentType = 'application/json') => {
  * Helper to fetch with auth headers and global interceptor
  */
 const authFetch = async (url, options = {}) => {
+    const authHeaders = getAuthHeaders();
+    if (!authHeaders.Authorization) {
+        return { success: false, message: 'Authentication token missing.' };
+    }
+
     try {
         const response = await fetch(`${API_BASE_URL}${url}`, {
             ...options,
+            credentials: 'include',
             headers: {
-                ...getAuthHeaders(),
+                ...authHeaders,
                 ...options.headers
             }
         });
@@ -546,60 +553,7 @@ export const uploadBrandingAsset = async (file, type, oldPath = '') => {
     }
 };
 
-export const fetchTrafficStats = async () => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_traffic.php?action=stats`, {
-            headers: getAuthHeaders()
-        });
-        const result = await response.json();
-        return result.success ? result.data : null;
-    } catch (error) {
-        console.error('Error fetching traffic stats:', error);
-        throw error;
-    }
-};
 
-export const addRestriction = async (restrictionData) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_traffic.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'add_restriction', ...restrictionData }),
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error adding restriction:', error);
-        throw error;
-    }
-};
-
-export const removeRestriction = async (id) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_traffic.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'remove_restriction', id }),
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error removing restriction:', error);
-        throw error;
-    }
-};
-
-export const clearTrafficHour = async (hour) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin_traffic.php`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ action: 'clear_hour', hour }),
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error clearing traffic hour:', error);
-        throw error;
-    }
-};
 
 export const wipeDemoData = async () => {
     try {

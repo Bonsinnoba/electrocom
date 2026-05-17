@@ -17,7 +17,7 @@ try {
     $stmt->execute([$cashierId]);
     $cashier = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$cashier || !in_array($cashier['role'], ['super', 'admin', 'store_manager'])) {
+    if (!$cashier || !in_array($cashier['role'], ['super', 'store_manager'])) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Forbidden: Only authorized staff can perform POS sales.']);
         exit;
@@ -44,6 +44,9 @@ if (!$data || empty($data['items'])) {
 }
 
 $items = $data['items'];
+usort($items, function($a, $b) {
+    return (int)($a['id'] ?? 0) <=> (int)($b['id'] ?? 0);
+});
 $totalAmount = (float)($data['total_amount'] ?? 0);
 $paymentMethod = sanitizeInput($data['payment_method'] ?? 'cash');
 $customerEmail = sanitizeInput($data['customer_email'] ?? '');
@@ -106,7 +109,7 @@ try {
         if (($prod['stock_quantity'] - $qty) <= 10) {
             $notifTitle = "Low Stock: " . $prod['name'];
             $notifMsg = "Physical sale (ORD-{$orderId}) reduced stock to " . ($prod['stock_quantity'] - $qty);
-            $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) SELECT id, ?, ?, 'system' FROM users WHERE role IN ('admin', 'super')")
+            $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) SELECT id, ?, ?, 'system' FROM users WHERE role IN ('store_manager', 'super')")
                 ->execute([$notifTitle, $notifMsg]);
         }
     }

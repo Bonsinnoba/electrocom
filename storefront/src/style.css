@@ -1024,6 +1024,7 @@ label {
     max-height: 92vh !important;
     padding: 0 !important;
     overflow: hidden;
+    box-sizing: border-box;
     position: fixed !important;
     top: 50% !important;
     left: 50% !important;
@@ -1036,6 +1037,7 @@ label {
     grid-template-columns: 1.1fr 0.9fr;
     height: 88vh;
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 .product-modal-image {
@@ -1179,10 +1181,10 @@ label {
 .quantity-selector {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     background: #f1f5f9;
-    padding: 4px;
-    border-radius: 10px;
+    padding: 3px;
+    border-radius: 24px;
     width: fit-content;
 }
 
@@ -1191,16 +1193,17 @@ label {
 }
 
 .quantity-selector button {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: white;
     border: 1px solid var(--border-light);
-    border-radius: 8px;
+    border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .dark-mode .quantity-selector button {
@@ -1216,9 +1219,10 @@ label {
 }
 
 .quantity-selector span {
-    font-weight: 600;
+    font-weight: 700;
     min-width: 20px;
     text-align: center;
+    font-size: 13px;
 }
 
 .dark-mode .quantity-selector span {
@@ -4050,6 +4054,7 @@ button.btn-login:hover {
         transform: translateY(0) !important;
         animation: slideUpModal 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         z-index: 2101 !important;
+        box-sizing: border-box !important;
     }
 
     .product-modal-content {
@@ -4060,6 +4065,7 @@ button.btn-login:hover {
         -webkit-overflow-scrolling: touch;
         height: auto;
         padding-bottom: 80px;
+        box-sizing: border-box;
     }
 
     .product-modal-image {
@@ -4069,7 +4075,9 @@ button.btn-login:hover {
         min-height: unset;
         height: auto;
         background: var(--bg-surface);
-        overflow: visible;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .modal-gallery-layout {
@@ -4109,8 +4117,21 @@ button.btn-login:hover {
         max-height: 280px;
         border-radius: 16px;
         padding: 16px;
-        height: 300px;
+        height: 260px;
         order: 1;
+        box-sizing: border-box;
+        overflow: hidden;
+        max-width: 100%;
+    }
+
+    .modal-primary-actions {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .modal-primary-actions button {
+        flex: unset !important;
+        width: 100% !important;
     }
 
     .product-modal-details {

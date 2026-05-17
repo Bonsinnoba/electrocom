@@ -4,7 +4,7 @@
 
 // Standardized RBAC Role Groups
 if (!defined('RBAC_ADMIN_GROUP')) {
-    define('RBAC_ADMIN_GROUP', ['admin', 'store_manager', 'marketing', 'accountant', 'picker']);
+    define('RBAC_ADMIN_GROUP', ['store_manager', 'marketing', 'accountant', 'picker']);
 }
 if (!defined('RBAC_STAFF_GROUP')) {
     define('RBAC_STAFF_GROUP', ['pos_cashier', 'store_manager', 'picker']);
@@ -20,7 +20,7 @@ if (!defined('RBAC_ALL_ADMINS')) {
  * Hash a password using Argon2id with a server-side pepper.
  */
 if (!function_exists('hashPassword')) {
-    function hashPassword($password)
+    function hashPassword(string $password)
     {
         $config = $GLOBALS['config'] ?? require_once 'config.php';
         $pepper = $config['PASSWORD_PEPPER'] ?? '';
@@ -32,7 +32,7 @@ if (!function_exists('hashPassword')) {
  * Verify a password against a hash.
  */
 if (!function_exists('verifyPassword')) {
-    function verifyPassword($password, $hash, &$needsRehash = false)
+    function verifyPassword(string $password, string $hash, &$needsRehash = false)
     {
         $config = $GLOBALS['config'] ?? require_once 'config.php';
         $pepper = $config['PASSWORD_PEPPER'] ?? '';
@@ -52,7 +52,7 @@ if (!function_exists('verifyPassword')) {
  * Sanitize input to prevent XSS
  */
 if (!function_exists('sanitizeInput')) {
-    function sanitizeInput($data)
+    function sanitizeInput(mixed $data)
     {
         if ($data === null) return null;
         if (is_array($data)) {
@@ -66,7 +66,7 @@ if (!function_exists('sanitizeInput')) {
  * Validate Email Format
  */
 if (!function_exists('isValidEmail')) {
-    function isValidEmail($email)
+    function isValidEmail(string $email)
     {
         return filter_var($email, FILTER_VALIDATE_EMAIL);
     }
@@ -76,7 +76,7 @@ if (!function_exists('isValidEmail')) {
  * AES-256-CBC Encryption
  */
 if (!function_exists('encryptData')) {
-    function encryptData($plaintext)
+    function encryptData(string $plaintext)
     {
         $config = $GLOBALS['config'] ?? require_once 'config.php';
         $key = $config['DATA_ENCRYPTION_KEY'] ?? '';
@@ -101,7 +101,7 @@ if (!function_exists('getClientIP')) {
 }
 
 if (!function_exists('decryptData')) {
-    function decryptData($ciphertext)
+    function decryptData(string $ciphertext)
     {
         $config = $GLOBALS['config'] ?? require_once 'config.php';
         $key = $config['DATA_ENCRYPTION_KEY'] ?? '';
@@ -119,7 +119,7 @@ if (!function_exists('decryptData')) {
  * Generate JWT Token
  */
 if (!function_exists('generateToken')) {
-    function generateToken($userId)
+    function generateToken(int $userId)
     {
         $config = $GLOBALS['config'] ?? require_once 'config.php';
         $secret = $config['JWT_SECRET'];
@@ -157,8 +157,14 @@ if (!function_exists('getallheaders')) {
  * Authenticate Request
  */
 if (!function_exists('authenticate')) {
-    function authenticate($pdo = null, $dieOnError = true)
+    function authenticate(?PDO $pdo = null, bool $dieOnError = true)
     {
+        // EMERGENCY DEBUG LOG - Log raw request data to catch hidden session drops
+        if (!is_dir(__DIR__ . '/logs')) mkdir(__DIR__ . '/logs', 0755, true);
+        $debugHeaders = function_exists('getallheaders') ? getallheaders() : [];
+        $debugLog = date('Y-m-d H:i:s') . " | AUTH_REQ | " . $_SERVER['REQUEST_METHOD'] . " " . $_SERVER['REQUEST_URI'] . " | IP: " . getClientIP() . " | AuthHeader: " . ($debugHeaders['Authorization'] ?? $debugHeaders['authorization'] ?? 'NONE') . " | Cookie: " . ($_COOKIE['ehub_session'] ?? 'NONE') . "\n";
+        file_put_contents(__DIR__ . '/logs/debug_auth.log', $debugLog, FILE_APPEND);
+
         $token = null;
         $headers = function_exists('getallheaders') ? getallheaders() : [];
 
@@ -202,6 +208,7 @@ if (!function_exists('authenticate')) {
 
         $parts = explode('.', $token);
         if (count($parts) !== 3) {
+            if (function_exists('logApp')) logApp('error', 'AUTH', "AUTH FAIL: Invalid token format. Token parts count: " . count($parts));
             if ($dieOnError) {
                 header('Content-Type: application/json');
                 http_response_code(401);
@@ -236,15 +243,47 @@ if (!function_exists('authenticate')) {
         // Security: Verify IP Pinning (Hijack Prevention)
         $tokenIp = $payload['ip'] ?? '';
         $currentIp = getClientIP();
-        
-        // Only enforce mismatch if token has a valid IP (prevents logout if IP detection fails during login)
-        if (!empty($tokenIp) && $tokenIp !== 'unknown' && $tokenIp !== $currentIp) {
-            if (function_exists('logApp')) logApp('warn', 'AUTH_HIJACK', "Session IP mismatch. Token IP: $tokenIp | Current IP: $currentIp");
+        $isDev = ($config['APP_ENV'] ?? 'production') === 'development';
+
+        // 1. Skip IP pinning entirely for storefront (Customer convenience)
+        if ($appId === 'storefront') {
+            $isIpValid = true;
+        } else {
+            // 2. Lenient Subnet Pinning for Admin/Staff
+            $normalizedTokenIp = $tokenIp;
+            $normalizedCurrentIp = $currentIp;
+
+            // Loopback Normalization (Development Only)
+            if ($isDev) {
+                if ($tokenIp === '::1') $normalizedTokenIp = '127.0.0.1';
+                if ($currentIp === '::1') $normalizedCurrentIp = '127.0.0.1';
+            }
+
+            // Extract Subnets (First 3 octets for IPv4, First 4 segments for IPv6)
+            $extractSubnet = function($ip) {
+                if (strpos($ip, ':') !== false) {
+                    $parts = explode(':', $ip);
+                    return implode(':', array_slice($parts, 0, 4));
+                }
+                $parts = explode('.', $ip);
+                return implode('.', array_slice($parts, 0, 3));
+            };
+
+            $tokenSubnet = $extractSubnet($normalizedTokenIp);
+            $currentSubnet = $extractSubnet($normalizedCurrentIp);
+
+            $isIpValid = (empty($tokenIp) || $tokenIp === 'unknown' || $tokenSubnet === $currentSubnet);
+        }
+
+        if (!$isIpValid) {
+            if (function_exists('logApp')) {
+                logApp('warn', 'AUTH_HIJACK', "Session Hijack Blocked: App-ID: $appId | Token IP: $tokenIp | Request IP: $currentIp");
+            }
             clearSession();
             if ($dieOnError) {
                 header('Content-Type: application/json');
                 http_response_code(401);
-                echo json_encode(['success' => false, 'message' => 'Security Error: Session originated from a different network. Please log in again.']);
+                echo json_encode(['success' => false, 'message' => 'Security Error: Network change detected. Please log in again.']);
                 exit;
             }
             return null;
@@ -264,16 +303,31 @@ if (!function_exists('authenticate')) {
 
         $userId = $payload['user_id'] ?? null;
 
-        // If PDO is available, verify the user actually exists in the database
+        // If PDO is available, verify the user actually exists and is not suspended
         if ($userId && $pdo) {
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT id, status FROM users WHERE id = ?");
             $stmt->execute([$userId]);
-            if (!$stmt->fetch()) {
+            $user = $stmt->fetch();
+
+            if (!$user) {
+                if (function_exists('logApp')) logApp('error', 'AUTH', "AUTH FAIL: User ID $userId no longer exists.");
                 clearSession();
                 if ($dieOnError) {
                     header('Content-Type: application/json');
                     http_response_code(401);
                     echo json_encode(['success' => false, 'message' => 'Account no longer exists. Please log in again.']);
+                    exit;
+                }
+                return null;
+            }
+
+            if (($user['status'] ?? '') === 'Suspended') {
+                if (function_exists('logApp')) logApp('warn', 'AUTH', "AUTH BLOCKED: User ID $userId is suspended.");
+                clearSession();
+                if ($dieOnError) {
+                    header('Content-Type: application/json');
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Your account has been suspended. Please contact support.']);
                     exit;
                 }
                 return null;
@@ -309,12 +363,19 @@ if (!function_exists('clearSession')) {
  * Get User Role
  */
 if (!function_exists('getUserRole')) {
-    function getUserRole($userId, $pdo)
+    function getUserRole(int $userId, PDO $pdo)
     {
-        $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT role, status FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $row = $stmt->fetch();
-        return $row ? $row['role'] : null;
+        if (!$row) return null;
+        if ($row['status'] === 'Suspended') {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Your account has been suspended.']);
+            exit;
+        }
+        return $row['role'];
     }
 }
 
@@ -323,7 +384,7 @@ if (!function_exists('getUserRole')) {
  * Get User Name
  */
 if (!function_exists('getUserName')) {
-    function getUserName($userId, $pdo)
+    function getUserName(int $userId, PDO $pdo)
     {
         $stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
         $stmt->execute([$userId]);
@@ -336,7 +397,7 @@ if (!function_exists('getUserName')) {
  * Admin audit trail logger for critical mutations.
  */
 if (!function_exists('logAdminAudit')) {
-    function logAdminAudit($pdo, $actorUserId, $action, $entityType, $entityId = null, $changes = null)
+    function logAdminAudit(PDO $pdo, int $actorUserId, string $action, string $entityType, $entityId = null, $changes = null)
     {
         try {
             $pdo->exec("CREATE TABLE IF NOT EXISTS admin_audit_logs (
@@ -383,7 +444,7 @@ if (!function_exists('logAdminAudit')) {
  * Check if Super Admin (non-blocking)
  */
 if (!function_exists('isSuperAdmin')) {
-    function isSuperAdmin($pdo)
+    function isSuperAdmin(PDO $pdo)
     {
         $token = $_COOKIE['ehub_session'] ?? null;
 
@@ -414,7 +475,7 @@ if (!function_exists('isSuperAdmin')) {
  * Get User Details including Branch
  */
 if (!function_exists('getUserDetails')) {
-    function getUserDetails($userId, $pdo)
+    function getUserDetails(int $userId, PDO $pdo)
     {
         $stmt = $pdo->prepare("SELECT id, name as username, role FROM users WHERE id = ?");
         $stmt->execute([$userId]);
@@ -427,7 +488,7 @@ if (!function_exists('getUserDetails')) {
  * Require Role
  */
 if (!function_exists('requireRole')) {
-    function requireRole($roles, $pdo)
+    function requireRole(string|array $roles, PDO $pdo)
     {
         $userId = authenticate();
         $role = getUserRole($userId, $pdo);
@@ -444,14 +505,13 @@ if (!function_exists('requireRole')) {
  * Logger
  */
 if (!function_exists('logger')) {
-    function logger($level, $source, $message)
+    function logger(string $level, string $source, string $message)
     {
         static $isLogging = false;
-        if ($isLogging) return; // Prevent log recursion (e.g. logApp -> logger -> authenticate -> logApp)
+        if ($isLogging) return; 
         $isLogging = true;
 
         $level = strtolower($level);
-        // Only log info messages if debug mode is on
         if ($level === 'info' && function_exists('isDebugEnabled') && !isDebugEnabled()) {
             $isLogging = false;
             return;
@@ -460,9 +520,8 @@ if (!function_exists('logger')) {
         $logDir = __DIR__ . '/logs';
         if (!is_dir($logDir)) mkdir($logDir, 0755, true);
         
+        // 1. Context Extraction
         $userIdCtx = '';
-        // SAFELY Extract UID without triggering authenticate() recursion
-        // Check for Bearer token or cookie manually
         $token = null;
         $headers = function_exists('getallheaders') ? getallheaders() : [];
         $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
@@ -482,9 +541,20 @@ if (!function_exists('logger')) {
             }
         }
 
-        $line = date('Y-m-d H:i:s') . " [" . strtoupper($level) . "] [" . strtoupper($source) . "]$userIdCtx $message" . PHP_EOL;
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'CLI';
+        $uri    = $_SERVER['REQUEST_URI'] ?? 'n/a';
+        $ip     = getClientIP();
+
+        // 2. Format Line
+        // Format: YYYY-MM-DD HH:MM:SS [LEVEL] [SOURCE] [METHOD URI] [IP] [UID:X] message
+        $ts = date('Y-m-d H:i:s');
+        $lvl = strtoupper($level);
+        $src = strtoupper($source);
+        $line = "$ts [$lvl] [$src] [$method $uri] [$ip]$userIdCtx $message" . PHP_EOL;
+
+        // 3. Reliable Write with Locking
         $dailyFile = $logDir . '/app-' . date('Y-m-d') . '.log';
-        file_put_contents($dailyFile, $line, FILE_APPEND);
+        file_put_contents($dailyFile, $line, FILE_APPEND | LOCK_EX);
         
         $isLogging = false;
     }
@@ -496,7 +566,7 @@ if (!function_exists('logger')) {
  * $window: time window in seconds (e.g., 60 for minute, 3600 for hour)
  */
 if (!function_exists('checkRateLimit')) {
-    function checkRateLimit($pdo, $limit = 300, $window = 60, $action = 'default')
+    function checkRateLimit(PDO $pdo, int $limit = 300, int $window = 60, string $action = 'default')
     {
         // Self-heal table if needed
         try {
@@ -520,6 +590,34 @@ if (!function_exists('checkRateLimit')) {
                 // Check if we are still within the same window since the last request
                 if (time() - $lastTime < $window) {
                     if ($row['request_count'] >= $limit) {
+                        // Real-time Brute Force Alert
+                        if ($action === 'login' && $row['request_count'] == $limit) {
+                            try {
+                                $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) 
+                                                       SELECT id, ?, ?, 'error' FROM users WHERE role IN ('admin', 'super')");
+                                $stmt->execute([
+                                    "Security Alert: Brute Force Attempt", 
+                                    "System has blocked IP {$ip} after too many login attempts. Action: {$action}."
+                                ]);
+
+                                // Real-time SMS Alert
+                                try {
+                                    require_once 'notifications.php';
+                                    $notifier = new NotificationService();
+                                    $adminPhones = $pdo->query("SELECT phone FROM users WHERE role = 'super' AND phone IS NOT NULL AND phone != ''")->fetchAll(PDO::FETCH_COLUMN);
+                                    foreach ($adminPhones as $phone) {
+                                        $notifier->queueNotification('sms', $phone, "SECURITY ALERT: Brute force attempt blocked from IP {$ip} on ElectrCom.");
+                                    }
+                                } catch (Exception $smsErr) {
+                                    logger('error', 'SECURITY', "Failed to queue SMS alert: " . $smsErr->getMessage());
+                                }
+
+                                logger('warn', 'SECURITY', "Admin alerted for brute force attempt from IP: {$ip}");
+                            } catch (Exception $e) {
+                                logger('error', 'SECURITY', "Failed to log security notification: " . $e->getMessage());
+                            }
+                        }
+
                         header('Content-Type: application/json');
                         http_response_code(429);
                         $remainingSeconds = max(0, $window - (time() - $lastTime));
@@ -550,7 +648,7 @@ if (!function_exists('checkRateLimit')) {
  * Maintenance Mode Check
  */
 if (!function_exists('checkMaintenanceMode')) {
-    function checkMaintenanceMode($pdo)
+    function checkMaintenanceMode(PDO $pdo)
     {
         $settingsFile = __DIR__ . '/data/super_settings.json';
         if (file_exists($settingsFile)) {
@@ -590,7 +688,7 @@ if (!function_exists('isDebugEnabled')) {
  * Returns array with 'fee', 'city'
  */
 if (!function_exists('calculateRegionalShipping')) {
-    function calculateRegionalShipping($userRegion, $subtotal, $pdo)
+    function calculateRegionalShipping(string $userRegion, float $subtotal, PDO $pdo)
     {
         $baseFee = 35.00; // Default: Regional/Upcountry
         
@@ -615,7 +713,7 @@ if (!function_exists('calculateRegionalShipping')) {
  * Calculates the current price based on percentage discounts and expiry
  */
 if (!function_exists('getEffectivePrice')) {
-    function getEffectivePrice($product)
+    function getEffectivePrice(array $product)
     {
         $basePrice = (float)($product['price'] ?? 0);
         $discountPercent = (int)($product['discount_percent'] ?? 0);
@@ -643,7 +741,7 @@ if (!function_exists('getEffectivePrice')) {
  * Update User Level based on spend
  */
 if (!function_exists('updateUserLevel')) {
-    function updateUserLevel($userId, $pdo)
+    function updateUserLevel(int $userId, PDO $pdo)
     {
         try {
             // 1. Calculate total spend from completed orders
@@ -689,7 +787,7 @@ if (!function_exists('updateUserLevel')) {
  * Strips password hashes, secrets, and other sensitive metadata.
  */
 if (!function_exists('scrubUser')) {
-    function scrubUser($user)
+    function scrubUser(array $user)
     {
         if (!$user || !is_array($user)) return null;
         
@@ -709,6 +807,7 @@ if (!function_exists('scrubUser')) {
         // Cast numeric types for consistency
         if (isset($user['id'])) $user['id'] = (int)$user['id'];
         if (isset($user['level'])) $user['level'] = (int)$user['level'];
+        if (isset($user['loyalty_points'])) $user['loyalty_points'] = (int)$user['loyalty_points'];
         if (isset($user['id_verified'])) $user['id_verified'] = (bool)$user['id_verified'];
         
         return $user;

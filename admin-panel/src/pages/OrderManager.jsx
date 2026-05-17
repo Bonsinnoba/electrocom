@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Truck, CheckCircle, Clock, X, MapPin, User, Package, Calendar, Mail, ShieldCheck, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Eye, Truck, CheckCircle, Clock, X, MapPin, User, Package, Calendar, Mail, ShieldCheck, RotateCcw, AlertTriangle, Download, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fetchOrders, updateOrderStatus, updatePickerOrderStage, resendReceipt, verifyDelivery, reportPickerMissingItems, API_BASE_URL } from '../services/api';
 import { useConfirm } from '../context/ConfirmContext';
@@ -13,6 +13,11 @@ export default function OrderManager() {
   const [otp, setOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [reportingMissing, setReportingMissing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const { confirm } = useConfirm();
   const navigate = useNavigate();
   
@@ -20,7 +25,7 @@ export default function OrderManager() {
   const isAccountant = user.role === 'accountant';
   const isMarketing = user.role === 'marketing';
   const isPicker = user.role === 'picker';
-  const canUsePickerWorkflow = ['picker', 'super', 'admin', 'store_manager', 'branch_admin'].includes(user.role);
+  const canUsePickerWorkflow = ['picker', 'super', 'store_manager'].includes(user.role);
 
   const getPickLocation = (item) => {
     const aisle = String(item?.aisle || '').trim();
@@ -202,6 +207,81 @@ export default function OrderManager() {
   };
 
 
+  const filteredOrders = orders.filter(o => {
+    const matchesSearch = 
+      String(o.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(o.customer || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(o.email || '').toLowerCase().includes(searchQuery.toLowerCase());
+      
+    const matchesStatus = statusFilter === 'all' || 
+      String(o.status || '').toLowerCase() === statusFilter.toLowerCase();
+      
+    const matchesType = typeFilter === 'all' || 
+      String(o.type || '').toLowerCase() === typeFilter.toLowerCase();
+      
+    let matchesDate = true;
+    if (startDate || endDate) {
+      const orderDate = new Date(o.date);
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (orderDate < start) matchesDate = false;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (orderDate > end) matchesDate = false;
+      }
+    }
+    
+    return matchesSearch && matchesStatus && matchesType && matchesDate;
+  });
+
+  const exportOrdersCSV = () => {
+    let csvRows = [];
+    
+    // Header
+    csvRows.push("ELECTRCOM DETAILED SALES AUDIT TRAIL");
+    csvRows.push(`Exported On,${new Date().toLocaleString()}`);
+    csvRows.push("");
+    
+    // Table Headers
+    csvRows.push("Order ID,Date,Customer Name,Customer Email,Fulfillment Type,Status,Total Amount (GHS),Product Name,SKU,Quantity,Purchase Price (GHS),Item Subtotal (GHS)");
+    
+    filteredOrders.forEach(o => {
+      const formattedDate = o.date;
+      const customer = (o.customer || 'Walk-in').replace(/"/g, '""');
+      const email = (o.email || '').replace(/"/g, '""');
+      const type = o.type;
+      const status = o.status;
+      const totalAmount = o.amount;
+      
+      if (Array.isArray(o.items) && o.items.length > 0) {
+        o.items.forEach(item => {
+          const prodName = (item.name || '').replace(/"/g, '""');
+          const sku = item.product_code || '—';
+          const qty = item.qty || 0;
+          const price = item.price || 0;
+          const subtotal = qty * price;
+          
+          csvRows.push(`${o.id},${formattedDate},"${customer}","${email}",${type},${status},${totalAmount},"${prodName}",${sku},${qty},${price},${subtotal}`);
+        });
+      } else {
+        csvRows.push(`${o.id},${formattedDate},"${customer}","${email}",${type},${status},${totalAmount},—,—,0,0,0`);
+      }
+    });
+    
+    const csvContent = "\uFEFF" + csvRows.join("\r\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `electrcom_sales_audit_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (isMarketing) {
     return (
       <div style={{ padding: '80px 20px', textAlign: 'center' }}>
@@ -213,9 +293,20 @@ export default function OrderManager() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <header>
-        <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Orders</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Track and fulfill customer orders.</p>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div>
+          <h1 style={{ fontSize: '32px', fontWeight: 800 }}>Orders</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Track and fulfill customer orders.</p>
+        </div>
+        {!isPicker && (
+          <button 
+            onClick={exportOrdersCSV} 
+            className="btn glass" 
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 700 }}
+          >
+            <Download size={16} /> EXPORT AUDIT TRAIL
+          </button>
+        )}
       </header>
 
       <div style={{ display: 'flex', gap: '24px', marginBottom: '8px' }}>
@@ -242,6 +333,96 @@ export default function OrderManager() {
         </div>
       </div>
 
+      {/* Search & Filter Controls */}
+      <div className="card glass" style={{ padding: '20px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', background: 'var(--bg-surface-secondary)' }}>
+        {/* Search */}
+        <div style={{ flex: '1 1 240px', position: 'relative' }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input 
+            type="text" 
+            placeholder="Search by ID, customer name, email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-field"
+            style={{ width: '100%', paddingLeft: '36px', height: '40px', fontSize: '14px' }}
+          />
+        </div>
+        
+        {/* Status Filter */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</label>
+          <select 
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="input-field"
+            style={{ height: '40px', padding: '0 12px', minWidth: '130px', fontSize: '14px' }}
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+
+        {/* Type Filter */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Type</label>
+          <select 
+            value={typeFilter} 
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="input-field"
+            style={{ height: '40px', padding: '0 12px', minWidth: '120px', fontSize: '14px' }}
+          >
+            <option value="all">All Types</option>
+            <option value="delivery">Delivery</option>
+            <option value="pick up">Pick Up</option>
+          </select>
+        </div>
+
+        {/* Start Date */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>From Date</label>
+          <input 
+            type="date" 
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="input-field"
+            style={{ height: '40px', padding: '0 12px', fontSize: '14px' }}
+          />
+        </div>
+
+        {/* End Date */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>To Date</label>
+          <input 
+            type="date" 
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="input-field"
+            style={{ height: '40px', padding: '0 12px', fontSize: '14px' }}
+          />
+        </div>
+
+        {/* Clear Filters Button */}
+        {(searchQuery || statusFilter !== 'all' || typeFilter !== 'all' || startDate || endDate) && (
+          <button 
+            onClick={() => {
+              setSearchQuery('');
+              setStatusFilter('all');
+              setTypeFilter('all');
+              setStartDate('');
+              setEndDate('');
+            }}
+            className="btn"
+            style={{ height: '40px', padding: '0 16px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', marginTop: '20px' }}
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
       <div className="card glass" style={{ padding: '0', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
@@ -256,7 +437,7 @@ export default function OrderManager() {
             </tr>
           </thead>
           <tbody>
-            {orders.map((o, idx) => (
+            {filteredOrders.map((o, idx) => (
               <tr 
                 key={o.id} 
                 className="animate-fade-in"
@@ -339,7 +520,7 @@ export default function OrderManager() {
               {!isPicker && (
                 <>
                   <button 
-                    onClick={() => window.open(`${API_BASE_URL}/invoice.php?order_id=${selectedOrder.id}`, '_blank')}
+                    onClick={() => window.open(`${API_BASE_URL}/invoice.php?order_id=${selectedOrder.id.replace('ORD-', '')}`, '_blank')}
                     className="btn" 
                     style={{ padding: '6px 12px', fontSize: '11px', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
                   >

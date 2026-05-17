@@ -12,7 +12,7 @@ try {
     // This will handle token verification and exit if unauthorized
     $userId = authenticate($pdo);
 
-    $stmt = $pdo->prepare("SELECT id, name, email, phone, address, level, level_name, avatar_text, profile_image, status, role, email_notif, push_notif, sms_tracking FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT id, name, email, phone, address, level, level_name, loyalty_points, avatar_text, profile_image, status, role, email_notif, push_notif, sms_tracking FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -33,6 +33,7 @@ try {
                 'address' => $user['address'] ?? '',
                 'level' => $user['level'] ?? 1,
                 'levelName' => $user['level_name'] ?? 'Starter',
+                'loyalty_points' => (int)($user['loyalty_points'] ?? 0),
                 'avatar' => $user['avatar_text'] ?? '',
                 'profileImage' => $user['profile_image'] ?? null,
                 'status' => $user['status'],

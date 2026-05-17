@@ -1,4 +1,4 @@
-# EssentialsHub Email Engine Setup Guide
+# ElectrCom Email Engine Setup Guide
 
 This document explains how to configure and use the email engine in `api/email/`.
 
@@ -56,7 +56,7 @@ EMAIL_SMTP_ENABLED=true
 EMAIL_MAILGUN_ENABLED=false
 EMAIL_SENDGRID_ENABLED=false
 
-MAIL_FROM_NAME=EssentialsHub
+MAIL_FROM_NAME=ElectrCom
 MAIL_FROM=no-reply@your-domain.com
 ```
 

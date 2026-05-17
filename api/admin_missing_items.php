@@ -10,7 +10,7 @@ header('Content-Type: application/json');
 
 try {
     $userId = authenticate($pdo);
-    requireRole(['super', 'admin', 'store_manager', 'branch_admin', 'picker'], $pdo);
+    requireRole(['super', 'store_manager', 'picker', 'accountant'], $pdo);
     $role = getUserRole($userId, $pdo);
 } catch (Exception $e) {
     http_response_code(401);
@@ -138,9 +138,9 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
-    if (!in_array($role, ['super', 'admin', 'store_manager', 'branch_admin'], true)) {
+    if (!in_array($role, ['super', 'store_manager'], true)) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Only managers can resolve reports']);
+        echo json_encode(['success' => false, 'message' => 'Only store managers can resolve reports']);
         exit;
     }
 
@@ -183,19 +183,25 @@ if ($method === 'POST') {
 
             $pdo->beginTransaction();
 
-            $reportStmt = $pdo->prepare("SELECT * FROM order_missing_items WHERE id = ? FOR UPDATE");
-            $reportStmt->execute([$id]);
-            $report = $reportStmt->fetch(PDO::FETCH_ASSOC);
-            if (!$report) {
+            $getIdStmt = $pdo->prepare("SELECT order_id FROM order_missing_items WHERE id = ?");
+            $getIdStmt->execute([$id]);
+            $orderId = (int)$getIdStmt->fetchColumn();
+            if (!$orderId) {
                 throw new Exception('Report not found');
             }
 
-            $orderId = (int)$report['order_id'];
             $orderStmt = $pdo->prepare("SELECT id, user_id, status FROM orders WHERE id = ? FOR UPDATE");
             $orderStmt->execute([$orderId]);
             $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
             if (!$order) {
                 throw new Exception('Order not found');
+            }
+
+            $reportStmt = $pdo->prepare("SELECT * FROM order_missing_items WHERE id = ? FOR UPDATE");
+            $reportStmt->execute([$id]);
+            $report = $reportStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$report) {
+                throw new Exception('Report not found');
             }
 
             $orderRef = 'ORD-' . $orderId;
@@ -255,19 +261,25 @@ if ($method === 'POST') {
         if ($action === 'request_customer_confirmation') {
             $pdo->beginTransaction();
 
-            $reportStmt = $pdo->prepare("SELECT * FROM order_missing_items WHERE id = ? FOR UPDATE");
-            $reportStmt->execute([$id]);
-            $report = $reportStmt->fetch(PDO::FETCH_ASSOC);
-            if (!$report) {
+            $getIdStmt = $pdo->prepare("SELECT order_id FROM order_missing_items WHERE id = ?");
+            $getIdStmt->execute([$id]);
+            $orderId = (int)$getIdStmt->fetchColumn();
+            if (!$orderId) {
                 throw new Exception('Report not found');
             }
 
-            $orderId = (int)$report['order_id'];
             $orderStmt = $pdo->prepare("SELECT id, user_id FROM orders WHERE id = ? FOR UPDATE");
             $orderStmt->execute([$orderId]);
             $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
             if (!$order) {
                 throw new Exception('Order not found');
+            }
+
+            $reportStmt = $pdo->prepare("SELECT * FROM order_missing_items WHERE id = ? FOR UPDATE");
+            $reportStmt->execute([$id]);
+            $report = $reportStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$report) {
+                throw new Exception('Report not found');
             }
 
             $userStmt = $pdo->prepare("SELECT email, phone, name FROM users WHERE id = ?");

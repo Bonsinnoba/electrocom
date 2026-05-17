@@ -35,6 +35,8 @@ export default function POSInterface() {
   const [returnReason, setReturnReason] = useState('');
   const [returnProcessing, setReturnProcessing] = useState(false);
 
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -264,15 +266,28 @@ export default function POSInterface() {
            </div>
            <h1 style={{ fontSize: '28px', fontWeight: 900 }}>Transaction Complete</h1>
            <p style={{ color: 'var(--text-muted)', marginBottom: '40px' }}>Order #ORD-{lastOrderId} processed successfully.</p>
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
-              <button className="btn btn-primary" onClick={() => { setShowSuccess(false); setTimeout(() => searchInputRef.current?.focus(), 100); }}>
-                NEW CUSTOMER <Plus size={20} />
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => { setShowSuccess(false); setTimeout(() => searchInputRef.current?.focus(), 100); }}
+                style={{ height: '42px', padding: '0 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 700 }}
+              >
+                NEW CUSTOMER <Plus size={16} />
               </button>
-              <button className="btn btn-secondary" onClick={() => window.print()}>
-                <Printer size={20} /> PRINT
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => window.print()}
+                style={{ height: '42px', padding: '0 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 700 }}
+              >
+                <Printer size={16} /> PRINT
               </button>
-              <button className="btn btn-secondary" onClick={handleEmailReceipt} disabled={sendingEmail}>
-                <Mail size={20} /> {sendingEmail ? 'SENDING...' : 'EMAIL'}
+              <button 
+                className="btn btn-secondary" 
+                onClick={handleEmailReceipt} 
+                disabled={sendingEmail}
+                style={{ height: '42px', padding: '0 20px', borderRadius: '10px', fontSize: '13px', fontWeight: 700 }}
+              >
+                <Mail size={16} /> {sendingEmail ? 'SENDING...' : 'EMAIL'}
               </button>
            </div>
         </div>
@@ -345,9 +360,9 @@ export default function POSInterface() {
                   placeholder="Order # e.g. ORD-128 or 128"
                   value={returnOrderInput}
                   onChange={(e) => setReturnOrderInput(e.target.value)}
-                  style={{ flex: 1, padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', fontWeight: 600 }}
+                  style={{ flex: 1, padding: '10px 14px', fontSize: '13px', borderRadius: '12px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', fontWeight: 600 }}
                 />
-                <button type="submit" className="btn btn-primary" disabled={returnLookupLoading} style={{ padding: '0 20px' }}>
+                <button type="submit" className="btn btn-primary" disabled={returnLookupLoading} style={{ padding: '0 20px', height: '38px', borderRadius: '12px', fontSize: '13px', fontWeight: 700 }}>
                   {returnLookupLoading ? <Loader size={18} className="animate-spin" /> : 'Load'}
                 </button>
               </form>
@@ -394,7 +409,7 @@ export default function POSInterface() {
                                 v = Math.max(0, Math.min(row.returnable_qty, v));
                                 setReturnQtyByProduct((prev) => ({ ...prev, [row.product_id]: v }));
                               }}
-                              style={{ width: '72px', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-light)' }}
+                              style={{ width: '64px', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--border-light)', fontSize: '13px', background: 'var(--bg-surface)', fontWeight: 600 }}
                             />
                             <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '6px' }}>max {row.returnable_qty}</span>
                           </td>
@@ -415,9 +430,21 @@ export default function POSInterface() {
             </div>
           ) : (
             <>
-          <div className="card glass" style={{ padding: '4px', display: 'flex', alignItems: 'center', borderRadius: '16px', border: '2px solid var(--primary-blue)' }}>
-            <div style={{ padding: '16px' }}>
-              <Barcode size={24} color={'var(--primary-blue)'} />
+          <div 
+            className="card glass" 
+            style={{ 
+              padding: '2px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              borderRadius: '12px', 
+              border: isSearchFocused ? '2px solid var(--primary-blue)' : '1px solid var(--border-light)', 
+              boxShadow: isSearchFocused ? '0 0 0 3px rgba(var(--primary-blue-rgb), 0.12)' : 'none',
+              transition: 'all 0.2s ease',
+              background: 'var(--bg-surface)'
+            }}
+          >
+            <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', color: isSearchFocused ? 'var(--primary-blue)' : 'var(--text-muted)' }}>
+              <Barcode size={20} />
             </div>
             <input 
               ref={searchInputRef}
@@ -426,7 +453,18 @@ export default function POSInterface() {
               placeholder="Search product name or exact code..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '18px', color: 'var(--text-main)', fontWeight: 700, padding: '16px 0' }}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              style={{ 
+                flex: 1, 
+                border: 'none', 
+                background: 'transparent', 
+                outline: 'none', 
+                fontSize: '14px', 
+                color: 'var(--text-main)', 
+                fontWeight: 600, 
+                padding: '10px 0' 
+              }}
             />
           </div>
 
@@ -505,10 +543,48 @@ export default function POSInterface() {
                       </td>
                       <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 600 }}>GH₵ {item.price}</td>
                       <td style={{ padding: '16px 24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-surface-secondary)', borderRadius: '8px', padding: '4px', width: 'fit-content' }}>
-                          <button className="btn" style={{ padding: '2px 8px', minWidth: 'unset', height: '28px', background: 'var(--bg-surface)' }} onClick={() => updateQuantity(item.id, -1)}>-</button>
-                          <span style={{ fontWeight: 800, minWidth: '20px', textAlign: 'center' }}>{item.quantity}</span>
-                          <button className="btn" style={{ padding: '2px 8px', minWidth: 'unset', height: '28px', background: 'var(--bg-surface)' }} onClick={() => updateQuantity(item.id, 1)}>+</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface-secondary)', borderRadius: '20px', padding: '2px 4px', width: 'fit-content' }}>
+                          <button 
+                            className="btn" 
+                            style={{ 
+                              padding: 0, 
+                              minWidth: '24px', 
+                              width: '24px', 
+                              height: '24px', 
+                              borderRadius: '50%', 
+                              background: 'var(--bg-surface)', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              border: '1px solid var(--border-light)',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                              cursor: 'pointer'
+                            }} 
+                            onClick={() => updateQuantity(item.id, -1)}
+                          >
+                            <Minus size={12} />
+                          </button>
+                          <span style={{ fontWeight: 800, minWidth: '20px', textAlign: 'center', fontSize: '13px' }}>{item.quantity}</span>
+                          <button 
+                            className="btn" 
+                            style={{ 
+                              padding: 0, 
+                              minWidth: '24px', 
+                              width: '24px', 
+                              height: '24px', 
+                              borderRadius: '50%', 
+                              background: 'var(--bg-surface)', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              border: '1px solid var(--border-light)',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                              cursor: 'pointer'
+                            }} 
+                            onClick={() => updateQuantity(item.id, 1)}
+                          >
+                            <Plus size={12} />
+                          </button>
                         </div>
                       </td>
                       <td style={{ padding: '16px 24px', textAlign: 'right', fontWeight: 800, fontSize: '15px' }}>

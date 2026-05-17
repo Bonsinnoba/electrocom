@@ -2,13 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users, Shield, ShieldOff, Search, Trash2,
   CheckCircle, XCircle, RefreshCw, UserCog, ChevronDown,
-  Crown, AlertTriangle, Eye, ShieldCheck, ShieldAlert
+  Crown, AlertTriangle, Eye, ShieldCheck, ShieldAlert,
+  Download
 } from 'lucide-react';
 import { 
   fetchCustomers as getUsers, 
   setUserRole as updateRole, 
   toggleUserStatus as toggleStatus, 
-  deleteCustomer as deleteUser
+  deleteCustomer as deleteUser,
+  API_BASE_URL
 } from '../../services/api';
 
 const ROLE_STYLE = {
@@ -43,6 +45,30 @@ export default function AdminControl() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [busy, setBusy]       = useState({}); // tracks per-row loading
   const [confirm, setConfirm] = useState(null); // { type, user }
+
+  const [activeTab, setActiveTab] = useState('users');
+  const [archives, setArchives] = useState([]);
+  const [archivesLoading, setArchivesLoading] = useState(false);
+
+  const loadArchives = async () => {
+    setArchivesLoading(true);
+    try {
+      const token = localStorage.getItem('ehub_token');
+      const res = await fetch(`${API_BASE_URL}/admin_reports_list.php`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json.success) setArchives(json.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setArchivesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'archives') loadArchives();
+  }, [activeTab]);
 
   const currentUser = JSON.parse(localStorage.getItem('ehub_user') || '{}');
 
@@ -99,7 +125,24 @@ export default function AdminControl() {
         <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>Manage all users, roles, and account statuses system-wide.</p>
       </header>
 
-      {/* Stats */}
+      <div style={{ display: 'flex', gap: '20px', marginBottom: '24px', borderBottom: '1px solid var(--border-light)' }}>
+        <button 
+          onClick={() => setActiveTab('users')}
+          style={{ padding: '10px 16px', background: 'none', border: 'none', borderBottom: activeTab === 'users' ? '3px solid var(--primary-color, #3b82f6)' : '3px solid transparent', color: activeTab === 'users' ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
+        >
+          User Management
+        </button>
+        <button 
+          onClick={() => setActiveTab('archives')}
+          style={{ padding: '10px 16px', background: 'none', border: 'none', borderBottom: activeTab === 'archives' ? '3px solid var(--primary-color, #3b82f6)' : '3px solid transparent', color: activeTab === 'archives' ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}
+        >
+          Archived Reports
+        </button>
+      </div>
+
+      {activeTab === 'users' && (
+        <>
+          {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '28px' }}>
         {[
           { label: 'Total Users',  value: counts.total,     icon: <Users size={18} />,   col: '#3b82f6' },
@@ -144,6 +187,19 @@ export default function AdminControl() {
           <option value="marketing">Marketing</option>
           <option value="customer">Customers</option>
         </select>
+        <button 
+          onClick={() => {
+            const token = localStorage.getItem('ehub_token');
+            if (token) {
+              window.open(`${API_BASE_URL}/admin_staff_report.php?token=${encodeURIComponent(token)}`, '_blank');
+            } else {
+              alert("You must be logged in.");
+            }
+          }}
+          style={{ padding: '11px 18px', borderRadius: '10px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', color: 'var(--text-main)', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}
+        >
+          <Download size={15} /> Weekly Staff Report
+        </button>
         <button onClick={load} className="btn-primary" style={{ padding: '11px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '7px' }}>
           <RefreshCw size={15} /> Refresh
         </button>
@@ -240,6 +296,44 @@ export default function AdminControl() {
                 })}
               </tbody>
             </table>
+          )}
+        </div>
+      )}
+        </>
+      )}
+
+      {activeTab === 'archives' && (
+        <div className="card glass" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 900 }}>Archived Weekly Reports</h2>
+            <button onClick={loadArchives} disabled={archivesLoading} className="btn-primary" style={{ padding: '8px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <RefreshCw size={14} className={archivesLoading ? 'spin' : ''} /> Refresh Archive
+            </button>
+          </div>
+          {archivesLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading archives…</div>
+          ) : archives.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>No archived reports found. Reports are generated automatically at the start of each week.</div>
+          ) : (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {archives.map(arch => (
+                <div key={arch.filename} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '10px' }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '14px', marginBottom: '4px', textTransform: 'capitalize' }}>{arch.filename.replace('.csv', '').replace(/_/g, ' ')}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Generated: {new Date(arch.created_at).toLocaleString()} • Size: {(arch.size / 1024).toFixed(2)} KB</div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const token = localStorage.getItem('ehub_token');
+                      window.open(`${API_BASE_URL}/admin_staff_report.php?file=${encodeURIComponent(arch.filename)}&token=${encodeURIComponent(token)}`, '_blank');
+                    }}
+                    style={{ padding: '8px 14px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#3b82f6', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Download size={14} /> Download CSV
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

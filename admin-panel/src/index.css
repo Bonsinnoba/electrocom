@@ -219,10 +219,10 @@ textarea:focus-visible {
     position: fixed;
     left: 0;
     top: 0;
-    padding: 32px 20px;
+    padding: 24px 20px 32px;
     display: flex;
     flex-direction: column;
-    gap: 40px;
+    gap: 24px;
     z-index: 100;
     overflow: hidden;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -231,8 +231,9 @@ textarea:focus-visible {
 .sidebar-logo {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 0 0 6px; /* Further reduction */
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 4px 0 4px;
     width: 100%;
     overflow: hidden;
 }
@@ -338,6 +339,106 @@ textarea:focus-visible {
     flex-shrink: 0;
 }
 
+/* Sidebar User Profile Card */
+.sidebar-profile-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(var(--primary-blue-rgb), 0.05);
+    border: 1px solid rgba(var(--primary-blue-rgb), 0.12);
+    border-radius: var(--radius-md);
+    margin-top: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    width: 100%;
+}
+
+.sidebar-profile-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.sidebar-profile-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary-blue);
+    flex-shrink: 0;
+}
+
+.sidebar-profile-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-blue), #2563eb);
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.sidebar-profile-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    transition: opacity 0.2s ease, width 0.2s ease;
+    opacity: 1;
+}
+
+.sidebar-profile-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.sidebar-profile-role {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+
+.sidebar-profile-logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.sidebar-profile-logout:hover {
+    color: var(--danger);
+    background: var(--danger-bg);
+}
+
 .sidebar-logout {
     width: 100%;
     display: flex;
@@ -419,7 +520,8 @@ textarea:focus-visible {
 
     /* Hide labels when collapsed */
     .sidebar-label,
-    .sidebar-section-label {
+    .sidebar-section-label,
+    .sidebar-logo-text {
         opacity: 0;
         pointer-events: none;
         width: 0;
@@ -428,7 +530,8 @@ textarea:focus-visible {
 
     /* Show labels when expanded */
     .admin-sidebar:hover .sidebar-label,
-    .admin-sidebar:hover .sidebar-section-label {
+    .admin-sidebar:hover .sidebar-section-label,
+    .admin-sidebar:hover .sidebar-logo-text {
         opacity: 1;
         pointer-events: auto;
         width: auto;
@@ -450,6 +553,51 @@ textarea:focus-visible {
         justify-content: flex-start;
         font-size: 24px;
         width: auto;
+    }
+
+    /* Profile Card Collapsed Rules */
+    .sidebar-profile-card {
+        padding: 0;
+        background: transparent;
+        border-color: transparent;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        margin: 0 auto;
+    }
+
+    .sidebar-profile-details,
+    .sidebar-profile-logout {
+        opacity: 0;
+        pointer-events: none;
+        width: 0;
+        overflow: hidden;
+        display: none;
+    }
+
+    /* Expand Profile Card on hover */
+    .admin-sidebar:hover .sidebar-profile-card {
+        width: 100%;
+        height: auto;
+        padding: 10px 12px;
+        background: rgba(var(--primary-blue-rgb), 0.05);
+        border: 1px solid rgba(var(--primary-blue-rgb), 0.12);
+        justify-content: space-between;
+        margin-top: 8px;
+    }
+
+    .admin-sidebar:hover .sidebar-profile-details {
+        opacity: 1;
+        pointer-events: auto;
+        width: auto;
+        display: flex;
+    }
+
+    .admin-sidebar:hover .sidebar-profile-logout {
+        opacity: 1;
+        pointer-events: auto;
+        width: 32px;
+        display: flex;
     }
 
     /* Admin main content area */

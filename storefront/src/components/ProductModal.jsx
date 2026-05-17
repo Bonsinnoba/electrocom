@@ -183,7 +183,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
         
         <div className="product-modal-content">
           {/* Left Column: Image & Actions */}
-          <div className="product-modal-image">
+          <div className="product-modal-image" style={{ minWidth: 0 }}>
             {/* Main Image View Area */}
             <div className="modal-gallery-layout">
               {/* Vertical Sidebar Thumbnails */}
@@ -228,7 +228,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
             {/* Config & Actions Group */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
               {/* Quantity & Color Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '20px', alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end' }}>
                 <div className="detail-section">
                   <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Quantity</label>
                   <div className="quantity-selector" style={{ background: 'var(--bg-surface-secondary)', padding: '4px', borderRadius: '12px', opacity: isOutOfStock ? 0.5 : 1 }}>
@@ -241,7 +241,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                 {product.colors && product.colors.length > 0 && (
                   <div className="detail-section">
                     <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Color</label>
-                    <div className="color-swatches">
+                    <div className="color-swatches" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {product.colors.map(color => (
                         <button 
                           key={color} 
@@ -256,7 +256,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                 )}
 
                 {product.variants && product.variants.length > 0 && (
-                  <div className="detail-section" style={{ gridColumn: '1 / -1', marginTop: '4px' }}>
+                  <div className="detail-section" style={{ width: '100%', marginTop: '4px' }}>
                     <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Settings size={14} /> Options & Variations
                     </label>
@@ -313,7 +313,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
               </div>
 
               {/* Side-by-Side Primary Actions */}
-              <div className="modal-primary-actions">
+              <div className="modal-primary-actions" style={{ display: 'flex', gap: '12px', width: '100%', flexWrap: 'wrap' }}>
                 <button 
                   className={`btn-primary ${isAdding ? 'animate-pulse-success' : ''}`}
                   onClick={handleAddToCart}
@@ -367,7 +367,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
           </div>
 
           {/* Right Column: Info & Details */}
-          <div className="product-modal-details" style={{ scrollBehavior: 'smooth' }}>
+          <div className="product-modal-details" style={{ scrollBehavior: 'smooth', minWidth: 0 }}>
             <h2 className="product-title" style={{ fontSize: '32px', marginBottom: '4px' }}>{product.name}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -613,7 +613,9 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                     overflowX: 'auto', 
                     paddingBottom: '16px',
                     scrollSnapType: 'x mandatory',
-                    WebkitOverflowScrolling: 'touch'
+                    WebkitOverflowScrolling: 'touch',
+                    width: '100%',
+                    maxWidth: '100%'
                   }}>
                     {related.map(rp => (
                       <div key={rp.id} className="related-card glass" style={{

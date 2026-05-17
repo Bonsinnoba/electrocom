@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $userId = authenticate($pdo, false); // Don't die on fail
             if ($userId) {
                 $role = getUserRole($userId, $pdo);
-                if ($role === 'admin' || $role === 'super') {
+                if ($role === 'store_manager' || $role === 'super') {
                     $isAdmin = true;
                 }
             }
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 // Write Operations (Require Admin)
 try {
     $userId = authenticate();
-    requireRole(['admin', 'super'], $pdo);
+    requireRole(['store_manager', 'super'], $pdo);
 } catch (Exception $e) {
     sendResponse(false, 'Forbidden: Admins only', null, 403);
 }

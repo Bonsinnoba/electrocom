@@ -44,6 +44,8 @@ if (!function_exists('eh_super_settings_defaults_full')) {
             'maintenanceMode'          => false,
             'allowRegistration'        => true,
             'allowDoorToDoorDelivery'  => false,
+            'doorToDoorThreshold'      => 0,
+            'allowCardPayment'         => true,
             'maxLoginAttempts'         => 5,
             'sessionTimeout'           => 60,
             'twoFactorAdmin'           => false,
@@ -52,10 +54,6 @@ if (!function_exists('eh_super_settings_defaults_full')) {
             'requireEmailVerification' => false,
             'requireNumberInPassword'  => false,
             'emailNotify'       => true,
-            'emailProvider'     => 'smtp',
-            'emailProviderSmtpEnabled' => true,
-            'emailProviderMailgunEnabled' => false,
-            'emailProviderSendgridEnabled' => false,
             'securityAlerts'    => true,
             'lowStockThreshold' => 5,
             'lowStockAlertEmail'=> 'hello@example.com',
@@ -77,6 +75,8 @@ if (!function_exists('eh_super_settings_defaults_full')) {
             'homepageSectionTitle'     => 'New Arrivals',
             'homepageFeaturedCategory' => '',
             'vatRate'                  => 0,
+            'integrityDiscountThreshold'=> 500,
+            'integrityDiscountPct'      => 10,
         ];
     }
 }
@@ -93,7 +93,8 @@ if (!function_exists('eh_storefront_public_setting_keys')) {
             'heroBannerTagline', 'heroBannerSubtext', 'heroCTAText', 'heroCTAUrl',
             'siteTagline', 'metaDescription',
             'defaultItemsPerPage', 'homepageSectionTitle', 'homepageFeaturedCategory',
-            'vatRate', 'allowRegistration', 'allowDoorToDoorDelivery', 'orderReceiptFooterNote',
+            'vatRate', 'allowRegistration', 'allowDoorToDoorDelivery', 'doorToDoorThreshold', 'allowCardPayment', 'orderReceiptFooterNote',
+            'integrityDiscountThreshold', 'integrityDiscountPct',
         ];
     }
 }

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { fetchAnalytics } from '../services/api';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Brush,
   BarChart, Bar, Cell
 } from 'recharts';
 
@@ -51,7 +51,7 @@ export default function AccountantDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [chartRange, setChartRange] = useState(30);
+  const [chartRange, setChartRange] = useState(365);
   const [chartMode, setChartMode] = useState('area');
 
   useEffect(() => {
@@ -68,6 +68,65 @@ export default function AccountantDashboard() {
     };
     load();
   }, []);
+
+  const exportFinancialReport = () => {
+    if (!data) return;
+    
+    let csvRows = [];
+    
+    // Title & Metadata
+    csvRows.push("ELECTRCOM FINANCIAL LEDGER REPORT");
+    csvRows.push(`Generated On,${new Date().toLocaleString()}`);
+    csvRows.push("");
+    
+    // Key Financial Metrics
+    csvRows.push("KEY FINANCIAL METRICS");
+    csvRows.push(`Metric,Value (GHS)`);
+    csvRows.push(`Gross Revenue,${data.total_revenue}`);
+    csvRows.push(`POS Transactions,${data.revenue_pos}`);
+    csvRows.push(`Online Transactions,${data.revenue_online}`);
+    csvRows.push(`Average Order Value,${data.avg_order_value}`);
+    csvRows.push("");
+    
+    // Daily Revenue Velocity (Last 30 Days)
+    csvRows.push("DAILY REVENUE VELOCITY (LAST 30 DAYS)");
+    csvRows.push("Date,Online Revenue (GHS),POS Revenue (GHS),Total Daily Revenue (GHS)");
+    if (Array.isArray(data.revenue_chart)) {
+      data.revenue_chart.forEach(row => {
+        csvRows.push(`${row.date},${row.online_revenue || 0},${row.pos_revenue || 0},${row.daily_revenue || 0}`);
+      });
+    }
+    csvRows.push("");
+    
+    // Top Categories
+    csvRows.push("TOP PRODUCT CATEGORIES BY REVENUE");
+    csvRows.push("Category,Revenue (GHS)");
+    if (Array.isArray(data.sales_by_category)) {
+      data.sales_by_category.forEach(row => {
+        csvRows.push(`"${String(row.category || '').replace(/"/g, '""')}",${row.revenue || 0}`);
+      });
+    }
+    csvRows.push("");
+    
+    // Recent Transactions
+    csvRows.push("RECENT TRANSACTIONS AUDIT TRAIL");
+    csvRows.push("Order ID,Customer,Total Amount (GHS),Fulfillment Type,Status");
+    if (Array.isArray(data.recent_activity)) {
+      data.recent_activity.forEach(row => {
+        csvRows.push(`ORD-${row.id},"${(row.customer_name || 'Walk-in').replace(/"/g, '""')}",${row.total_amount},${row.order_type || 'online'},${row.status}`);
+      });
+    }
+    
+    const csvContent = "\uFEFF" + csvRows.join("\r\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `electrcom_financial_ledger_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading) return <div className="loading-state">Synchronizing Financials...</div>;
   if (!data) return <div className="error-state">{error || 'No financial data available.'}</div>;
@@ -86,7 +145,7 @@ export default function AccountantDashboard() {
           <h1 style={{ fontSize: '32px', fontWeight: 900, letterSpacing: '-0.02em' }}>Financial Ledger</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>Audited regional revenue and transactional insights.</p>
         </div>
-        <button className="btn glass" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 700 }}>
+        <button onClick={exportFinancialReport} className="btn glass" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 700 }}>
           <Download size={16} /> EXPORT REPORT
         </button>
       </header>
@@ -133,9 +192,9 @@ export default function AccountantDashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: 0 }}>Revenue Velocity</h3>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[7, 30, 90].map((days) => (
+                {[7, 30, 90, 365].map((days) => (
                   <button key={days} type="button" className={`btn ${chartRange === days ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartRange(days)}>
-                    {days}d
+                    {days === 365 ? '1y' : `${days}d`}
                   </button>
                 ))}
                 <button type="button" className={`btn ${chartMode === 'area' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartMode('area')}>

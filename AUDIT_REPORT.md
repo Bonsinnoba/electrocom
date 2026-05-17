@@ -1,4 +1,4 @@
-# Audit Report — EssentialsHub-project
+# Audit Report — ElectrCom-project
 
 Date: 2026-04-11
 

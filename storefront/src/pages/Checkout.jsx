@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useCart } from '../context/CartContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useUser } from '../context/UserContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { CreditCard, Truck, ShieldCheck, ArrowLeft, ChevronRight, CheckCircle, Smartphone, MapPin, Tag } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { createOrder, fetchPickupLocations, getShippingFee } from '../services/api';
@@ -32,7 +32,11 @@ const GHANA_REGIONS = [
 ];
 
 export default function Checkout() {
-  const { cartItems, subtotal, clearCart, appliedCoupon, applyCoupon, removeCoupon, isApplyingCoupon, couponError } = useCart();
+  const { cartItems, subtotal: fullSubtotal, clearCart, removeCheckedOutItems, appliedCoupon, applyCoupon, removeCoupon, isApplyingCoupon, couponError } = useCart();
+  const location = useLocation();
+  // Use items passed from Cart's selection; fall back to full cart
+  const selectedItems = location.state?.selectedItems?.length ? location.state.selectedItems : cartItems;
+  const subtotal = selectedItems.reduce((a, i) => a + parseFloat(i.price) * i.quantity, 0);
   const { addToast } = useNotifications();
   const { user } = useUser();
   const { siteSettings, formatPrice } = useSettings();
@@ -49,7 +53,7 @@ export default function Checkout() {
     zip: user?.zip || '',
     deliveryMethod: 'pickup'
   });
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState(siteSettings?.allowCardPayment !== false ? 'card' : 'momo');
   const [couponCode, setCouponCode] = useState('');
   const [pickupLocations, setPickupLocations] = useState([]);
   const [selectedPickupId, setSelectedPickupId] = useState('');
@@ -101,12 +105,28 @@ export default function Checkout() {
     ? 'Ready for pickup in 1-2 business days'
     : 'Door delivery in 2-4 business days';
   
-  // Align with backend: Calculate tax on discounted subtotal
   const discount = Math.round((appliedCoupon ? appliedCoupon.discountAmount : 0) * 100) / 100;
-  const taxableAmount = Math.max(0, subtotal - discount);
+
+  const integrityDiscountThreshold = Number(siteSettings?.integrityDiscountThreshold || 0);
+  const integrityDiscountPct = Number(siteSettings?.integrityDiscountPct || 0);
+  const userIntegrityPoints = Number(user?.loyalty_points || 0);
+  const hasIntegrityDiscount = integrityDiscountThreshold > 0 && userIntegrityPoints >= integrityDiscountThreshold && integrityDiscountPct > 0;
+  const integrityDiscountAmount = hasIntegrityDiscount ? Math.round((subtotal * (integrityDiscountPct / 100)) * 100) / 100 : 0;
+
+  const totalDiscount = discount + integrityDiscountAmount;
+  const taxableAmount = Math.max(0, subtotal - totalDiscount);
   const tax = Math.round((taxableAmount * (vatRate / 100)) * 100) / 100;
   
   const total = Math.round((taxableAmount + tax + shippingFee) * 100) / 100;
+
+  const doorToDoorThreshold = Number(siteSettings?.doorToDoorThreshold || 0);
+  const isDoorToDoorAllowed = siteSettings?.allowDoorToDoorDelivery !== false && subtotal >= doorToDoorThreshold;
+
+  useEffect(() => {
+    if (!isDoorToDoorAllowed && formData.deliveryMethod === 'door_to_door') {
+      setFormData(prev => ({ ...prev, deliveryMethod: 'pickup' }));
+    }
+  }, [isDoorToDoorAllowed, formData.deliveryMethod]);
 
   const handleApplyCoupon = async () => {
     const success = await applyCoupon(couponCode);
@@ -148,7 +168,7 @@ export default function Checkout() {
       // Payment was successful, order is already created as pending
       // We can just redirect to the success page now
       addToast('Payment successful! Your order is being processed.', 'success');
-      clearCart();
+      removeCheckedOutItems(selectedItems);
       checkoutIdempotencyKeyRef.current = '';
       setReservationDeadlineMs(null);
       setPaymentInterrupted(false);
@@ -188,7 +208,7 @@ export default function Checkout() {
             // 1. Create Pending Order first
             const orderData = {
                 total_amount: total,
-                items: cartItems.map(item => ({
+                items: selectedItems.map(item => ({
                     id: item.id,
                     quantity: item.quantity,
                     price: parseFloat(item.price)
@@ -202,7 +222,7 @@ export default function Checkout() {
                 delivery_method: formData.deliveryMethod,
                 pickup_location_id: formData.deliveryMethod === 'pickup' && selectedPickupId ? Number(selectedPickupId) : null,
                 coupon_code: appliedCoupon ? appliedCoupon.code : null,
-                discount_amount: discount,
+                discount_amount: totalDiscount,
                 idempotency_key: checkoutIdempotencyKeyRef.current
             };
 
@@ -312,8 +332,8 @@ export default function Checkout() {
     }
   }, [user, navigate, addToast]);
 
-  if (!user || cartItems.length === 0) {
-    if (cartItems.length === 0) navigate('/cart');
+  if (!user || selectedItems.length === 0) {
+    if (selectedItems.length === 0) navigate('/cart');
     return null;
   }
 
@@ -423,11 +443,16 @@ export default function Checkout() {
                       <span style={{ fontWeight: 600 }}>Store Pick Up</span>
                       <input type="radio" name="deliveryMethod" value="pickup" checked={formData.deliveryMethod === 'pickup'} onChange={handleChange} />
                     </label>
-                    <label style={{ padding: '14px', borderRadius: '12px', border: siteSettings.allowDoorToDoorDelivery ? '1px solid var(--border-light)' : '1px dashed var(--border-light)', background: formData.deliveryMethod === 'door_to_door' ? 'var(--bg-surface)' : 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: siteSettings.allowDoorToDoorDelivery ? 1 : 0.6, cursor: siteSettings.allowDoorToDoorDelivery ? 'pointer' : 'not-allowed' }}>
-                      <span style={{ fontWeight: 600 }}>
-                        {siteSettings.allowDoorToDoorDelivery ? 'Door to Door' : 'Door to Door (temporarily unavailable)'}
+                    <label style={{ padding: '14px', borderRadius: '12px', border: isDoorToDoorAllowed ? '1px solid var(--border-light)' : '1px dashed var(--border-light)', background: formData.deliveryMethod === 'door_to_door' ? 'var(--bg-surface)' : 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: isDoorToDoorAllowed ? 1 : 0.6, cursor: isDoorToDoorAllowed ? 'pointer' : 'not-allowed' }}>
+                      <span style={{ fontWeight: 600, display: 'flex', flexDirection: 'column' }}>
+                        <span>Door to Door</span>
+                        {siteSettings?.allowDoorToDoorDelivery === false ? (
+                           <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>Temporarily unavailable</span>
+                        ) : subtotal < doorToDoorThreshold ? (
+                           <span style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: 400 }}>Min order: {formatPrice(doorToDoorThreshold)}</span>
+                        ) : null}
                       </span>
-                      <input type="radio" name="deliveryMethod" value="door_to_door" checked={formData.deliveryMethod === 'door_to_door'} onChange={handleChange} disabled={!siteSettings.allowDoorToDoorDelivery} />
+                      <input type="radio" name="deliveryMethod" value="door_to_door" checked={formData.deliveryMethod === 'door_to_door'} onChange={handleChange} disabled={!isDoorToDoorAllowed} />
                     </label>
                   </div>
                 </div>
@@ -513,22 +538,23 @@ export default function Checkout() {
               <h3 style={{ marginBottom: '24px', fontSize: '20px' }}>Payment Method</h3>
               <div style={{ display: 'grid', gap: '16px', marginBottom: '32px' }}>
                 <div 
-                  onClick={() => setPaymentMethod('card')}
+                  onClick={() => { if (siteSettings.allowCardPayment !== false) setPaymentMethod('card'); }}
                   style={{ 
                     padding: '20px', 
                     borderRadius: '16px', 
                     background: paymentMethod === 'card' ? 'var(--bg-surface)' : 'var(--bg-main)', 
-                    border: paymentMethod === 'card' ? '2px solid var(--primary-blue)' : '1px solid var(--border-light)', 
+                    border: paymentMethod === 'card' ? '2px solid var(--primary-blue)' : (siteSettings.allowCardPayment !== false ? '1px solid var(--border-light)' : '1px dashed var(--border-light)'), 
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '16px',
-                    cursor: 'pointer',
+                    cursor: siteSettings.allowCardPayment !== false ? 'pointer' : 'not-allowed',
+                    opacity: siteSettings.allowCardPayment !== false ? 1 : 0.6,
                     transition: 'all 0.2s'
                   }}
                 >
                   <CreditCard size={24} color={paymentMethod === 'card' ? 'var(--primary-blue)' : 'var(--text-muted)'} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700 }}>Credit or Debit Card</div>
+                    <div style={{ fontWeight: 700 }}>{siteSettings.allowCardPayment !== false ? 'Credit or Debit Card' : 'Credit or Debit Card (temporarily unavailable)'}</div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Pay securely with your Visa, Mastercard, or Amex</div>
                   </div>
                   <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -691,7 +717,7 @@ export default function Checkout() {
           <div style={{ padding: '24px', borderRadius: '24px', background: 'var(--bg-main)', border: '1px solid var(--border-light)', position: 'sticky', top: '20px' }}>
             <h3 style={{ marginTop: 0, marginBottom: '20px' }}>Order Summary</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {cartItems.map(item => (
+              {selectedItems.map(item => (
                 <div key={`${item.id}-${item.selectedColor}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', alignItems: 'flex-start' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span>{item.quantity}x {item.name}</span>
@@ -725,8 +751,16 @@ export default function Checkout() {
               </div>
               {appliedCoupon && (
                 <div className="summary-row" style={{ color: 'var(--danger)' }}>
-                  <span>Discount ({appliedCoupon.code})</span>
+                  <span>Promo Code ({appliedCoupon.code})</span>
                   <span>-{formatPrice(discount)}</span>
+                </div>
+              )}
+              {hasIntegrityDiscount && (
+                <div className="summary-row" style={{ color: 'var(--danger)' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ShieldCheck size={14} /> Loyalty Reward (-{integrityDiscountPct}%)
+                  </span>
+                  <span>-{formatPrice(integrityDiscountAmount)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', alignItems: 'center' }}>

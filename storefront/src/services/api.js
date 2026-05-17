@@ -17,6 +17,7 @@ const decodeHtml = (html) => {
  */
 export const formatImageUrl = (url) => {
     if (!url) return url;
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
     // Fix hardcoded dev URLs from DB
     const cleaningBases = [
         'http://localhost:8000/api/',
@@ -385,6 +386,17 @@ export const syncCart = async (cartItems) => {
     } catch (error) {
         // Silently fail for background cart syncs
         return { success: false };
+    }
+};
+
+export const fetchServerCart = async () => {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/cart_sync.php`, getFetchOptions());
+        if (!response.ok) return [];
+        const result = await response.json();
+        return result.success ? (result.cart || []) : [];
+    } catch {
+        return [];
     }
 };
 

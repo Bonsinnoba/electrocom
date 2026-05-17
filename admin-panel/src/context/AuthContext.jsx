@@ -1,6 +1,8 @@
 /* @refresh reload */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+import { API_BASE_URL } from '../services/api';
+
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
@@ -17,7 +19,38 @@ export const AuthProvider = ({ children }) => {
     if (savedToken && savedUser) {
       setToken(savedToken);
       try {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
+        
+        // Background call to verify active session and role dynamically
+        fetch(`${API_BASE_URL}/check_user_status.php`, {
+          headers: { 
+            'Authorization': `Bearer ${savedToken}`,
+            'X-App-ID': 'admin'
+          }
+        })
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            // Token is invalid, expired, or account suspended/demoted
+            logout();
+            return null;
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (data && data.success && data.data?.user) {
+            const updatedUser = data.data.user;
+            
+            // Only update if something actually changed to avoid unnecessary re-renders
+            if (JSON.stringify(parsed) !== JSON.stringify(updatedUser)) {
+              localStorage.setItem('ehub_user', JSON.stringify(updatedUser));
+              setUser(updatedUser);
+            }
+          }
+        })
+        .catch(err => {
+          console.error("Background session validation failed:", err);
+        });
       } catch (e) {
         setUser(null);
       }

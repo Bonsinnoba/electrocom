@@ -13,7 +13,7 @@ try {
     $stmt->execute([$staffId]);
     $staff = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$staff || !in_array($staff['role'], ['super', 'admin', 'store_manager'], true)) {
+    if (!$staff || !in_array($staff['role'], ['super', 'store_manager'], true)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Forbidden: Only authorized staff can process POS returns.']);
         exit;
@@ -24,14 +24,14 @@ try {
     exit;
 }
 
-function normalize_pos_order_id($raw)
+function normalize_pos_order_id(mixed $raw)
 {
     $s = trim((string)$raw);
     $s = preg_replace('/^ORD-/i', '', $s);
     return (int)$s;
 }
 
-function ensure_returns_table($pdo)
+function ensure_returns_table(PDO $pdo)
 {
     $pdo->exec("CREATE TABLE IF NOT EXISTS order_returns (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -157,6 +157,9 @@ if (!is_array($data)) {
 
 $orderId = normalize_pos_order_id($data['order_id'] ?? '');
 $items = $data['items'] ?? [];
+usort($items, function($a, $b) {
+    return (int)($a['product_id'] ?? 0) <=> (int)($b['product_id'] ?? 0);
+});
 $reason = sanitizeInput($data['reason'] ?? 'POS return');
 
 if ($orderId <= 0 || !is_array($items) || empty($items)) {

@@ -6,8 +6,8 @@ header('Content-Type: application/json');
 
 // Authenticate and Require Roles
 try {
-    // Branch branching logic removed: Only high-tier staff can mutate products globally.
-    $userId = requireRole(['super', 'admin', 'store_manager'], $pdo);
+    // Branch branching logic removed: Only high-tier staff and marketing can mutate products globally.
+    $userId = requireRole(['super', 'store_manager', 'marketing'], $pdo);
     $userName = getUserName($userId, $pdo);
 } catch (Exception $e) {
     http_response_code(401);
@@ -447,6 +447,12 @@ if ($method === 'POST') {
             echo json_encode(['success' => false, 'error' => 'Failed to update product.']);
         }
     } elseif ($action === 'delete') {
+        $role = getUserRole($userId, $pdo);
+        if ($role === 'marketing') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Permission denied. Marketing role cannot delete products.']);
+            exit;
+        }
         $id = (int)($decoded['id'] ?? 0);
         if (!$id) {
             http_response_code(400);

@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useUser } from './UserContext';
-import { secureStorage } from '../utils/secureStorage';
-import { syncCart, validateCoupon } from '../services/api';
+import { syncCart, fetchServerCart, validateCoupon } from '../services/api';
 import { useNotifications } from './NotificationContext';
 
 const CartContext = createContext();
@@ -18,34 +17,52 @@ export const CartProvider = ({ children }) => {
   const { user } = useUser();
   const { addToast } = useNotifications();
 
-  const [cartItems, setCartItems] = useState(() => {
-    return secureStorage.getItem('cart', user?.id) || [];
-  });
+  // Cart lives in the DB — no localStorage
+  const [cartItems, setCartItems] = useState([]);
 
-  const [appliedCoupon, setAppliedCoupon] = useState(() => {
-    return secureStorage.getItem('appliedCoupon', user?.id) || null;
-  });
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState('');
+  const lastUserId = useRef(null);
 
+  // ── Load from DB whenever the user changes (login / switch account) ──
   useEffect(() => {
-    secureStorage.setItem('cart', cartItems, user?.id);
-    secureStorage.setItem('appliedCoupon', appliedCoupon, user?.id);
-
-    // Sync to backend for Abandoned Cart recovery (fire and forget)
-    if (user) {
-        const performCartSync = async () => {
-             try {
-                 await syncCart(cartItems);
-             } catch (e) {
-                 // Silently fail, it's a background sync
-             }
-        };
-        // Small debounce to avoid spamming if user clicks rapidly
-        const timeoutId = setTimeout(performCartSync, 1000);
-        return () => clearTimeout(timeoutId);
+    if (!user) {
+      // Logged out — clear in-memory cart
+      setCartItems([]);
+      setAppliedCoupon(null);
+      lastUserId.current = null;
+      return;
     }
+
+    if (lastUserId.current === user.id) return; // Same session, skip
+    lastUserId.current = user.id;
+
+    const loadFromServer = async () => {
+      try {
+        const serverCart = await fetchServerCart();
+        setCartItems(serverCart || []);
+      } catch {
+        setCartItems([]);
+      }
+    };
+
+    loadFromServer();
+  }, [user?.id]);
+
+  // ── Sync to DB on every cart change ──
+  useEffect(() => {
+    if (!user) return;
+    const performCartSync = async () => {
+      try {
+        await syncCart(cartItems);
+      } catch {
+        // Silently fail
+      }
+    };
+    const timeoutId = setTimeout(performCartSync, 1000);
+    return () => clearTimeout(timeoutId);
   }, [cartItems, user]);
 
   const addToCart = (product, quantity = 1, color = 'Default') => {
@@ -89,6 +106,15 @@ export const CartProvider = ({ children }) => {
     setAppliedCoupon(null);
   };
 
+  const removeCheckedOutItems = (checkedItems) => {
+    // checkedItems = array of cart item objects that were ordered
+    setCartItems(prev => prev.filter(
+      item => !checkedItems.some(
+        c => c.id === item.id && c.selectedColor === item.selectedColor
+      )
+    ));
+  };
+
   const applyCoupon = async (code) => {
     if (!code.trim()) return;
     setIsApplyingCoupon(true);
@@ -127,6 +153,7 @@ export const CartProvider = ({ children }) => {
       removeFromCart, 
       updateQuantity, 
       clearCart,
+      removeCheckedOutItems,
       subtotal,
       cartCount,
       appliedCoupon,

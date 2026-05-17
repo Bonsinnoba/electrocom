@@ -11,6 +11,7 @@ import {
   Zap,
   Layers,
   AlertTriangle,
+  Download,
 } from 'lucide-react';
 import { fetchAnalytics } from '../services/api';
 import { useAdminSettings } from '../context/AdminSettingsContext';
@@ -96,9 +97,68 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [chartRange, setChartRange] = useState(30);
+  const [chartRange, setChartRange] = useState(365);
   const [chartMode, setChartMode] = useState('area');
   
+  const exportFinancialReport = () => {
+    if (!data) return;
+    
+    let csvRows = [];
+    
+    // Title & Metadata
+    csvRows.push("ELECTRCOM FINANCIAL LEDGER REPORT");
+    csvRows.push(`Generated On,${new Date().toLocaleString()}`);
+    csvRows.push("");
+    
+    // Key Financial Metrics
+    csvRows.push("KEY FINANCIAL METRICS");
+    csvRows.push(`Metric,Value (GHS)`);
+    csvRows.push(`Gross Revenue,${data.total_revenue || 0}`);
+    csvRows.push(`POS Transactions,${data.revenue_pos || 0}`);
+    csvRows.push(`Online Transactions,${data.revenue_online || 0}`);
+    csvRows.push(`Average Order Value,${data.avg_order_value || 0}`);
+    csvRows.push("");
+    
+    // Daily Revenue Velocity (Last 30 Days)
+    csvRows.push("DAILY REVENUE VELOCITY (LAST 30 DAYS)");
+    csvRows.push("Date,Online Revenue (GHS),POS Revenue (GHS),Total Daily Revenue (GHS)");
+    if (Array.isArray(data.revenue_chart)) {
+      data.revenue_chart.forEach(row => {
+        csvRows.push(`${row.date},${row.online_revenue || 0},${row.pos_revenue || 0},${row.daily_revenue || 0}`);
+      });
+    }
+    csvRows.push("");
+    
+    // Top Categories
+    csvRows.push("TOP PRODUCT CATEGORIES BY REVENUE");
+    csvRows.push("Category,Revenue (GHS)");
+    if (Array.isArray(data.sales_by_category)) {
+      data.sales_by_category.forEach(row => {
+        csvRows.push(`"${String(row.category || '').replace(/"/g, '""')}",${row.revenue || 0}`);
+      });
+    }
+    csvRows.push("");
+    
+    // Recent Transactions
+    csvRows.push("RECENT TRANSACTIONS AUDIT TRAIL");
+    csvRows.push("Order ID,Customer,Total Amount (GHS),Fulfillment Type,Status");
+    if (Array.isArray(data.recent_activity)) {
+      data.recent_activity.forEach(row => {
+        csvRows.push(`ORD-${row.id},"${(row.customer_name || 'Walk-in').replace(/"/g, '""')}",${row.total_amount},${row.order_type || 'online'},${row.status}`);
+      });
+    }
+    
+    const csvContent = "\uFEFF" + csvRows.join("\r\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `electrcom_financial_ledger_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const loadAnalytics = async (isInitial = false) => {
     try {
       if (isInitial) setLoading(true);
@@ -186,6 +246,26 @@ export default function Dashboard() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+           {(role === 'super' || role === 'admin' || role === 'store_manager' || role === 'accountant') && (
+             <button 
+               onClick={exportFinancialReport}
+               className="btn-primary" 
+               style={{ 
+                 padding: '8px 16px', 
+                 borderRadius: '12px', 
+                 fontSize: '12px', 
+                 fontWeight: 700, 
+                 display: 'flex', 
+                 alignItems: 'center', 
+                 gap: '8px',
+                 boxShadow: '0 4px 12px rgba(var(--primary-blue-rgb), 0.25)',
+                 border: 'none',
+                 cursor: 'pointer'
+               }}
+             >
+                <Download size={16} /> EXPORT FINANCIAL LEDGER
+             </button>
+           )}
            <div className="glass" style={{ padding: '8px 16px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Activity size={16} className="text-success animate-pulse" /> LIVE FEED
            </div>

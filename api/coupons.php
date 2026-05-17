@@ -67,7 +67,7 @@ if ($method === 'POST' && $action === 'validate') {
 // 2. Admin Endpoints Below
 try {
     $userId = authenticate();
-    requireRole(['admin', 'super', 'marketing', 'store_manager', 'branch_admin'], $pdo);
+    requireRole(['super', 'store_manager', 'marketing'], $pdo);
 } catch (Exception $e) {
     sendResponse(false, 'Unauthorized', null, 401);
 }

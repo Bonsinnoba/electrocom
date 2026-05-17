@@ -95,6 +95,7 @@ export default function HeroSlider() {
       >
         {slides.map((slide, index) => {
           const styles = getPositionStyles(slide.text_position);
+          const isActive = index === currentSlide;
           return (
             <div
               key={slide.id}
@@ -120,7 +121,17 @@ export default function HeroSlider() {
                 padding: styles.padding,
                 boxSizing: 'border-box'
               }}>
-                <div className="slide-content animate-fade-in" style={{ maxWidth: '600px', color: 'white', textAlign: styles.textAlign }}>
+                <div 
+                  className="slide-content" 
+                  style={{ 
+                    maxWidth: '600px', 
+                    color: 'white', 
+                    textAlign: styles.textAlign,
+                    opacity: isActive ? 1 : 0,
+                    transform: isActive ? 'translateY(0)' : 'translateY(40px)',
+                    transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s'
+                  }}
+                >
                   {(slide.title || siteSettings.heroBannerTagline) && (
                     <h2 style={{ fontSize: '48px', fontWeight: 800, marginBottom: '16px', lineHeight: 1.1 }}>
                       {slide.title || siteSettings.heroBannerTagline}
@@ -152,35 +163,35 @@ export default function HeroSlider() {
   
                     return blocks.map((block, i) => {
                         if (!block.text && block.type !== 'cta') return null;
-
+ 
                         const top = parseFloat(block.top) || 50;
                         const left = parseFloat(block.left) || 50;
-
+ 
                         const blockStyle = {
                             position: 'absolute',
                             top: `${top}%`,
                             left: `${left}%`,
-                            transform: 'translate(-50%, -50%)',
+                            transform: `translate(-50%, ${isActive ? '-50%' : 'calc(-50% + 20px)'})`,
                             fontSize: block.fontSize || '16px',
                             color: block.color || '#ffffff',
                             textAlign: block.textAlign || 'center',
-                            opacity: block.type === 'paragraph' ? 0.8 : 1,
+                            opacity: isActive ? (block.type === 'paragraph' ? 0.8 : 1) : 0,
                             fontWeight: block.type === 'heading' ? 800 : (block.type === 'subheading' ? 600 : 400),
                             lineHeight: 1.4,
                             maxWidth: '90%',
                             zIndex: 5,
                             textShadow: '0 2px 15px rgba(0,0,0,0.6)',
-                            transition: 'all 0.3s ease'
+                            transition: `all 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.1}s`
                         };
   
-                        if (block.type === 'heading') return <h3 key={i} className="animate-fade-in" style={{ ...blockStyle, fontSize: block.fontSize || '38px', marginBottom: '0.4em' }}>{block.text}</h3>;
-                        if (block.type === 'subheading') return <h4 key={i} className="animate-fade-in" style={{ ...blockStyle, fontSize: block.fontSize || '20px' }}>{block.text}</h4>;
+                        if (block.type === 'heading') return <h3 key={i} style={{ ...blockStyle, fontSize: block.fontSize || '38px', marginBottom: '0.4em' }}>{block.text}</h3>;
+                        if (block.type === 'subheading') return <h4 key={i} style={{ ...blockStyle, fontSize: block.fontSize || '20px' }}>{block.text}</h4>;
                         if (block.type === 'cta') return (
-                          <Link key={i} to={block.link || '#'} className="btn-primary animate-fade-in" style={{ ...blockStyle, position: 'absolute', top: `${top}%`, left: `${left}%`, padding: '10px 24px', whiteSpace: 'nowrap' }}>
+                          <Link key={i} to={block.link || '#'} className="btn-primary" style={{ ...blockStyle, position: 'absolute', top: `${top}%`, left: `${left}%`, padding: '10px 24px', whiteSpace: 'nowrap' }}>
                             {block.text || 'Learn More'}
                           </Link>
                         );
-                        return <p key={i} className="animate-fade-in" style={blockStyle}>{block.text}</p>;
+                        return <p key={i} style={blockStyle}>{block.text}</p>;
                     });
                 })()}
               </div>

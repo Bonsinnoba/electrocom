@@ -94,19 +94,19 @@ if ($method === 'POST') {
             throw new Exception('Selected option is not allowed');
         }
 
-        $reportStmt = $pdo->prepare("SELECT * FROM order_missing_items WHERE id = ? FOR UPDATE");
-        $reportStmt->execute([(int)$conf['report_id']]);
-        $report = $reportStmt->fetch(PDO::FETCH_ASSOC);
-        if (!$report) {
-            throw new Exception('Related report not found');
-        }
-
         $orderId = (int)$conf['order_id'];
         $orderStmt = $pdo->prepare("SELECT * FROM orders WHERE id = ? FOR UPDATE");
         $orderStmt->execute([$orderId]);
         $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
         if (!$order) {
             throw new Exception('Order not found');
+        }
+
+        $reportStmt = $pdo->prepare("SELECT * FROM order_missing_items WHERE id = ? FOR UPDATE");
+        $reportStmt->execute([(int)$conf['report_id']]);
+        $report = $reportStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$report) {
+            throw new Exception('Related report not found');
         }
 
         if ($choice === 'accept_available') {
@@ -177,7 +177,7 @@ if ($method === 'POST') {
         $pdo->prepare("INSERT INTO order_status_logs (order_id, status_key, message) VALUES (?, 'processing', ?)")
             ->execute([$orderId, $logMsg]);
 
-        $staffStmt = $pdo->query("SELECT id FROM users WHERE role IN ('super','admin','store_manager','branch_admin') AND status = 'active'");
+        $staffStmt = $pdo->query("SELECT id FROM users WHERE role IN ('super','store_manager') AND status = 'active'");
         $staffIds = $staffStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
         if (!empty($staffIds)) {
             $notif = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, 'Missing Item Customer Decision', ?, 'info')");

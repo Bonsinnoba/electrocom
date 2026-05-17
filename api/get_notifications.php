@@ -34,7 +34,7 @@ if ($method === 'GET') {
                     n.user_id = ?
                     OR (
                         n.type IN ('security', 'system', 'order')
-                        AND u.role IN ('admin', 'super', 'marketing', 'accountant', 'store_manager', 'branch_admin')
+                        AND u.role IN ('super', 'marketing', 'accountant', 'store_manager')
                     )
                 )
                 ORDER BY n.created_at DESC LIMIT 50

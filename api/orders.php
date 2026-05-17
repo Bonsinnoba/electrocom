@@ -272,7 +272,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $paymentReference = sanitizeInput($paymentReference);
     $couponCode = sanitizeInput($decoded['coupon_code'] ?? null);
-    $discountAmount = (float)($decoded['discount_amount'] ?? 0);
+
+    // --- ZERO-TRUST SERVER-SIDE CALCULATION ---
+    $calculatedSubtotal = 0;
+    foreach ($items as $itm) {
+        $pId = (int)$itm['id'];
+        $qty = (int)$itm['quantity'];
+        $pPriceStmt = $pdo->prepare("SELECT price, discount_percent, sale_ends_at FROM products WHERE id = ?");
+        $pPriceStmt->execute([$pId]);
+        $priceData = $pPriceStmt->fetch(PDO::FETCH_ASSOC);
+        if ($priceData) {
+            $calculatedSubtotal += getEffectivePrice($priceData) * $qty;
+        }
+    }
+
+    $calculatedDiscount = 0;
+    $loyaltyPointsToDeduct = 0;
+
+    if (!empty($couponCode)) {
+        $couponStmt = $pdo->prepare("SELECT discount_amount FROM coupons WHERE code = ? AND is_active = 1 AND (expires_at IS NULL OR expires_at > NOW())");
+        $couponStmt->execute([$couponCode]);
+        $cVal = $couponStmt->fetchColumn();
+        if ($cVal) {
+            $calculatedDiscount += (float)$cVal;
+        } else {
+            $couponCode = null;
+        }
+    }
+
+    $requestedDiscount = (float)($decoded['discount_amount'] ?? 0);
+    $requestedLoyaltyDiscount = $requestedDiscount - $calculatedDiscount;
+    $settingsFile = __DIR__ . '/data/super_settings.json';
+    $settings = file_exists($settingsFile) ? json_decode(file_get_contents($settingsFile), true) : [];
+
+    if ($requestedLoyaltyDiscount > 0) {
+        $uStmt = $pdo->prepare("SELECT loyalty_points FROM users WHERE id = ?");
+        $uStmt->execute([$userId]);
+        $userPoints = (int)$uStmt->fetchColumn();
+        
+        $loyaltyThreshold = (float)($settings['integrityDiscountThreshold'] ?? 5000);
+        $loyaltyPct = (float)($settings['integrityDiscountPct'] ?? 10);
+
+        if ($userPoints >= $loyaltyThreshold && $loyaltyThreshold > 0 && $loyaltyPct > 0) {
+            $maxLoyaltyDiscount = round($calculatedSubtotal * ($loyaltyPct / 100), 2);
+            if (abs($requestedLoyaltyDiscount - $maxLoyaltyDiscount) <= 0.10) {
+                 $calculatedDiscount += $maxLoyaltyDiscount;
+                 $loyaltyPointsToDeduct = $userPoints; 
+            }
+        }
+    }
+
+    $taxableAmount = max(0, $calculatedSubtotal - $calculatedDiscount);
+    $vatRate = (float)($settings['vatRate'] ?? 5);
+    $tax = round($taxableAmount * ($vatRate / 100), 2);
+
+    $calculatedTotal = round($taxableAmount + $tax, 2);
+    $totalAmount = $calculatedTotal;
+    $discountAmount = $calculatedDiscount;
+    // ------------------------------------------
 
     if (empty($items) || $totalAmount <= 0) {
         http_response_code(400);
@@ -317,6 +374,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$response || !isset($response['data']) || $response['data']['status'] !== 'success') {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Payment verification failed']);
+            exit;
+        }
+        
+        // Ensure paid amount matches the calculated total
+        $paidAmountGhs = $response['data']['amount'] / 100;
+        if (abs($paidAmountGhs - $totalAmount) > 0.10) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => "Payment amount mismatch. Expected GHS {$totalAmount}, paid GHS {$paidAmountGhs}."]);
             exit;
         }
         $orderStatus = 'processing';
@@ -367,6 +432,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($orderStatus === 'processing') {
             completeOrder($orderId, $pdo);
+        }
+
+        // Deduct loyalty points if used
+        if ($loyaltyPointsToDeduct > 0) {
+            $deductStmt = $pdo->prepare("UPDATE users SET loyalty_points = loyalty_points - ? WHERE id = ?");
+            $deductStmt->execute([$loyaltyPointsToDeduct, $userId]);
         }
 
         $pdo->commit();

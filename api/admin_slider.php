@@ -11,7 +11,7 @@ header('Expires: 0');
 
 // Authenticate and Require Roles
 try {
-    $userId = requireRole(['admin', 'marketing'], $pdo);
+    $userId = requireRole(['store_manager', 'marketing'], $pdo);
     $userName = getUserName($userId, $pdo);
 } catch (Exception $e) {
     http_response_code(401);

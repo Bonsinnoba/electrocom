@@ -18,7 +18,7 @@ export default function MissingItemsManager() {
   const [summary, setSummary] = useState({ open: 0, resolved: 0 });
 
   const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
-  const canResolve = ['super', 'admin', 'store_manager', 'branch_admin'].includes(user.role);
+  const canResolve = ['super', 'store_manager'].includes(user.role);
 
   const load = async () => {
     setLoading(true);

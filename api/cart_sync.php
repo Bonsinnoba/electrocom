@@ -5,6 +5,23 @@ require_once 'security.php';
 
 header('Content-Type: application/json');
 
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $userId = authenticate($pdo, false);
+    if (!$userId) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'cart' => []]);
+        exit;
+    }
+
+    $stmt = $pdo->prepare("SELECT cart_data FROM abandoned_carts WHERE user_id = ? AND status IN ('active', 'abandoned') ORDER BY last_updated DESC LIMIT 1");
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch();
+    $cart = $row ? (json_decode($row['cart_data'], true) ?? []) : [];
+
+    echo json_encode(['success' => true, 'cart' => $cart]);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Only logged in users can have their carts synced (since we need an email to send recovery to)
     $userId = authenticate($pdo, false); // don't exit if fails, just return below

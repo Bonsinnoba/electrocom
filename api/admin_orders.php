@@ -25,11 +25,11 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // Granular Role Access
 if ($method === 'GET') {
-    // Audit access: Admins, Branch Admins, Store Managers, Accountants, Super
+    // Audit access: Store Managers, Accountants, Super
     requireRole(RBAC_ALL_ADMINS, $pdo);
 } elseif ($method === 'POST') {
-    // Fulfillment access: Admins, Store Managers, Branch Admins, and Pickers
-    requireRole(['super', 'admin', 'branch_admin', 'store_manager', 'picker'], $pdo);
+    // Fulfillment access: Store Managers and Pickers
+    requireRole(['super', 'store_manager', 'picker'], $pdo);
 }
 
 if ($method === 'GET') {

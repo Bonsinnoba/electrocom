@@ -1,12 +1,14 @@
 /* @refresh reload */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../services/api';
+import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
 
 export const useNotifications = () => useContext(NotificationContext);
 
 export const NotificationProvider = ({ children }) => {
+  const { isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [toasts, setToasts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,17 +28,18 @@ export const NotificationProvider = ({ children }) => {
 
   const fetchServerNotifications = async () => {
     const token = localStorage.getItem('ehub_token');
-    if (!token) return;
+    if (!token) return false; // No token — stop immediately
 
     try {
         const response = await fetch(`${API_BASE_URL}/get_notifications.php?admin=true&_t=${Date.now()}`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'X-App-ID': 'admin'
             }
         });
         
-        if (response.status === 401) {
-             // Stop polling if unauthorized
+        if (response.status === 401 || response.status === 403) {
+             // Stop polling if unauthorized — do NOT dispatch auth event from here
              return false;
         }
 
@@ -59,19 +62,25 @@ export const NotificationProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // Only start the poller when the user is authenticated
+    if (!isAuthenticated) {
+      setNotifications([]); // Clear notifications on logout
+      return;
+    }
+
     // Initial fetch
     fetchServerNotifications();
     
-    // Polling setup
+    // Polling setup — only while authenticated
     const interval = setInterval(async () => {
         const shouldContinue = await fetchServerNotifications();
         if (shouldContinue === false) {
             clearInterval(interval);
         }
-    }, 45000); // Relaxed to 45s
+    }, 45000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
   const addNotification = (text, type = 'info') => {
     const newNotif = {

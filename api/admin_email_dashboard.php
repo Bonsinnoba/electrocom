@@ -8,7 +8,7 @@ require_once 'security.php';
 header('Content-Type: application/json');
 
 try {
-    requireRole(['super', 'admin'], $pdo);
+    requireRole(['super', 'store_manager'], $pdo);
 } catch (Exception $e) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);

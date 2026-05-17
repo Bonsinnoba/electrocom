@@ -3,9 +3,11 @@ import ProductCard from '../components/ProductCard';
 import HeroSlider from '../components/HeroSlider';
 import ProductSkeleton from '../components/ProductSkeleton';
 import { useSettings } from '../context/SettingsContext';
+import { useUser } from '../context/UserContext';
 
 export default function Home({ products, onProductClick, searchQuery, loading }) {
   const { siteSettings } = useSettings();
+  const { user } = useUser();
   const itemsPerPage = parseInt(siteSettings?.defaultItemsPerPage || 9);
   const [visibleCount, setVisibleCount] = useState(itemsPerPage);
   const [viewHistory, setViewHistory] = useState({});
@@ -78,9 +80,9 @@ export default function Home({ products, onProductClick, searchQuery, loading })
   }, [filteredProducts, visibleCount]);
 
   const recommendedProducts = useMemo(() => {
-    if (searchQuery) return [];
+    if (searchQuery || !user) return [];
     return sortedProducts.slice(0, Math.min(6, sortedProducts.length));
-  }, [sortedProducts, searchQuery]);
+  }, [sortedProducts, searchQuery, user]);
 
   const catalogProducts = useMemo(() => {
     if (searchQuery) return displayedProducts;
@@ -137,7 +139,7 @@ export default function Home({ products, onProductClick, searchQuery, loading })
               </div>
             )}
 
-            {!searchQuery && (
+            {!searchQuery && recommendedProducts.length > 0 && (
               <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '12px' }}>Explore More Products</h3>
             )}
 

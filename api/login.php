@@ -89,6 +89,7 @@ try {
         (in_array('push_notif', $userColumns, true) ? "push_notif" : "1 AS push_notif"),
         (in_array('sms_tracking', $userColumns, true) ? "sms_tracking" : "1 AS sms_tracking"),
         (in_array('theme', $userColumns, true) ? "theme" : "'blue' AS theme"),
+        (in_array('loyalty_points', $userColumns, true) ? "loyalty_points" : "0 AS loyalty_points"),
         (in_array('login_attempts', $userColumns, true) ? "login_attempts" : "0 AS login_attempts"),
         (in_array('lockout_until', $userColumns, true) ? "lockout_until" : "NULL AS lockout_until")
     ];
@@ -123,6 +124,30 @@ try {
             if ($attempts >= $maxAttempts) {
                 $lockout = date('Y-m-d H:i:s', time() + ($lockoutMins * 60)); 
                 logger('warn', 'SECURITY', "Account locked for {$user['email']} after $maxAttempts failed attempts.");
+                
+                // Real-time Admin Alert
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) 
+                                           SELECT id, ?, ?, 'error' FROM users WHERE role IN ('admin', 'super')");
+                    $stmt->execute([
+                        "Security Alert: Account Locked", 
+                        "User account {$user['email']} has been locked for {$lockoutMins} minutes due to excessive failed attempts."
+                    ]);
+
+                    // Real-time SMS Alert
+                    try {
+                        require_once 'notifications.php';
+                        $notifier = new NotificationService();
+                        $adminPhones = $pdo->query("SELECT phone FROM users WHERE role = 'super' AND phone IS NOT NULL AND phone != ''")->fetchAll(PDO::FETCH_COLUMN);
+                        foreach ($adminPhones as $phone) {
+                            $notifier->queueNotification('sms', $phone, "SECURITY ALERT: User account {$user['email']} has been LOCKED due to brute force attempts.");
+                        }
+                    } catch (Exception $smsErr) {
+                        logger('error', 'SECURITY', "Failed to queue lockout SMS: " . $smsErr->getMessage());
+                    }
+                } catch (Exception $e) {
+                    logger('error', 'SECURITY', "Failed to log lockout notification: " . $e->getMessage());
+                }
             }
             if (in_array('login_attempts', $userColumns, true) && in_array('lockout_until', $userColumns, true)) {
                 $stmt = $pdo->prepare("UPDATE users SET login_attempts = ?, lockout_until = ? WHERE id = ?");

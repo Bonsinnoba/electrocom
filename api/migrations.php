@@ -1,6 +1,6 @@
 <?php
 /**
- * EssentialsHub - Database Migration Runner
+ * ElectrCom - Database Migration Runner
  * Manages schema updates by tracking executed SQL files in the migrations/ folder.
  */
 
