@@ -19,19 +19,19 @@ export default function ChatSidebar({
       flexDirection: 'column',
       background: 'var(--bg-main)'
     }}>
-      <div style={{ padding: '24px', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
-          <Users size={20} color="var(--primary-blue)" /> Staff Members
+      <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)' }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
+          <Users size={18} color="var(--primary-blue)" /> Staff Members
         </h2>
         <div style={{ position: 'relative' }}>
-          <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input 
             type="text" 
             placeholder="Filter names..."
             style={{ 
               width: '100%', 
-              padding: '10px 16px 10px 40px', 
-              borderRadius: '10px', 
+              padding: '7px 12px 7px 32px', 
+              borderRadius: '8px', 
               border: '1px solid var(--border-light)', 
               background: 'var(--bg-surface)', 
               outline: 'none', 
@@ -48,7 +48,7 @@ export default function ChatSidebar({
         <div 
           onClick={() => setActiveChat('global')}
           style={{
-            padding: '16px',
+            padding: '12px',
             borderRadius: '16px',
             cursor: 'pointer',
             display: 'flex',
@@ -60,7 +60,7 @@ export default function ChatSidebar({
             transition: 'all 0.2s'
           }}
         >
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
              <Megaphone size={20} />
           </div>
           <div style={{ flex: 1 }}>

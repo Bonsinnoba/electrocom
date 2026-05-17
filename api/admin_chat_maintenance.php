@@ -5,14 +5,16 @@ require_once __DIR__ . '/security.php';
 header('Content-Type: application/json');
 
 // Get active user
-$user = authenticate();
-if (!$user) {
+$userId = authenticate($pdo);
+if (!$userId) {
     echo json_encode(['error' => 'Authentication required']);
     exit;
 }
 
+$role = getUserRole($userId, $pdo);
+
 // Only allow super admins or managers to perform maintenance
-if (!in_array($user['role'], ['super', 'admin', 'manager'])) {
+if (!in_array($role, ['super', 'admin', 'store_manager'])) {
     echo json_encode(['error' => 'Permission denied. Only admins can perform maintenance.']);
     exit;
 }

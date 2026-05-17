@@ -47,8 +47,7 @@ if ($method === 'GET') {
 
         echo json_encode(['success' => true, 'items' => $mappedItems]);
     } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Database error']);
+        sendDatabaseError($e, 'Unable to retrieve your wishlist items.');
     }
 } elseif ($method === 'POST') {
     // Add to wishlist
@@ -66,8 +65,7 @@ if ($method === 'GET') {
         $stmt->execute([$userId, $productId]);
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Database error']);
+        sendDatabaseError($e, 'Unable to add product to your wishlist.');
     }
 } elseif ($method === 'DELETE') {
     // Remove from wishlist
@@ -93,8 +91,7 @@ if ($method === 'GET') {
         $stmt->execute([$userId, $productId]);
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Database error']);
+        sendDatabaseError($e, 'Unable to remove product from your wishlist.');
     }
 } else {
     http_response_code(405);

@@ -143,6 +143,34 @@ if (!function_exists('sendResponse')) {
 }
 
 /**
+ * Helper to handle database errors cleanly: logs the full details for the developer,
+ * and sends a safe, polished message to the frontend.
+ */
+if (!function_exists('sendDatabaseError')) {
+    function sendDatabaseError(Exception $e, $customMessage = 'A system error occurred. Please try again.')
+    {
+        $config = $GLOBALS['config'] ?? [];
+        $isDev = ($config['APP_ENV'] ?? 'production') === 'development';
+        
+        // Log the detailed error message for developer review
+        $logMessage = $e->getMessage() . "\nStack trace:\n" . $e->getTraceAsString();
+        if (function_exists('logApp')) {
+            logApp('error', 'DATABASE', $logMessage);
+        } else {
+            error_log("[DATABASE ERROR] " . $logMessage);
+        }
+        
+        // Build the safe error message to expose to users
+        $outputMessage = $customMessage;
+        if ($isDev) {
+            $outputMessage .= ' (Dev Mode Detail: ' . $e->getMessage() . ')';
+        }
+        
+        sendResponse(false, $outputMessage, null, 500);
+    }
+}
+
+/**
  * Custom logging to app.log
  */
 if (!function_exists('logApp')) {

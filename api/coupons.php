@@ -60,7 +60,7 @@ if ($method === 'POST' && $action === 'validate') {
             'discountAmount' => $discountAmount
         ]);
     } catch (PDOException $e) {
-        sendResponse(false, 'Database error: ' . $e->getMessage(), null, 500);
+        sendDatabaseError($e, 'Unable to validate coupon code due to a database issue.');
     }
 }
 
@@ -79,7 +79,7 @@ if ($method === 'GET') {
         $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
         sendResponse(true, 'Coupons fetched successfully', $coupons);
     } catch (PDOException $e) {
-        sendResponse(false, 'Database error: ' . $e->getMessage(), null, 500);
+        sendDatabaseError($e, 'Unable to retrieve coupons list.');
     }
 } elseif ($method === 'POST') {
     // Create or Update Coupon
@@ -114,7 +114,7 @@ if ($method === 'GET') {
         if ($e->getCode() === '23000') { // Unique constraint violation
             sendResponse(false, 'Coupon code already exists.', null, 400);
         }
-        sendResponse(false, 'Database error: ' . $e->getMessage(), null, 500);
+        sendDatabaseError($e, 'Unable to save coupon details.');
     }
 } elseif ($method === 'DELETE') {
     // Delete Coupon
@@ -133,7 +133,7 @@ if ($method === 'GET') {
         $stmt->execute([$id]);
         sendResponse(true, 'Coupon deleted');
     } catch (PDOException $e) {
-        sendResponse(false, 'Database error: ' . $e->getMessage(), null, 500);
+        sendDatabaseError($e, 'Unable to delete coupon.');
     }
 } else {
     sendResponse(false, 'Method not allowed', null, 405);

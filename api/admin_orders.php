@@ -175,7 +175,7 @@ if ($method === 'GET') {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     } elseif ($action === 'picker_update') {
-        if ($role !== 'picker' && $role !== 'super' && $role !== 'admin' && $role !== 'store_manager' && $role !== 'branch_admin') {
+        if ($role !== 'picker' && $role !== 'super' && $role !== 'admin' && $role !== 'store_manager') {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Forbidden']);
             exit;
@@ -252,7 +252,7 @@ if ($method === 'GET') {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     } elseif ($action === 'picker_report_missing') {
-        if (!in_array($role, ['picker', 'super', 'admin', 'store_manager', 'branch_admin'], true)) {
+        if (!in_array($role, ['picker', 'super', 'admin', 'store_manager'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Forbidden']);
             exit;
@@ -331,7 +331,7 @@ if ($method === 'GET') {
                 ->execute([$id, $logMessage]);
 
             // Notify privileged staff
-            $staffStmt = $pdo->query("SELECT id FROM users WHERE role IN ('super', 'admin', 'store_manager', 'branch_admin') AND status = 'active'");
+            $staffStmt = $pdo->query("SELECT id FROM users WHERE role IN ('super', 'admin', 'store_manager') AND status = 'active'");
             $staffIds = $staffStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
             if (!empty($staffIds)) {
                 $notif = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, 'Missing Item Alert', ?, 'warning')");

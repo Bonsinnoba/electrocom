@@ -60,8 +60,7 @@ if ($method === 'GET') {
         $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'data' => $notifications]);
     } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
+        sendDatabaseError($e, 'Unable to retrieve notifications.');
     }
 } elseif ($method === 'POST' && $action === 'mark_read') {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -96,8 +95,7 @@ if ($method === 'GET') {
 
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Database error']);
+        sendDatabaseError($e, 'Unable to mark notification as read.');
     }
 } elseif ($method === 'POST' && $action === 'delete') {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -131,8 +129,7 @@ if ($method === 'GET') {
 
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Database error']);
+        sendDatabaseError($e, 'Unable to delete notification.');
     }
 } else {
     http_response_code(405);

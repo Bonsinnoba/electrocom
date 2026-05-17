@@ -84,6 +84,5 @@ try {
 
     sendResponse(true, 'Products fetched successfully', $products);
 } catch (PDOException $e) {
-    error_log("Fetch products error: " . $e->getMessage());
-    sendResponse(false, 'Failed to fetch products.', null, 500);
+    sendDatabaseError($e, 'Unable to fetch products.');
 }

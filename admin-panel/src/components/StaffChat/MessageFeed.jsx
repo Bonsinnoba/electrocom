@@ -20,7 +20,7 @@ export default function MessageFeed({
       className="chat-feed custom-scrollbar" 
       ref={chatContainerRef}
       onScroll={handleScroll}
-      style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}
+      style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}
     >
       {loading && messages.length === 0 ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Loader className="spin" color="var(--primary-blue)" /></div>
@@ -45,12 +45,12 @@ export default function MessageFeed({
                   
                   <div className="message-bubble-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexDirection: isMine ? 'row-reverse' : 'row', width: '100%' }}>
                     <div style={{ 
-                      padding: '12px 16px', 
+                      padding: '10px 14px', 
                       background: isMine ? 'var(--primary-blue)' : 'var(--bg-surface-secondary)', 
                       color: isMine ? 'white' : 'var(--text-main)',
                       borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                       fontSize: '14px',
-                      lineHeight: '1.6',
+                      lineHeight: '1.5',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
                       border: isMine ? 'none' : '1px solid var(--border-light)',
                       position: 'relative',

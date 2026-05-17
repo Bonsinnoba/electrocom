@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(20),
     address TEXT,
     region VARCHAR(100),
-    role ENUM('customer', 'admin', 'branch_admin', 'marketing', 'accountant', 'store_manager', 'pos_cashier', 'picker', 'super') DEFAULT 'customer',
+    role ENUM('customer', 'admin', 'marketing', 'accountant', 'store_manager', 'pos_cashier', 'picker', 'super') DEFAULT 'customer',
     status ENUM('Active', 'Suspended') DEFAULT 'Active',
     is_verified BOOLEAN DEFAULT FALSE,
     verification_method ENUM('email', 'sms') DEFAULT 'email',

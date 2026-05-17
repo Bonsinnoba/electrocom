@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($e->getCode() == 23000) { // Duplicate entry
             sendResponse(false, 'A page with this slug already exists', null, 409);
         } else {
-            sendResponse(false, 'Database error: ' . $e->getMessage(), null, 500);
+            sendDatabaseError($e, 'Unable to save page.');
         }
     }
 }
@@ -117,6 +117,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         logger('warning', 'CMS', "Deleted page ID: $id");
         sendResponse(true, 'Page deleted');
     } catch (Exception $e) {
-        sendResponse(false, 'Failed to delete page', null, 500);
+        sendDatabaseError($e, 'Unable to delete page.');
     }
 }

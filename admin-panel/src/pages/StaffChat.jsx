@@ -239,23 +239,23 @@ export default function StaffChat() {
   const activeChatUser = activeChat !== 'global' ? users.find(u => u.id === activeChat) : null;
 
   return (
-    <div className="animate-fade-in" style={{ padding: '0 0 32px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '24px' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
         <div>
-           <h1 style={{ fontSize: '32px', fontWeight: 900, margin: '0 0 8px 0', color: 'var(--text-main)' }}>Staff Hub</h1>
-           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '15px' }}>Team collaboration & internal announcements</p>
+           <h1 style={{ fontSize: '26px', fontWeight: 900, margin: '0 0 2px 0', color: 'var(--text-main)' }}>Staff Hub</h1>
+           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>Team collaboration & internal announcements</p>
         </div>
         {isSuper && (
           <button 
             onClick={() => { setShowMaintenance(true); fetchMaintStats(); }}
             style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', 
-              borderRadius: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
-              fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)', transition: 'all 0.2s'
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', 
+              borderRadius: '10px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)',
+              fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.05)', transition: 'all 0.2s'
             }}
           >
-            <Settings size={18} /> Maintenance
+            <Settings size={16} /> Maintenance
           </button>
         )}
       </div>
@@ -269,9 +269,9 @@ export default function StaffChat() {
       />
 
       <div className="staff-chat-container" style={{ 
-        display: 'flex', height: 'calc(100vh - 190px)', background: 'var(--bg-surface)', 
+        display: 'flex', flex: 1, minHeight: 0, background: 'var(--bg-surface)', 
         borderRadius: '24px', border: '1px solid var(--border-light)', overflow: 'hidden',
-        boxShadow: 'var(--shadow-premium, 0 8px 30px rgba(0,0,0,0.05))'
+        boxShadow: 'var(--shadow-premium, 0 8px 30px rgba(0,0,0,0.05))', marginBottom: '4px'
       }}>
         <ChatSidebar 
           users={users} 
@@ -284,22 +284,22 @@ export default function StaffChat() {
           getInitials={getInitials}
         />
 
-        <div className="chat-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-surface)' }}>
-          <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-surface)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div className="chat-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-surface)', position: 'relative' }}>
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-surface)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {activeChat === 'global' ? (
                 <>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Users size={24} />
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Users size={18} />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>Global Staff Channel</h3>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Visible to all staff</div>
+                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>Global Staff Channel</h3>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Visible to all staff</div>
                   </div>
                 </>
               ) : activeChatUser ? (
                 <>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--secondary-blue)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--secondary-blue)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, flexShrink: 0 }}>
                     {activeChatUser.profile_image ? (
                       <img src={formatImageUrl(activeChatUser.profile_image)} alt={activeChatUser.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                     ) : (
@@ -307,8 +307,8 @@ export default function StaffChat() {
                     )}
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>{activeChatUser.name}</h3>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{activeChatUser.role.replace('_', ' ')}</div>
+                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>{activeChatUser.name}</h3>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{activeChatUser.role.replace('_', ' ')}</div>
                   </div>
                 </>
               ) : null}
@@ -353,34 +353,34 @@ export default function StaffChat() {
           {showScrollButton && (
             <button
               onClick={scrollToBottom}
-              style={{ position: 'absolute', bottom: '100px', right: '40px', width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', cursor: 'pointer', border: 'none', zIndex: 50 }}
+              style={{ position: 'absolute', bottom: '60px', right: '40px', width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', cursor: 'pointer', border: 'none', zIndex: 50 }}
             >
               <ChevronDown size={20} />
             </button>
           )}
 
-          <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border-light)', background: 'var(--bg-surface)' }}>
+          <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-light)', background: 'var(--bg-surface)' }}>
             <form onSubmit={handleSendMessage}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', position: 'relative' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', position: 'relative' }}>
                 {attachmentPreview && (
-                  <div style={{ position: 'absolute', bottom: '60px', left: '0', background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '8px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 10 }}>
-                    {attachmentPreview === 'file_icon' ? 'Attached File' : <img src={attachmentPreview} alt="Preview" style={{ height: '60px', borderRadius: '6px' }} />}
-                    <button type="button" onClick={clearAttachment} style={{ background: 'var(--danger-bg)', border: 'none', color: 'var(--danger)', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer' }}><X size={14} /></button>
+                  <div style={{ position: 'absolute', bottom: '46px', left: '0', background: 'var(--bg-main)', border: '1px solid var(--border-light)', padding: '6px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 10 }}>
+                    {attachmentPreview === 'file_icon' ? 'Attached File' : <img src={attachmentPreview} alt="Preview" style={{ height: '50px', borderRadius: '4px' }} />}
+                    <button type="button" onClick={clearAttachment} style={{ background: 'var(--danger-bg)', border: 'none', color: 'var(--danger)', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={12} /></button>
                   </div>
                 )}
                 {replyTo && (
-                  <div style={{ position: 'absolute', bottom: '60px', left: '0', right: '0', padding: '12px 16px', borderRadius: '12px', background: 'var(--bg-main)', borderLeft: '4px solid var(--primary-blue)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, border: '1px solid var(--border-light)' }}>
+                  <div style={{ position: 'absolute', bottom: '46px', left: '0', right: '0', padding: '8px 12px', borderRadius: '10px', background: 'var(--bg-main)', borderLeft: '4px solid var(--primary-blue)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, border: '1px solid var(--border-light)' }}>
                     <div style={{ overflow: 'hidden' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary-blue)' }}>Replying to {replyTo.name}</div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{replyTo.message}</div>
+                      <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--primary-blue)' }}>Replying to {replyTo.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{replyTo.message}</div>
                     </div>
-                    <button onClick={() => setReplyTo(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={16} /></button>
+                    <button onClick={() => setReplyTo(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={14} /></button>
                   </div>
                 )}
                 <input type="file" hidden ref={fileInputRef} onChange={handleFileChange} accept="image/*,.pdf,.doc,.docx" />
-                <button onClick={() => fileInputRef.current?.click()} type="button" style={{ width: '48px', height: '48px', borderRadius: '16px', background: 'var(--bg-main)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: attachmentPreview ? 'var(--primary-blue)' : 'var(--text-muted)', cursor: 'pointer' }}><Paperclip size={20} /></button>
-                <textarea value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); } }} placeholder="Type a message..." style={{ flex: 1, minHeight: '48px', maxHeight: '150px', resize: 'none', padding: '14px 18px', borderRadius: '14px', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-light)', outline: 'none' }} />
-                <button type="submit" disabled={!newMessage.trim() && !attachmentBase64} style={{ width: '48px', height: '48px', borderRadius: '16px', background: (newMessage.trim() || attachmentBase64) ? 'var(--primary-blue)' : 'var(--bg-main)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: (newMessage.trim() || attachmentBase64) ? 'white' : 'var(--text-muted)', cursor: 'pointer' }}><Send size={20} /></button>
+                <button onClick={() => fileInputRef.current?.click()} type="button" style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'var(--bg-main)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: attachmentPreview ? 'var(--primary-blue)' : 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}><Paperclip size={16} /></button>
+                <textarea value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); } }} placeholder="Type a message..." style={{ flex: 1, minHeight: '34px', maxHeight: '150px', resize: 'none', padding: '7px 12px', borderRadius: '10px', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-light)', outline: 'none', lineHeight: '1.4', fontSize: '13px' }} />
+                <button type="submit" disabled={!newMessage.trim() && !attachmentBase64} style={{ width: '34px', height: '34px', borderRadius: '50%', background: (newMessage.trim() || attachmentBase64) ? 'var(--primary-blue)' : 'var(--bg-main)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: (newMessage.trim() || attachmentBase64) ? 'white' : 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}><Send size={16} /></button>
               </div>
             </form>
           </div>

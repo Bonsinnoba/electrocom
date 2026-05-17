@@ -29,7 +29,7 @@ $action = $_GET['action'] ?? '';
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($action === 'users') {
         // Fetch all staff members except the current user
-        $stmt = $pdo->prepare("SELECT id, name, email, role, avatar_text, profile_image FROM users WHERE role IN ('super', 'admin', 'manager', 'store_manager', 'marketing', 'accountant', 'picker', 'pos_cashier') AND id != ?");
+        $stmt = $pdo->prepare("SELECT id, name, email, role, avatar_text, profile_image FROM users WHERE role IN ('super', 'admin', 'store_manager', 'marketing', 'accountant', 'picker', 'pos_cashier') AND id != ?");
         $stmt->execute([$user['id']]);
         $staff = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Only admins/managers/super can pin
-        if ($is_pinned && !in_array($user['role'], ['super', 'admin', 'manager'])) {
+        if ($is_pinned && !in_array($user['role'], ['super', 'admin', 'store_manager'])) {
             $is_pinned = 0;
         }
 
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($receiver_id === null && ($send_email || $send_sms)) {
                 if (function_exists('logApp')) logApp('info', 'CHAT', "Starting staff broadcast (Email: $send_email, SMS: $send_sms)");
                 $notifier = new NotificationService();
-                $staffStmt = $pdo->prepare("SELECT name, email, phone FROM users WHERE role IN ('super', 'admin', 'manager', 'pos_cashier') AND id != ?");
+                $staffStmt = $pdo->prepare("SELECT name, email, phone FROM users WHERE role IN ('super', 'admin', 'store_manager', 'pos_cashier') AND id != ?");
                 $staffStmt->execute([$user['id']]);
                 $staffList = $staffStmt->fetchAll(PDO::FETCH_ASSOC);
                 $config = $GLOBALS['config'] ?? require_once __DIR__ . '/config.php';
@@ -181,15 +181,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'broadcast_info' => $broadcastResult ?? null
             ]);
         } catch (Exception $e) {
-            if (function_exists('logApp')) logApp('error', 'CHAT', "FATAL DB ERROR: " . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => "Database error: " . $e->getMessage()]);
+            sendDatabaseError($e, 'Unable to send message due to a system issue.');
         }
         exit;
     }
 
     if ($action === 'pin') {
         // Only admins/managers/super can toggle pins
-        if (!in_array($user['role'], ['super', 'admin', 'manager'])) {
+        if (!in_array($user['role'], ['super', 'admin', 'store_manager'])) {
             echo json_encode(['error' => 'Only admins and managers can pin messages']);
             exit;
         }

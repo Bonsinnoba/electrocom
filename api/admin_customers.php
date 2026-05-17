@@ -33,7 +33,7 @@ if ($method === 'GET') {
         $params = [];
         
         // Restriction: managers only see 'customer' role users for data privacy
-        if ($role === 'store_manager' || $role === 'branch_admin') {
+        if ($role === 'store_manager') {
             $filterSql = " WHERE u.role = 'customer' ";
         }
 
