@@ -11,8 +11,8 @@ export default function Footer() {
         <div className="footer-grid">
 
           {/* Company Info */}
-          <div className="footer-column">
-            <div className="footer-logo word-logo" style={{ marginBottom: '20px' }}>
+          <div className="footer-column company-column">
+            <div className="footer-logo word-logo" style={{ marginBottom: '20px', justifyContent: 'center' }}>
               <span className="word-logo-main">{siteSettings.siteName.split(' ')[0]}</span>
               <span className="word-logo-sub">{siteSettings.siteName.split(' ').slice(1).join(' ')}</span>
               <div className="logo-indicator"></div>
@@ -42,17 +42,6 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Legal */}
-          <div className="footer-column">
-            <h4 className="footer-heading">Legal</h4>
-            <ul className="footer-links">
-              <li><Link to="/terms-of-service">Terms of Service</Link></li>
-              <li><Link to="/privacy-policy">Privacy Policy</Link></li>
-              <li><Link to="/returns">Return Policy</Link></li>
-              <li><Link to="/shipping-info">Shipping Info</Link></li>
-            </ul>
-          </div>
-
           {/* Quick Links */}
           <div className="footer-column">
             <h4 className="footer-heading">Quick Links</h4>
@@ -61,6 +50,7 @@ export default function Footer() {
               <li><Link to="/shop">Shop</Link></li>
               <li><Link to="/favorites">Favorites</Link></li>
               <li><Link to="/transactions">Transactions</Link></li>
+              <li><Link to="/returns">Return Policy</Link></li>
             </ul>
           </div>
 
@@ -88,14 +78,14 @@ export default function Footer() {
                 <span>{siteSettings.siteEmail}</span>
               </div>
             </div>
-            <div className="contact-item" style={{ justifyContent: 'center' }}>
+            <div className="contact-item">
               <Phone size={24} />
               <div>
                 <strong>Call Us</strong>
                 <span>{siteSettings.phone1} / {siteSettings.phone2}</span>
               </div>
             </div>
-            <div className="contact-item" style={{ justifyContent: 'flex-end' }}>
+            <div className="contact-item">
               <MapPin size={24} />
               <div>
                 <strong>Visit Us</strong>

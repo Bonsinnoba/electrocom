@@ -23,10 +23,10 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     try {
-        $sql = "SELECT r.*, o.id as order_display_id, u.name as customer_name, p.name as product_name, p.product_code 
+        $sql = "SELECT r.*, o.id as order_display_id, COALESCE(u.name, 'In-Store Customer') as customer_name, p.name as product_name, p.product_code 
                 FROM order_returns r
                 JOIN orders o ON r.order_id = o.id
-                JOIN users u ON o.user_id = u.id
+                LEFT JOIN users u ON o.user_id = u.id
                 JOIN products p ON r.product_id = p.id
                 ORDER BY r.created_at DESC";
         
@@ -48,13 +48,12 @@ if ($method === 'GET') {
     $decoded = json_decode($content, true);
     
     $orderIdStr = $decoded['order_id'] ?? null;
-    $productId = $decoded['product_id'] ?? null;
+    $items = $decoded['items'] ?? [];
     $reason = sanitizeInput($decoded['reason'] ?? 'Not specified');
-    $quantity = (int)($decoded['quantity'] ?? 1);
 
-    if (!$orderIdStr || !$productId) {
+    if (!$orderIdStr || !is_array($items) || empty($items)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Order ID and Product ID are required']);
+        echo json_encode(['success' => false, 'error' => 'Order ID and items array are required']);
         exit;
     }
 
@@ -69,8 +68,7 @@ if ($method === 'GET') {
         $order = $orderCheck->fetch();
 
         if (!$order) throw new Exception("Order not found");
-        
-        // 2. Create return record
+
         // Self-heal table if needed
         $pdo->exec("CREATE TABLE IF NOT EXISTS order_returns (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -85,18 +83,57 @@ if ($method === 'GET') {
             FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
         )");
 
+        $itemCheck = $pdo->prepare("SELECT quantity FROM order_items WHERE order_id = ? AND product_id = ? FOR UPDATE");
+        $sumRet = $pdo->prepare('SELECT COALESCE(SUM(quantity), 0) FROM order_returns WHERE order_id = ? AND product_id = ?');
         $stmt = $pdo->prepare("INSERT INTO order_returns (order_id, product_id, quantity, reason, processed_by) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$orderId, $productId, $quantity, $reason, $userId]);
-
-        // 3. Restock product
         $upd = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?");
-        $upd->execute([$quantity, $productId]);
+        
+        $returnIds = [];
+        $totalItemsProcessed = 0;
+
+        foreach ($items as $item) {
+            $productId = (int)($item['product_id'] ?? 0);
+            $quantity = (int)($item['quantity'] ?? 0);
+            
+            if ($productId <= 0 || $quantity <= 0) continue;
+
+            $itemCheck->execute([$orderId, $productId]);
+            $purchasedQty = (int)$itemCheck->fetchColumn();
+
+            if ($purchasedQty <= 0) {
+                throw new Exception("Product #{$productId} is not on this order.");
+            }
+
+            $sumRet->execute([$orderId, $productId]);
+            $alreadyReturned = (int)$sumRet->fetchColumn();
+
+            $canReturn = $purchasedQty - $alreadyReturned;
+            if ($quantity > $canReturn) {
+                 throw new Exception("Return quantity ({$quantity}) exceeds returnable amount ({$canReturn}) for product #{$productId}.");
+            }
+            
+            // 2. Create return record
+            $stmt->execute([$orderId, $productId, $quantity, $reason, $userId]);
+            $returnIds[] = $pdo->lastInsertId();
+
+            // 3. Restock product
+            $upd->execute([$quantity, $productId]);
+            $totalItemsProcessed += $quantity;
+        }
+
+        if (empty($returnIds)) {
+            throw new Exception("No valid items provided for return.");
+        }
 
         // 4. Log Action
-        logger('ok', 'RETURNS', "Product #$productId (qty: $quantity) returned from Order $orderIdStr by $userName. Stock restocked.");
+        logger('ok', 'RETURNS', "$totalItemsProcessed total item(s) returned from Order $orderIdStr by $userName. Stock restocked.");
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'message' => 'Return processed and stock updated successfully.']);
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Return processed and stock updated successfully.',
+            'return_ids' => $returnIds
+        ]);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         http_response_code(400);

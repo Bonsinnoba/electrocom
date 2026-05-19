@@ -104,7 +104,7 @@ if ($config['DB_AUTO_REPAIR'] ?? false) {
 /**
  * Empty string → NULL so UNIQUE(product_code) allows multiple unset SKUs.
  */
-function normalizeProductCode($code)
+function normalizeProductCode(?string $code): ?string
 {
     if ($code === null) {
         return null;
@@ -117,7 +117,7 @@ function normalizeProductCode($code)
  * Structured Aisle / Rack / Bin: if any field is set, all three are required.
  * Format: start with alphanumeric, up to 16 chars, internal . _ - allowed (e.g. A1, R2, B03, AA-12).
  */
-function validateShelvingComponents($aisle, $rack, $bin, $location)
+function validateShelvingComponents(string $aisle, string $rack, string $bin, string $location): ?string
 {
     $a = trim((string)$aisle);
     $r = trim((string)$rack);
@@ -138,7 +138,7 @@ function validateShelvingComponents($aisle, $rack, $bin, $location)
     return null;
 }
 
-function assertUniqueProductCode($pdo, $code, $excludeId = null)
+function assertUniqueProductCode(PDO $pdo, ?string $code, ?int $excludeId = null): ?string
 {
     if ($code === null) {
         return null;
@@ -163,7 +163,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 /**
  * Helper to save base64 string as a file safely
  */
-function saveBase64File($base64String, $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+function saveBase64File(string $base64String, array $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']): string
 {
     if (!$base64String) {
         return $base64String;

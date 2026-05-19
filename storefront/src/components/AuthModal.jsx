@@ -272,144 +272,192 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
 
         {/* --- SIGN UP CONTAINER --- */}
         <div className="form-container sign-up-container">
-          <form onSubmit={verificationStep ? handleVerify : handleSubmit}>
-            <h1>{verificationStep ? 'Verify' : 'Create Account'}</h1>
-            {!verificationStep && isSignUp && (
-              <div className="step-dots">
-                {[1,2,3].map(n => (
-                  <span key={n} className={`dot${step===n ? ' active' : ''}`} />
-                ))}
+          {!canRegister ? (
+            /* ── Registration Disabled State ── */
+            <div className="animate-fade-in" style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              padding: '32px 24px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                width: '72px',
+                height: '72px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.12))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '20px',
+                border: '1.5px solid rgba(99,102,241,0.2)'
+              }}>
+                <Lock size={28} style={{ color: 'var(--primary-blue, #6366f1)' }} />
               </div>
-            )}
-
-            <div className="auth-form-scroll">
-              {error && <div className="auth-error">{error}</div>}
-
-              {verificationStep ? (
-                <div className="animate-fade-in">
-                  <div className="form-group">
-                    <label>Verification Code</label>
-                    <div className="input-wrapper">
-                      <input 
-                        type="text" 
-                        value={verificationCode} 
-                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        placeholder="Enter 6-digit code" 
-                        required 
-                        autoFocus 
-                        style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '8px', fontWeight: 'bold' }}
-                      />
-                    </div>
-                  </div>
-                  <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
-                    {loading ? <Loader className="animate-spin" size={18} /> : 'Verify Account'}
-                  </button>
+              <h2 style={{ margin: '0 0 12px', fontSize: '20px', fontWeight: 700, color: 'var(--text-main)' }}>
+                We&rsquo;ll Be Right Back!
+              </h2>
+              <p style={{ margin: '0 0 28px', fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.7, maxWidth: '280px' }}>
+                We&rsquo;re temporarily pausing new account creations while we upgrade a few things behind the scenes. We&rsquo;ll be back open shortly!{' '}
+                <br /><br />
+                If you&rsquo;re already part of the family, you can{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    font: 'inherit',
+                    fontSize: '14px',
+                    color: 'var(--primary-blue, #6366f1)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '2px'
+                  }}
+                >
+                  Sign In here
+                </button>.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={verificationStep ? handleVerify : handleSubmit}>
+              <h1>{verificationStep ? 'Verify' : 'Create Account'}</h1>
+              {!verificationStep && isSignUp && (
+                <div className="step-dots">
+                  {[1,2,3].map(n => (
+                    <span key={n} className={`dot${step===n ? ' active' : ''}`} />
+                  ))}
                 </div>
-              ) : (
-                <>
-                  {step === 1 ? (
-                    <div className="animate-slide-down">
-                      <div className="form-group">
-                        <label><User size={14} /> Full Name</label>
-                        <div className="input-wrapper">
-                          <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Name" required autoFocus />
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label><Mail size={14} /> Email</label>
-                        <div className="input-wrapper">
-                          <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" required />
-                        </div>
-                      </div>
-                      <button type="button" className="btn-primary" onClick={handleNextStep} style={{ width: '100%', marginTop: '10px' }}>Next Step</button>
-                    </div>
-                  ) : step === 2 ? (
-                    <div className="animate-slide-down">
-                      <div className="form-group">
-                        <label><Phone size={14} /> Phone</label>
-                        <div className="input-wrapper">
-                          <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone" required autoFocus />
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label><Globe size={14} /> Country</label>
-                        <div className="input-wrapper">
-                          <input type="text" name="country" value={formData.country} onChange={handleChange} placeholder="Country" required />
-                        </div>
-                      </div>
-                      <div className="form-group" style={{ marginBottom: '15px' }}>
-                        <label><MapPin size={14} /> Delivery Region</label>
-                        <div className="input-wrapper">
-                          <select 
-                            name="region" 
-                            value={formData.region} 
-                            onChange={handleChange} 
-                            required 
-                            className="input-field" 
-                            style={{ 
-                                width: '100%', 
-                                background: 'transparent', 
-                                border: 'none', 
-                                color: 'var(--text-main)',
-                                padding: '12px 14px',
-                                outline: 'none'
-                             }}
-                          >
-                            <option value="Greater Accra">Greater Accra</option>
-                            <option value="Ashanti">Ashanti (Kumasi)</option>
-                            <option value="Upper West">Upper West (Wa)</option>
-                            <option value="Western">Western</option>
-                            <option value="Central">Central</option>
-                            <option value="Eastern">Eastern</option>
-                            <option value="Volta">Volta</option>
-                            <option value="Northern">Northern</option>
-                            <option value="Upper East">Upper East</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        <button type="button" className="btn-secondary" onClick={() => setStep(1)} style={{ flex: 1 }}>Back</button>
-                        <button type="button" className="btn-primary" onClick={handleNextStep} style={{ flex: 2 }}>Next Step</button>
+              )}
+
+              <div className="auth-form-scroll">
+                {error && <div className="auth-error">{error}</div>}
+
+                {verificationStep ? (
+                  <div className="animate-fade-in">
+                    <div className="form-group">
+                      <label>Verification Code</label>
+                      <div className="input-wrapper">
+                        <input 
+                          type="text" 
+                          value={verificationCode} 
+                          onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          placeholder="Enter 6-digit code" 
+                          required 
+                          autoFocus 
+                          style={{ textAlign: 'center', fontSize: '24px', letterSpacing: '8px', fontWeight: 'bold' }}
+                        />
                       </div>
                     </div>
-                  ) : (
-                    <div className="animate-slide-down">
-                      <div className="form-group">
-                        <label><Lock size={14} /> Password</label>
-                        <div className="input-wrapper" style={{ position: 'relative' }}>
-                          <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} placeholder="Password" required autoFocus />
-                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="eye-btn">
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
+                      {loading ? <Loader className="animate-spin" size={18} /> : 'Verify Account'}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {step === 1 ? (
+                      <div className="animate-slide-down">
+                        <div className="form-group">
+                          <label><User size={14} /> Full Name</label>
+                          <div className="input-wrapper">
+                            <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Name" required autoFocus />
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label><Mail size={14} /> Email</label>
+                          <div className="input-wrapper">
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" required />
+                          </div>
+                        </div>
+                        <button type="button" className="btn-primary" onClick={handleNextStep} style={{ width: '100%', marginTop: '10px' }}>Next Step</button>
+                      </div>
+                    ) : step === 2 ? (
+                      <div className="animate-slide-down">
+                        <div className="form-group">
+                          <label><Phone size={14} /> Phone</label>
+                          <div className="input-wrapper">
+                            <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone" required autoFocus />
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label><Globe size={14} /> Country</label>
+                          <div className="input-wrapper">
+                            <input type="text" name="country" value={formData.country} onChange={handleChange} placeholder="Country" required />
+                          </div>
+                        </div>
+                        <div className="form-group" style={{ marginBottom: '15px' }}>
+                          <label><MapPin size={14} /> Delivery Region</label>
+                          <div className="input-wrapper">
+                            <select 
+                              name="region" 
+                              value={formData.region} 
+                              onChange={handleChange} 
+                              required 
+                              className="input-field" 
+                              style={{ 
+                                  width: '100%', 
+                                  background: 'transparent', 
+                                  border: 'none', 
+                                  color: 'var(--text-main)',
+                                  padding: '12px 14px',
+                                  outline: 'none'
+                               }}
+                            >
+                              <option value="Greater Accra">Greater Accra</option>
+                              <option value="Ashanti">Ashanti (Kumasi)</option>
+                              <option value="Upper West">Upper West (Wa)</option>
+                              <option value="Western">Western</option>
+                              <option value="Central">Central</option>
+                              <option value="Eastern">Eastern</option>
+                              <option value="Volta">Volta</option>
+                              <option value="Northern">Northern</option>
+                              <option value="Upper East">Upper East</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                          <button type="button" className="btn-secondary" onClick={() => setStep(1)} style={{ flex: 1 }}>Back</button>
+                          <button type="button" className="btn-primary" onClick={handleNextStep} style={{ flex: 2 }}>Next Step</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="animate-slide-down">
+                        <div className="form-group">
+                          <label><Lock size={14} /> Password</label>
+                          <div className="input-wrapper" style={{ position: 'relative' }}>
+                            <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} placeholder="Password" required autoFocus />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="eye-btn">
+                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label><Lock size={14} /> Confirm</label>
+                          <div className="input-wrapper">
+                            <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm" required />
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                          <button type="button" className="btn-secondary" onClick={() => setStep(2)} style={{ flex: 1 }}>Back</button>
+                          <button type="submit" className="btn-primary" style={{ flex: 2 }} disabled={loading}>
+                            {loading ? <Loader className="animate-spin" size={18} /> : 'Sign Up'}
                           </button>
                         </div>
                       </div>
-                      <div className="form-group">
-                        <label><Lock size={14} /> Confirm</label>
-                        <div className="input-wrapper">
-                          <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm" required />
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        <button type="button" className="btn-secondary" onClick={() => setStep(2)} style={{ flex: 1 }}>Back</button>
-                        <button type="submit" className="btn-primary" style={{ flex: 2 }} disabled={loading}>
-                          {loading ? <Loader className="animate-spin" size={18} /> : 'Sign Up'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-            {/* Mobile Toggle */}
-            <p className="mobile-only-text">
-              Already have an account? <button type="button" className="toggle-auth-btn" onClick={() => setIsSignUp(false)}>Sign In</button>
-            </p>
-            {!canRegister && isSignUp && (
-              <div className="auth-error" style={{ marginTop: '20px' }}>
-                New registrations are currently disabled.
+                    )}
+                  </>
+                )}
               </div>
-            )}
-          </form>
+              {/* Mobile Toggle */}
+              <p className="mobile-only-text">
+                Already have an account? <button type="button" className="toggle-auth-btn" onClick={() => setIsSignUp(false)}>Sign In</button>
+              </p>
+            </form>
+          )}
         </div>
 
         {/* --- SIGN IN CONTAINER --- */}
@@ -690,12 +738,34 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
             </div>
             <div className="overlay-panel overlay-right">
               <h1>Hello, Friend!</h1>
-              <p>Enter your personal details and start journey with us</p>
+              <p>Enter your personal details and start your journey with us</p>
               {canRegister ? (
                 <button className="ghost-btn" id="signUp" onClick={() => setIsSignUp(true)}>Sign Up</button>
               ) : (
-                <div style={{ marginTop: '20px', color: 'rgba(255,255,255,0.7)', fontSize: '13px', fontWeight: 600 }}>
-                    Registration is currently unavailable
+                <div style={{
+                  marginTop: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Lock size={18} style={{ color: 'rgba(255,255,255,0.9)' }} />
+                  </div>
+                  <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 600 }}>
+                    We&rsquo;ll Be Right Back!
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', textAlign: 'center', maxWidth: '190px', lineHeight: 1.6 }}>
+                    Temporarily pausing sign-ups while we upgrade things. Back open shortly!
+                  </span>
                 </div>
               )}
             </div>

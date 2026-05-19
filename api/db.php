@@ -129,7 +129,7 @@ try {
  * Helper function to handle JSON responses consistently
  */
 if (!function_exists('sendResponse')) {
-    function sendResponse($success, $message, $data = null, $code = 200)
+    function sendResponse(bool $success, string $message, mixed $data = null, int $code = 200): never
     {
         header('Content-Type: application/json');
         http_response_code($code);
@@ -174,7 +174,7 @@ if (!function_exists('sendDatabaseError')) {
  * Custom logging to app.log
  */
 if (!function_exists('logApp')) {
-    function logApp($level, $source, $message) {
+    function logApp(string $level, string $source, string $message): void {
         $level = strtolower($level);
         // Only log info messages if debug mode is on
         if ($level === 'info' && function_exists('isDebugEnabled') && !isDebugEnabled()) {
@@ -198,7 +198,7 @@ if (!function_exists('logApp')) {
  * Helper function to generate avatar initials (first letter of first and last name)
  */
 if (!function_exists('generateInitials')) {
-    function generateInitials($name) {
+    function generateInitials(?string $name): string {
         $name = trim($name ?? '');
         if (empty($name)) return 'U';
         
@@ -216,7 +216,7 @@ if (!function_exists('generateInitials')) {
  * Helper to normalize local paths by stripping domain/base URLs.
  */
 if (!function_exists('normalizeLocalPath')) {
-    function normalizeLocalPath($path)
+    function normalizeLocalPath(string $path): string
     {
         if (empty($path)) return '';
         if (strpos($path, 'data:image') === 0) return $path;

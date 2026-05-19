@@ -36,6 +36,20 @@ if ($method === 'GET') {
     try {
         $filterSql = "";
         $params = [];
+        
+        $search = trim($_GET['search'] ?? '');
+        if ($search !== '') {
+            $searchStr = str_ireplace('ORD-', '', $search);
+            if (is_numeric($searchStr)) {
+                $filterSql = "WHERE o.id = ?";
+                $params = [(int)$searchStr];
+            } else {
+                $filterSql = "WHERE u.name LIKE ? OR u.email LIKE ?";
+                $s = "%$search%";
+                $params = [$s, $s];
+            }
+        }
+        
         $orderCols = $pdo->query("DESCRIBE orders")->fetchAll(PDO::FETCH_COLUMN);
         $hasDeliveryMethod = in_array('delivery_method', $orderCols, true);
         $deliverySelect = $hasDeliveryMethod ? "o.delivery_method" : "'pickup'";

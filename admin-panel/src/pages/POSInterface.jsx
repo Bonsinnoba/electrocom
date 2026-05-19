@@ -3,12 +3,12 @@ import {
   Search, Plus, Minus, Trash2,
   Banknote, Package, Zap,
   CheckCircle2, Printer, Mail,
-  Barcode, RotateCcw, Loader,
+  Barcode, RotateCcw, Loader, CreditCard, SkipForward,
 } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
 import POSReceipt from '../components/POSReceipt';
 
-import { API_BASE_URL, formatImageUrl, fetchPosReturnOrder, processPosReturn } from '../services/api';
+import { API_BASE_URL, formatImageUrl, fetchPosReturnOrder, processPosReturn, issueRefund } from '../services/api';
 
 export default function POSInterface() {
   const { addToast } = useNotifications();
@@ -34,6 +34,15 @@ export default function POSInterface() {
   const [returnQtyByProduct, setReturnQtyByProduct] = useState({});
   const [returnReason, setReturnReason] = useState('');
   const [returnProcessing, setReturnProcessing] = useState(false);
+
+  // Refund step — shown after a return is confirmed
+  const [refundStep, setRefundStep] = useState(false); // true = show refund panel
+  const [refundOrderId, setRefundOrderId] = useState(null);
+  const [refundReturnId, setRefundReturnId] = useState(null);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundMethod, setRefundMethod] = useState('cash');
+  const [refundNote, setRefundNote] = useState('');
+  const [refundProcessing, setRefundProcessing] = useState(false);
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
@@ -117,7 +126,21 @@ export default function POSInterface() {
         reason: returnReason || 'POS return',
       });
       if (res.success) {
-        addToast(res.message || 'Return completed', 'success');
+        addToast(`Return confirmed — ${res.units_returned} unit(s) restocked.`, 'success');
+        // Pre-fill refund step with the value of returned items
+        const returnedValue = returnOrderData.items.reduce((sum, row) => {
+          const qty = parseInt(returnQtyByProduct[row.product_id] ?? 0, 10);
+          return sum + qty * parseFloat(row.price_at_purchase ?? 0);
+        }, 0);
+        setRefundOrderId(returnOrderData.order.id);
+        setRefundReturnId(null); // backend will link via order_id
+        setRefundAmount(returnedValue.toFixed(2));
+        setRefundMethod(
+          returnOrderData.order?.payment_method === 'momo' ? 'paystack' : 'cash'
+        );
+        setRefundNote('');
+        setRefundStep(true);
+        // Reset return form
         setReturnOrderData(null);
         setReturnOrderInput('');
         setReturnQtyByProduct({});
@@ -131,6 +154,39 @@ export default function POSInterface() {
     } finally {
       setReturnProcessing(false);
     }
+  };
+
+  const handleIssueRefund = async () => {
+    const amt = parseFloat(refundAmount);
+    if (!refundOrderId || isNaN(amt) || amt <= 0) {
+      addToast('Enter a valid refund amount', 'error');
+      return;
+    }
+    setRefundProcessing(true);
+    try {
+      const res = await issueRefund({
+        order_id: refundOrderId,
+        return_id: refundReturnId,
+        amount: amt,
+        method: refundMethod,
+        note: refundNote || 'POS counter refund',
+      });
+      if (res.success) {
+        addToast(`Refund of GH₵ ${amt.toFixed(2)} processed via ${refundMethod}.`, 'success');
+      } else {
+        addToast(res.message || 'Refund failed', 'error');
+      }
+    } catch {
+      addToast('Refund request failed', 'error');
+    } finally {
+      setRefundProcessing(false);
+      setRefundStep(false);
+    }
+  };
+
+  const handleSkipRefund = () => {
+    addToast('Refund skipped — return recorded.', 'info');
+    setRefundStep(false);
   };
 
   const fetchProducts = async () => {
@@ -607,18 +663,93 @@ export default function POSInterface() {
            <div className="card glass" style={{ padding: '32px' }}>
               {posMode === 'return' ? (
                 <>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
-                    Returns are limited to <strong>POS sales</strong> and must start within <strong>48 hours</strong> of the original transaction time. Inventory increases when you confirm.
-                  </p>
-                  <button
-                    type="button"
-                    className={`btn btn-primary ${returnProcessing ? 'spinning' : ''}`}
-                    style={{ width: '100%', height: '56px', fontSize: '15px', fontWeight: 900, borderRadius: '16px' }}
-                    onClick={handleProcessPosReturn}
-                    disabled={returnProcessing || !returnOrderData?.items}
-                  >
-                    {returnProcessing ? 'PROCESSING…' : 'CONFIRM RETURN & RESTOCK'}
-                  </button>
+                  {refundStep ? (
+                    /* ── Refund Step ── */
+                    <div className="animate-fade-in">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--success-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <CheckCircle2 size={18} style={{ color: 'var(--success)' }} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '14px' }}>Return Confirmed</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Issue a refund for ORD-{refundOrderId}?</div>
+                        </div>
+                      </div>
+
+                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>REFUND AMOUNT (GH₵)</label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={refundAmount}
+                        onChange={(e) => setRefundAmount(e.target.value)}
+                        style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', fontSize: '20px', fontWeight: 800, marginBottom: '16px' }}
+                      />
+
+                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>REFUND METHOD</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+                        <button
+                          type="button"
+                          className={`btn ${refundMethod === 'cash' ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontSize: '11px', height: '42px' }}
+                          onClick={() => setRefundMethod('cash')}
+                        >
+                          <Banknote size={14} /> CASH
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn ${refundMethod === 'paystack' ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontSize: '11px', height: '42px' }}
+                          onClick={() => setRefundMethod('paystack')}
+                        >
+                          <CreditCard size={14} /> PAYSTACK
+                        </button>
+                      </div>
+
+                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>NOTE (OPTIONAL)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Handed cash at counter"
+                        value={refundNote}
+                        onChange={(e) => setRefundNote(e.target.value)}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border-light)', background: 'var(--bg-surface)', fontSize: '13px', marginBottom: '20px' }}
+                      />
+
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        style={{ width: '100%', height: '52px', fontSize: '14px', fontWeight: 900, borderRadius: '14px', marginBottom: '10px' }}
+                        onClick={handleIssueRefund}
+                        disabled={refundProcessing}
+                      >
+                        {refundProcessing ? <Loader size={18} className="animate-spin" /> : `ISSUE REFUND · GH₵ ${parseFloat(refundAmount || 0).toFixed(2)}`}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ width: '100%', height: '40px', fontSize: '12px', fontWeight: 700, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                        onClick={handleSkipRefund}
+                        disabled={refundProcessing}
+                      >
+                        <SkipForward size={14} /> SKIP REFUND
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
+                        Returns are limited to <strong>POS sales</strong> and must start within <strong>48 hours</strong> of the original transaction time. Inventory increases when you confirm.
+                      </p>
+                      <button
+                        type="button"
+                        className={`btn btn-primary ${returnProcessing ? 'spinning' : ''}`}
+                        style={{ width: '100%', height: '56px', fontSize: '15px', fontWeight: 900, borderRadius: '16px' }}
+                        onClick={handleProcessPosReturn}
+                        disabled={returnProcessing || !returnOrderData?.items}
+                      >
+                        {returnProcessing ? 'PROCESSING…' : 'CONFIRM RETURN & RESTOCK'}
+                      </button>
+                    </>
+                  )}
                 </>
               ) : (
                 <>

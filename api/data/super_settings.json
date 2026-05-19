@@ -2,7 +2,7 @@
     "siteName": "ElectroCom",
     "siteEmail": "support@electrocom.gh",
     "maintenanceMode": false,
-    "allowRegistration": true,
+    "allowRegistration": false,
     "maxLoginAttempts": 5,
     "sessionTimeout": 360,
     "twoFactorAdmin": true,
@@ -61,6 +61,6 @@
     "emailProviderSendgridEnabled": false,
     "integrityDiscountThreshold": 5000,
     "integrityDiscountPct": 10,
-    "allowCardPayment": false,
-    "doorToDoorThreshold": 36
+    "allowCardPayment": true,
+    "doorToDoorThreshold": 0
 }

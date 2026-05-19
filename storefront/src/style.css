@@ -3387,15 +3387,29 @@ button.btn-login:hover {
 
 .footer-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1.5fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 48px;
     margin-bottom: 40px;
+    padding: 0 5%;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .footer-column {
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+.company-column {
+    align-items: center;
+    text-align: center;
+}
+
+.company-column .footer-social {
+    justify-content: center;
+    width: 100%;
 }
 
 .footer-title {
@@ -5269,11 +5283,14 @@ button.btn-login:hover {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
-    padding: 30px 0;
+    padding: 30px 5%;
     margin-top: 20px;
     margin-bottom: 20px;
     border-top: 1px solid var(--border-light);
     align-items: center;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .contact-item {
@@ -5281,6 +5298,7 @@ button.btn-login:hover {
     align-items: center;
     gap: 15px;
     color: var(--text-main);
+    justify-content: center;
 }
 
 .contact-item svg {

@@ -207,9 +207,13 @@ export const toggleUserStatus = async (id, currentStatus) => {
     }
 };
 
-export const fetchOrders = async () => {
+export const fetchOrders = async (query = '') => {
     try {
-        const response = await fetch(`${API_BASE_URL}/admin_orders.php?_t=${Date.now()}`, {
+        const url = query 
+            ? `${API_BASE_URL}/admin_orders.php?search=${encodeURIComponent(query)}&_t=${Date.now()}`
+            : `${API_BASE_URL}/admin_orders.php?_t=${Date.now()}`;
+            
+        const response = await fetch(url, {
             headers: getAuthHeaders()
         });
 
@@ -306,6 +310,22 @@ export const fetchPosReturnOrder = (orderId) => {
 
 export const processPosReturn = (payload) =>
     authFetch('/pos_return.php', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+
+// ─── Refunds ──────────────────────────────────────────────────────────────────
+
+/** Fetch refund history + refundable balance for an order. */
+export const fetchRefundInfo = (orderId) =>
+    authFetch(`/admin_refund.php?order_id=${encodeURIComponent(orderId)}`);
+
+/**
+ * Issue a refund.
+ * @param {{ order_id: number, amount: number, method: 'paystack'|'cash', return_ids?: number[], note?: string }} payload
+ */
+export const issueRefund = (payload) =>
+    authFetch('/admin_refund.php', {
         method: 'POST',
         body: JSON.stringify(payload),
     });

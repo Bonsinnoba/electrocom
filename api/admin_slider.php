@@ -53,7 +53,7 @@ if ($config['DB_AUTO_REPAIR'] ?? false) {
  * Helper to save base64 image string as a file
  */
 if (!function_exists('saveBase64Image')) {
-    function saveBase64Image($base64String)
+    function saveBase64Image(string $base64String): string
     {
         if (!$base64String || strpos($base64String, 'data:image') === false) {
             return normalizeLocalPath($base64String);
