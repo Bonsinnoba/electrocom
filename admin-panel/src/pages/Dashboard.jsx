@@ -12,6 +12,7 @@ import {
   Layers,
   AlertTriangle,
   Download,
+  FileText,
 } from 'lucide-react';
 import { fetchAnalytics } from '../services/api';
 import { useAdminSettings } from '../context/AdminSettingsContext';
@@ -114,9 +115,13 @@ export default function Dashboard() {
     csvRows.push("KEY FINANCIAL METRICS");
     csvRows.push(`Metric,Value (GHS)`);
     csvRows.push(`Gross Revenue,${data.total_revenue || 0}`);
+    csvRows.push(`Total Refunds (Outflow),-${data.total_refunds || 0}`);
+    csvRows.push(`Net Audited Revenue,${data.net_revenue || 0}`);
     csvRows.push(`POS Transactions,${data.revenue_pos || 0}`);
     csvRows.push(`Online Transactions,${data.revenue_online || 0}`);
     csvRows.push(`Average Order Value,${data.avg_order_value || 0}`);
+    csvRows.push(`Total Returns Volume Count,${data.total_returns_count || 0}`);
+    csvRows.push(`Total Approved Refunds Count,${data.total_refunds_count || 0}`);
     csvRows.push("");
     
     // Daily Revenue Velocity (Last 30 Days)
@@ -147,6 +152,16 @@ export default function Dashboard() {
         csvRows.push(`ORD-${row.id},"${(row.customer_name || 'Walk-in').replace(/"/g, '""')}",${row.total_amount},${row.order_type || 'online'},${row.status}`);
       });
     }
+    csvRows.push("");
+
+    // Recent Refunds Audit Trail
+    csvRows.push("REFUNDS AUDIT TRAIL");
+    csvRows.push("Refund ID,Order ID,Amount (GHS),Refund Method,Status,Created At,Approved By,Note");
+    if (Array.isArray(data.recent_refunds)) {
+      data.recent_refunds.forEach(row => {
+        csvRows.push(`${row.id},ORD-${row.order_id},${row.amount},${row.method},${row.status},${row.created_at},"${(row.approved_by_name || 'System').replace(/"/g, '""')}","${(row.note || '').replace(/"/g, '""')}"`);
+      });
+    }
     
     const csvContent = "\uFEFF" + csvRows.join("\r\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -154,6 +169,274 @@ export default function Dashboard() {
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", `electrcom_financial_ledger_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportFinancialReportWord = () => {
+    if (!data) return;
+
+    let revenueChartRows = '';
+    if (Array.isArray(data.revenue_chart)) {
+      data.revenue_chart.forEach(row => {
+        revenueChartRows += '<tr>' +
+          '<td>' + row.date + '</td>' +
+          '<td style="text-align: right;">GH₵ ' + Number(row.online_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) + '</td>' +
+          '<td style="text-align: right;">GH₵ ' + Number(row.pos_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) + '</td>' +
+          '<td style="text-align: right; font-weight: bold;">GH₵ ' + Number(row.daily_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) + '</td>' +
+          '</tr>';
+      });
+    } else {
+      revenueChartRows = '<tr><td colspan="4">No daily velocity logs found.</td></tr>';
+    }
+
+    let salesByCategoryRows = '';
+    if (Array.isArray(data.sales_by_category)) {
+      data.sales_by_category.forEach(row => {
+        salesByCategoryRows += '<tr>' +
+          '<td>' + (row.category || 'Uncategorized') + '</td>' +
+          '<td style="text-align: right; font-weight: bold;">GH₵ ' + Number(row.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) + '</td>' +
+          '</tr>';
+      });
+    } else {
+      salesByCategoryRows = '<tr><td colspan="2">No category logs found.</td></tr>';
+    }
+
+    let recentActivityRows = '';
+    if (Array.isArray(data.recent_activity)) {
+      data.recent_activity.forEach(row => {
+        recentActivityRows += '<tr>' +
+          '<td><strong>#ORD-' + row.id + '</strong></td>' +
+          '<td>' + (row.customer_name || 'Walk-in Customer') + '</td>' +
+          '<td style="text-align: right; font-weight: bold;">GH₵ ' + Number(row.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) + '</td>' +
+          '<td style="text-transform: uppercase; font-size: 8pt;">' + (row.order_type || 'online') + '</td>' +
+          '<td style="font-weight: bold; color: ' + (row.status === 'completed' || row.status === 'delivered' ? '#10b981' : '#f59e0b') + ';">' + row.status + '</td>' +
+          '</tr>';
+      });
+    } else {
+      recentActivityRows = '<tr><td colspan="5">No recent activity logs found.</td></tr>';
+    }
+
+    let recentRefundsRows = '';
+    if (Array.isArray(data.recent_refunds) && data.recent_refunds.length > 0) {
+      data.recent_refunds.forEach(row => {
+        recentRefundsRows += '<tr>' +
+          '<td><strong>#REF-' + row.id + '</strong></td>' +
+          '<td>#ORD-' + row.order_id + '</td>' +
+          '<td style="text-align: right; font-weight: bold; color: #ef4444;">GH₵ ' + Number(row.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }) + '</td>' +
+          '<td style="text-transform: uppercase; font-size: 8pt;">' + row.method + '</td>' +
+          '<td style="font-weight: bold; color: ' + (row.status === 'processed' ? '#10b981' : '#ef4444') + ';">' + row.status + '</td>' +
+          '<td>' + row.created_at + '</td>' +
+          '<td>' + (row.approved_by_name || 'System') + '</td>' +
+          '<td><i>' + (row.note || 'None') + '</i></td>' +
+          '</tr>';
+      });
+    } else {
+      recentRefundsRows = '<tr><td colspan="8" style="text-align: center;">No refund audit trails logged.</td></tr>';
+    }
+
+    const htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <title>ElectrCom Financial Ledger Audit Report</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #333333;
+            line-height: 1.6;
+          }
+          h1 {
+            color: #1e3a8a;
+            font-size: 24pt;
+            border-bottom: 2px solid #1e3a8a;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+          }
+          .subtitle {
+            color: #666666;
+            font-size: 11pt;
+            margin-bottom: 30px;
+          }
+          h2 {
+            color: #1e3a8a;
+            font-size: 16pt;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 3px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 10pt;
+          }
+          th {
+            background-color: #1e3a8a;
+            color: #ffffff;
+            font-weight: bold;
+            text-align: left;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+          }
+          td {
+            padding: 8px;
+            border: 1px solid #d1d5db;
+          }
+          tr:nth-child(even) {
+            background-color: #f9fafb;
+          }
+          .metric-name {
+            font-weight: bold;
+            width: 50%;
+          }
+          .metric-value {
+            text-align: right;
+            font-weight: bold;
+          }
+          .refund-row {
+            color: #ef4444;
+          }
+          .footer {
+            margin-top: 40px;
+            font-size: 8pt;
+            color: #999999;
+            text-align: center;
+            border-top: 1px dashed #cccccc;
+            padding-top: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>ELECTRCOM FINANCIAL LEDGER REPORT</h1>
+        <div class="subtitle">
+          <strong>Generated On:</strong> ${new Date().toLocaleString()}<br/>
+          <strong>Auditing Scope:</strong> Regional Revenue, Returns, & Cashflow Reversals
+        </div>
+
+        <h2>KEY FINANCIAL METRICS</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Financial Metric</th>
+              <th style="text-align: right;">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="metric-name">Gross Revenue</td>
+              <td class="metric-value">GH₵ ${Number(data.total_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr class="refund-row">
+              <td class="metric-name">Total Refunds (Outflow)</td>
+              <td class="metric-value">- GH₵ ${Number(data.total_refunds || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr>
+              <td class="metric-name" style="background-color: #f0fdf4; color: #15803d;">Net Audited Revenue</td>
+              <td class="metric-value" style="background-color: #f0fdf4; color: #15803d;">GH₵ ${Number(data.net_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr>
+              <td class="metric-name">POS Sales Outflow Volume</td>
+              <td class="metric-value">GH₵ ${Number(data.revenue_pos || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr>
+              <td class="metric-name">Online Sales Outflow Volume</td>
+              <td class="metric-value">GH₵ ${Number(data.revenue_online || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr>
+              <td class="metric-name">Average Order Value (AOV)</td>
+              <td class="metric-value">GH₵ ${Number(data.avg_order_value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr>
+              <td class="metric-name">Total Returns Volume Count</td>
+              <td class="metric-value">${data.total_returns_count || 0} items</td>
+            </tr>
+            <tr>
+              <td class="metric-name">Total Approved Refunds Count</td>
+              <td class="metric-value">${data.total_refunds_count || 0} transactions</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>DAILY REVENUE VELOCITY (LAST 30 DAYS)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th style="text-align: right;">Online Revenue</th>
+              <th style="text-align: right;">POS Revenue</th>
+              <th style="text-align: right;">Total Daily Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${revenueChartRows}
+          </tbody>
+        </table>
+
+        <h2>TOP PRODUCT CATEGORIES BY REVENUE</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Category Name</th>
+              <th style="text-align: right;">Revenue Contributed</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${salesByCategoryRows}
+          </tbody>
+        </table>
+
+        <h2>RECENT TRANSACTION AUDIT TRAIL</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer Name</th>
+              <th style="text-align: right;">Total Amount</th>
+              <th>Fulfillment Type</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${recentActivityRows}
+          </tbody>
+        </table>
+
+        <h2>REFUNDS & REVERSALS AUDIT TRAIL</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Refund ID</th>
+              <th>Order ID</th>
+              <th style="text-align: right;">Amount</th>
+              <th>Refund Method</th>
+              <th>Status</th>
+              <th>Created At</th>
+              <th>Approved By</th>
+              <th>Auditor Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${recentRefundsRows}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          ElectrCom Administration & Auditing Protocol &copy; ${new Date().getFullYear()}. All Rights Reserved. Confidential financial records.
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff' + htmlContent], {
+      type: 'application/msword;charset=utf-8'
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `electrcom_financial_ledger_${new Date().toISOString().slice(0, 10)}.doc`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -245,27 +528,49 @@ export default function Dashboard() {
             Real-time business performance overview.
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
            {(role === 'super' || role === 'admin' || role === 'store_manager' || role === 'accountant') && (
-             <button 
-               onClick={exportFinancialReport}
-               className="btn-primary" 
-               style={{ 
-                 padding: '8px 16px', 
-                 borderRadius: '12px', 
-                 fontSize: '12px', 
-                 fontWeight: 700, 
-                 display: 'flex', 
-                 alignItems: 'center', 
-                 gap: '8px',
-                 boxShadow: '0 4px 12px rgba(var(--primary-blue-rgb), 0.25)',
-                 border: 'none',
-                 cursor: 'pointer'
-               }}
-             >
-                <Download size={16} /> EXPORT FINANCIAL LEDGER
-             </button>
-           )}
+              <>
+                <button 
+                  onClick={exportFinancialReportWord}
+                  className="btn-primary animate-hover" 
+                  style={{ 
+                    padding: '6px 12px', 
+                    borderRadius: '8px', 
+                    fontSize: '11px', 
+                    fontWeight: 800, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    background: 'linear-gradient(135deg, #2b579a 0%, #1e3a8a 100%)',
+                    color: '#ffffff',
+                    boxShadow: '0 4px 10px rgba(43, 87, 154, 0.2)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                   <FileText size={14} /> EXPORT WORD LEDGER
+                </button>
+                <button 
+                  onClick={exportFinancialReport}
+                  className="glass animate-hover" 
+                  style={{ 
+                    padding: '6px 12px', 
+                    borderRadius: '8px', 
+                    fontSize: '11px', 
+                    fontWeight: 700, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                   <Download size={14} /> EXPORT AUDIT CSV
+                </button>
+              </>
+            )}
            <div className="glass" style={{ padding: '8px 16px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Activity size={16} className="text-success animate-pulse" /> LIVE FEED
            </div>

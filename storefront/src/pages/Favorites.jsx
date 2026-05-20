@@ -90,13 +90,7 @@ export default function Favorites({ onProductClick, searchQuery }) {
           </button>
         </div>
       ) : (
-        <div className="product-grid" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-          gap: '16px',
-          width: '100%',
-          boxSizing: 'border-box'
-        }}>
+        <div className="product-grid" style={{ boxSizing: 'border-box' }}>
           {filteredItems.map((p, idx) => (
             <div 
               key={p.id} 

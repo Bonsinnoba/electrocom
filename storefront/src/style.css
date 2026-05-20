@@ -1895,7 +1895,8 @@ button.btn-login:hover {
     grid-template-columns: 1fr;
     padding: 16px 32px 48px;
     width: 100%;
-    max-width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
 }
 
 
@@ -1933,9 +1934,11 @@ button.btn-login:hover {
 
 .product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
     width: 100%;
+    margin-top: 8px;
+    margin-bottom: 24px;
 }
 
 .product-card {
@@ -1943,7 +1946,7 @@ button.btn-login:hover {
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
+    border-radius: 16px;
     padding: 16px;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
@@ -4038,8 +4041,8 @@ button.btn-login:hover {
     }
 
     .product-grid {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
     }
 
     .footer-grid {
@@ -4049,6 +4052,27 @@ button.btn-login:hover {
 }
 
 @media (max-width: 768px) {
+    .nav-map-btn,
+    .nav-notif-btn {
+        display: none !important;
+    }
+
+    .page-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 6px !important;
+    }
+
+    .settings-action-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
+
+    .settings-action-header button {
+        width: 100% !important;
+    }
+
     .modal-backdrop.active {
         background: rgba(0, 0, 0, 0.4);
     }
@@ -4196,7 +4220,7 @@ button.btn-login:hover {
     }
 
     .product-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+        grid-template-columns: repeat(2, 1fr) !important;
         gap: 12px !important;
     }
 
@@ -4266,8 +4290,8 @@ button.btn-login:hover {
 
 @media (max-width: 480px) {
     .product-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px !important;
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
     }
 
     .btn-primary,
@@ -5335,3 +5359,205 @@ button.btn-login:hover {
         gap: 8px;
     }
 }
+
+/* ==========================================================================
+   Responsive Home Page Dual-Column Layout (3-Column Catalog + Sticky Sidebar)
+   ========================================================================== */
+.home-layout-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    width: 100%;
+}
+
+.home-main-content {
+    width: 100%;
+}
+
+/* Default view (stacked on tablet/mobile) - acts as horizontal grid */
+.recommendations-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+}
+
+@media (max-width: 899px) {
+    .recommendations-list {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 16px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .recommendations-list {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .recommendations-list {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+}
+
+/* Desktop Dual-Column Split view (900px and up) */
+@media (min-width: 900px) {
+    .dashboard-grid.full-width {
+        max-width: 1280px !important;
+    }
+
+    .home-layout-container.has-sidebar {
+        grid-template-columns: 1fr 340px; /* Left main catalog, Right sticky recommendations */
+    }
+    
+    .home-main-content {
+        grid-column: 1; /* Main catalog column */
+        grid-row: 1;    /* Align on the first row */
+    }
+    
+    .home-side-recommendations {
+        grid-column: 2; /* Sidebar column */
+        grid-row: 1;    /* Align on the first row */
+        position: sticky;
+        top: calc(var(--top-nav-height) + 16px);
+        height: calc(2 * 390px + 24px) !important; /* Height of two vertical catalog cards + row gap */
+        display: flex !important;
+        flex-direction: column !important;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px) saturate(180%);
+        -webkit-backdrop-filter: blur(12px) saturate(180%);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 20px; /* Tighter padding to maximize vertical space */
+        box-shadow: var(--glass-shadow);
+        box-sizing: border-box;
+    }
+
+    /* Sleek custom scrollbar for sticky recommendations list */
+    .recommendations-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .recommendations-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .recommendations-list::-webkit-scrollbar-thumb {
+        background: var(--border-light);
+        border-radius: 10px;
+    }
+    
+    .recommendations-list::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+    }
+
+    .home-side-recommendations .recommendations-title {
+        font-size: 20px !important;
+        margin-top: 0 !important;
+        margin-bottom: 20px !important;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-light);
+        flex-shrink: 0; /* Keep heading fixed at the top */
+    }
+    
+    /* Convert recommendations to a premium scrollable feed inside the sidebar */
+    .recommendations-list {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important; /* Tighter gap to guarantee 3 fit comfortably */
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding-right: 4px; /* Space for the scrollbar */
+    }
+
+    /* Make product cards in sidebar horizontal and highly compact */
+    .home-side-recommendations .product-card {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 16px !important;
+        padding: 12px !important;
+        border-radius: 14px !important;
+        position: relative !important;
+        min-height: 104px !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Make the image square and compact (80px x 80px) */
+    .home-side-recommendations .product-card > div:first-of-type {
+        width: 80px !important;
+        height: 80px !important;
+        flex-shrink: 0 !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+    }
+    
+    .home-side-recommendations .product-card img.product-image {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+    
+    /* Style card details */
+    .home-side-recommendations .product-card .product-info {
+        flex: 1 !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+    }
+    
+    .home-side-recommendations .product-card .product-info h3 {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 130px !important;
+    }
+
+    .home-side-recommendations .product-card .product-info p {
+        font-size: 13px !important;
+        margin: 0 !important;
+    }
+    
+    /* Compact size for badge overlays inside side-card */
+    .home-side-recommendations .product-card .product-info div[style*="warning-bg"] {
+        padding: 1px 4px !important;
+        border-radius: 3px !important;
+    }
+    
+    .home-side-recommendations .product-card .product-info div[style*="warning-bg"] span {
+        font-size: 9px !important;
+    }
+    
+    /* Reposition and scale down Action Buttons inside horizontal cards */
+    .home-side-recommendations .product-card .wishlist-btn {
+        top: 8px !important;
+        right: 44px !important;
+        width: 28px !important;
+        height: 28px !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+    }
+    
+    .home-side-recommendations .product-card .add-to-cart-btn {
+        top: 8px !important;
+        right: 8px !important;
+        width: 28px !important;
+        height: 28px !important;
+        background: var(--primary-blue) !important;
+        color: white !important;
+    }
+    
+    .home-side-recommendations .product-card .wishlist-btn svg,
+    .home-side-recommendations .product-card .add-to-cart-btn svg {
+        width: 14px !important;
+        height: 14px !important;
+    }
+}
+

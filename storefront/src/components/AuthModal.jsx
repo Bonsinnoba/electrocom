@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, User, Lock, Mail, LogIn, UserPlus, Phone, Loader, Globe, Eye, EyeOff, Chrome, Github, ArrowLeft, MapPin } from 'lucide-react';
-import { loginUser, registerUser, verifyUser, forgotPassword, resetPassword } from '../services/api';
+import { loginUser, registerUser, verifyUser, forgotPassword, resetPassword, recoverAccount } from '../services/api';
 import { useUser } from '../context/UserContext';
 import { useSettings } from '../context/SettingsContext';
 
@@ -52,6 +52,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
   const [resetOtp, setResetOtp] = useState('');
   const [newResetPassword, setNewResetPassword] = useState('');
   const [confirmResetPassword, setConfirmResetPassword] = useState('');
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -123,6 +125,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
           setTempUser(response.user);
           setVerificationStep(true);
           setError(response.message);
+      } else if (response.recovery_required) {
+          // Account is soft-deleted — switch to recovery mode
+          setRecoveryEmail(formData.email);
+          setIsRecoveryMode(true);
+          setError('');
       } else {
           setError(response.message || "Authentication failed. Please check your credentials.");
       }
@@ -135,6 +142,26 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
         ? "Unable to connect. Please check your internet connection and try again."
         : "Something went wrong. Please try again.");
 
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecover = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await recoverAccount({ email: recoveryEmail, password: formData.password });
+      if (response.success && response.data?.user) {
+        handleContextLogin(response.data.user, response.data.token);
+        onClose(response.data.user);
+        setIsRecoveryMode(false);
+        setFormData({ name: '', email: '', phone: '', country: 'Ghana', password: '', confirmPassword: '', verification_method: 'email' });
+      } else {
+        setError(response.message || 'Recovery failed. Please try again.');
+      }
+    } catch (err) {
+      setError('Connection error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -462,7 +489,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
 
         {/* --- SIGN IN CONTAINER --- */}
         <div className="form-container sign-in-container">
-          {!isForgotPassword ? (
+          {!isForgotPassword && !isRecoveryMode ? (
             <form onSubmit={handleSubmit} className="animate-fade-in">
               <h1>Sign In</h1>
               <div className="social-container">
@@ -505,7 +532,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
                 </p>
               )}
             </form>
-          ) : (
+          ) : isForgotPassword ? (
             <div className="forgot-password-view animate-fade-in" style={{
               width: '100%',
               height: '100%',
@@ -724,6 +751,56 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
                   <ArrowLeft size={16} /> {resetStep > 1 ? 'Go Back' : 'Back to Login'}
                 </button>
               </form>
+            </div>
+          ) : (
+            /* --- ACCOUNT RECOVERY VIEW --- */
+            <div className="forgot-password-view animate-fade-in" style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              padding: '10px 0'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <div style={{
+                  width: '64px', height: '64px', borderRadius: '50%', margin: '0 auto 16px',
+                  background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.1))',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: '1.5px solid rgba(245,158,11,0.3)'
+                }}>
+                  <User size={26} style={{ color: '#f59e0b' }} />
+                </div>
+                <h1 style={{ marginBottom: '8px' }}>Account Recovery</h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.7, maxWidth: '280px', margin: '0 auto' }}>
+                  The account <strong style={{ color: 'var(--text-main)' }}>{recoveryEmail}</strong> is scheduled for deletion.
+                  Restoring it will immediately cancel the deletion and fully reactivate your account.
+                </p>
+              </div>
+
+              {error && <div className="auth-error" style={{ marginBottom: '16px' }}>{error}</div>}
+
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ width: '100%', marginBottom: '12px' }}
+                onClick={handleRecover}
+                disabled={loading}
+              >
+                {loading ? <Loader className="animate-spin" size={18} /> : '✦ Restore My Account'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setIsRecoveryMode(false); setError(''); }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: '8px', color: 'var(--text-muted)', fontSize: '14px',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: '8px'
+                }}
+              >
+                <ArrowLeft size={16} /> No, go back to Login
+              </button>
             </div>
           )}
         </div>

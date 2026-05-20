@@ -86,11 +86,23 @@ if ($method === 'GET') {
                 }
             }
 
-            $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+            // Immediately anonymize the user's PII instead of a hard DELETE.
+            // This preserves Order/Financial foreign key integrity while fully erasing personal data.
+            $stmt = $pdo->prepare("
+                UPDATE users
+                SET email = CONCAT('anonymized_', id, '@deleted.local'),
+                    password_hash = 'ERASED',
+                    name = 'Data Erased',
+                    phone = NULL,
+                    address = NULL,
+                    deleted_at = NOW(),
+                    status = 'Purged'
+                WHERE id = ?
+            ");
             $stmt->execute([$id]);
 
-            logger('warn', 'STAFF', "User ID: {$id} was permanently deleted by {$userName}");
-            logAdminAudit($pdo, $userId, 'user.delete', 'user', (string)$id, []);
+            logger('warn', 'STAFF', "User ID: {$id} was immediately anonymized (PII erased) by {$userName}");
+            logAdminAudit($pdo, $userId, 'user.anonymize', 'user', (string)$id, []);
 
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {

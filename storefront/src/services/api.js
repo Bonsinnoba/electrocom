@@ -260,6 +260,15 @@ export const deleteMyAccount = async () => {
     }
 };
 
+export const recoverAccount = async (credentials) => {
+    const response = await apiFetch(`${API_BASE_URL}/recover_account.php`, getFetchOptions({
+        method: 'POST',
+        body: JSON.stringify(credentials),
+    }));
+    if (response.status === 503) return { success: false, maintenance: true };
+    return await response.json();
+};
+
 export const fetchTransactions = async () => {
     try {
         const response = await apiFetch(`${API_BASE_URL}/get_transactions.php`, getFetchOptions());

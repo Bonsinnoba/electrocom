@@ -419,10 +419,11 @@ export default function HelpCenter() {
               <StepList
                 items={[
                   'Open the Returns tab. Search by order ID (e.g. ORD-128) or by customer email.',
-                  'Select the order, then choose the specific line item(s) to return and enter the quantity to reverse.',
-                  'Add a return reason (e.g. "Wrong item", "Defective") — this is saved in the audit log and is useful for supplier claims.',
-                  'Click Process Return. The product stock count increases immediately and the return event is logged against the order.',
-                  'Partial returns are supported — returning 1 of 3 units on a line is valid; the remaining 2 units stay on the original order record.',
+                  'Select the order. The panel displays all line items in a multi-item returns table showing purchased quantities and what has already been returned.',
+                  'Check the box next to each item you want to return, and specify the exact return quantity (bounded by the max returnable limit). You can select and process multiple different items in a single action.',
+                  'Provide a return reason (e.g. "Wrong item", "Defective") — this is saved in the audit log and is useful for supplier claims.',
+                  'Click Process Return. The product stock counts for all selected items increase immediately, a transaction-safe database update processes the batch, and return events are logged.',
+                  'Once the return is processed, issue a consolidated refund (either through Paystack or Cash) using the calculated total return value. The system bundles multiple returns to issue one clean refund, preventing extra gateway transaction fees and customer statement clutter.',
                 ]}
               />
               <Callout type="warning">

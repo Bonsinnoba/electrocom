@@ -137,7 +137,7 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode }) {
     try {
       const result = await deleteMyAccount();
       if (result.success) {
-        addToast('Your account has been permanently deleted.', 'success');
+        addToast('Your account has been deactivated. You can restore it anytime within the next 30 days.', 'success');
         logout();
         navigate('/');
       } else {
@@ -213,6 +213,7 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode }) {
 
   const ActionButton = ({ label, type = 'secondary', onClick }) => (
     <button 
+      type="button"
       className={`btn-${type}`} 
       onClick={(e) => { e.stopPropagation(); onClick && onClick(); }}
       style={{ 
@@ -254,7 +255,14 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode }) {
     <div className="settings-page" style={{ 
       display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px'
     }}>
-      <div className="page-header" style={{ gridColumn: '1 / -1', padding: '24px 0 8px' }}>
+      <div className="page-header-centered" style={{ 
+        gridColumn: '1 / -1', 
+        padding: '24px 0 8px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center'
+      }}>
         <h1 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '8px' }}>Global Settings</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>Manage your account preferences, orders, and security.</p>
       </div>
@@ -262,15 +270,16 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode }) {
       {/* Account Section */}
       {shouldShow('Account Information') && (
         <SettingCard title="Account Information" icon={User}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <div className="settings-action-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', marginBottom: '12px', width: '100%' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               Update your personal details and delivery address.
             </span>
             <button 
+              type="button"
               className={isEditingProfile ? "btn-primary" : "btn-secondary"}
               onClick={() => isEditingProfile ? handleSaveProfile() : setIsEditingProfile(true)}
               disabled={isSavingProfile}
-              style={{ padding: '8px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: 600 }}
+              style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: 600, width: '100%' }}
             >
               {isSavingProfile ? 'Saving...' : (isEditingProfile ? 'Save Changes' : 'Edit Profile')}
             </button>
@@ -324,6 +333,7 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode }) {
           </div>
           {isEditingProfile && (
             <button 
+              type="button"
               className="btn-outline" 
               onClick={() => setIsEditingProfile(false)}
               style={{ marginTop: '8px', padding: '8px', fontSize: '12px', width: '100%' }}
@@ -495,22 +505,24 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode }) {
             }}>
               <AlertTriangle size={28} />
             </div>
-            <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Delete Account?</h3>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Deactivate Account?</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', marginBottom: '28px' }}>
-              This action is <strong>permanent and irreversible</strong>. All your data, orders, and preferences will be deleted immediately.
+              Your account will be deactivated immediately. You will have a <strong>30-day grace period</strong> to restore your account by simply logging back in. After 30 days, your personal data will be permanently anonymized.
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button 
+                type="button"
                 className="btn-secondary" style={{ flex: 1 }} 
                 onClick={() => setShowDeleteConfirm(false)}
               >
                 Cancel
               </button>
               <button 
+                type="button"
                 className="btn-danger" style={{ flex: 1 }}
                 onClick={handleDeleteAccount}
               >
-                Yes, Delete
+                Yes, Deactivate
               </button>
             </div>
           </div>
@@ -532,6 +544,7 @@ export default function Settings({ searchQuery, isDarkMode, toggleDarkMode }) {
             style={{ maxWidth: '420px', width: '100%', padding: '32px', position: 'relative' }}
           >
             <button 
+              type="button"
               onClick={() => setShowPasswordModal(false)}
               style={{ 
                 position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none',

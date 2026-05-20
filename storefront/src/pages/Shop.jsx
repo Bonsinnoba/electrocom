@@ -240,11 +240,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
           </div>
 
           {loading ? (
-            <div className="product-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: '24px',
-            }}>
+            <div className="product-grid">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => <ProductSkeleton key={i} />)}
             </div>
           ) : filteredProducts.length === 0 ? (
@@ -276,9 +272,6 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
                 <>
                   <h4 style={{ color: 'var(--text-main)', marginBottom: '16px', fontSize: '16px' }}>Popular picks</h4>
                   <div className="product-grid" style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                    gap: '20px',
                     textAlign: 'left',
                     maxWidth: 900,
                     margin: '0 auto',
@@ -302,11 +295,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
               )}
             </div>
           ) : (
-            <div className="product-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: '24px',
-            }}>
+            <div className="product-grid">
               {displayedProducts.map((p, idx) => (
                 <div 
                   key={p.id} 

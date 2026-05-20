@@ -24,7 +24,7 @@ try {
     // Delete related data first (optional, depending on schema CASCADE rules)
     // For now, we'll just delete the user, assuming CASCADE is in place or not strictly required for this build
 
-    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("UPDATE users SET deleted_at = NOW(), status = 'Deleted' WHERE id = ?");
     $stmt->execute([$userId]);
 
     $pdo->commit();

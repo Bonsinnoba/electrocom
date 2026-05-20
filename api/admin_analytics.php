@@ -50,6 +50,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $data['revenue_pos'] = (float)($revData['pos'] ?? 0);
         $data['total_revenue'] = $data['revenue_online'] + $data['revenue_pos'];
 
+        // Self-heal/ensure tables exist
+        $pdo->exec("CREATE TABLE IF NOT EXISTS order_returns (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            order_id INT NOT NULL,
+            product_id INT NOT NULL,
+            quantity INT NOT NULL DEFAULT 1,
+            reason TEXT,
+            status ENUM('pending', 'processed', 'inspected', 'rejected') DEFAULT 'processed',
+            processed_by INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS refunds (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            order_id INT NOT NULL,
+            return_id INT DEFAULT NULL,
+            amount DECIMAL(10,2) NOT NULL,
+            method VARCHAR(50) NOT NULL,
+            gateway_ref VARCHAR(150) DEFAULT NULL,
+            status ENUM('pending','processed','failed') DEFAULT 'pending',
+            approved_by INT NOT NULL,
+            note TEXT DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            processed_at DATETIME DEFAULT NULL
+        )");
+
+        // 1b. Refunds and Net Revenue
+        $refundStmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) FROM refunds WHERE status = 'processed'");
+        $data['total_refunds'] = (float)$refundStmt->fetchColumn();
+        $data['net_revenue'] = $data['total_revenue'] - $data['total_refunds'];
+
+        // 1c. Returns Counts
+        $returnsCountStmt = $pdo->query("SELECT COUNT(*) FROM order_returns");
+        $data['total_returns_count'] = (int)$returnsCountStmt->fetchColumn();
+        
+        $refundsCountStmt = $pdo->query("SELECT COUNT(*) FROM refunds");
+        $data['total_refunds_count'] = (int)$refundsCountStmt->fetchColumn();
+
         // 2. Active Users count
         $usersStmt = $pdo->query("SELECT COUNT(id) FROM users WHERE role = 'customer'");
         $data['total_customers'] = (int)$usersStmt->fetchColumn();
@@ -221,6 +258,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ");
         $recentStmt->execute($params);
         $data['recent_activity'] = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // 11. Recent Refunds Activity
+        $recentRefundsStmt = $pdo->prepare("
+            SELECT r.id, r.order_id, r.amount, r.method, r.status, r.created_at, r.note,
+                   u.name as approved_by_name
+            FROM refunds r
+            LEFT JOIN users u ON r.approved_by = u.id
+            ORDER BY r.created_at DESC
+            LIMIT 10
+        ");
+        $recentRefundsStmt->execute();
+        $data['recent_refunds'] = $recentRefundsStmt->fetchAll(PDO::FETCH_ASSOC);
 
         echo json_encode(['success' => true, 'data' => $data]);
     } catch (Exception $e) {

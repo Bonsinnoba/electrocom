@@ -250,7 +250,7 @@ export default function Navbar({
         </div>
         
         {/* Notifications */}
-        <div className="sidebar-icon btn" style={{ position: 'relative' }} onClick={onNotificationsClick} role="button" aria-label={`View Notifications, ${unreadCount} unread`} tabIndex={0}>
+        <div className="sidebar-icon btn nav-notif-btn" style={{ position: 'relative' }} onClick={onNotificationsClick} role="button" aria-label={`View Notifications, ${unreadCount} unread`} tabIndex={0}>
           <Bell size={20} />
           {unreadCount > 0 && (
             <span key={unreadCount} className="badge-premium badge-notif">

@@ -30,8 +30,9 @@ try {
         $userColumns = is_array($columns) ? $columns : [];
         $requiredColumns = [
             'region' => "ALTER TABLE users ADD COLUMN region VARCHAR(100) DEFAULT NULL AFTER address",
-            'status' => "ALTER TABLE users ADD COLUMN status ENUM('Active', 'Suspended') DEFAULT 'Active' AFTER role",
-            'is_verified' => "ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT FALSE AFTER status",
+            'status' => "ALTER TABLE users MODIFY COLUMN status ENUM('Active', 'Suspended', 'Deleted', 'Purged') DEFAULT 'Active'",
+            'deleted_at' => "ALTER TABLE users ADD COLUMN deleted_at DATETIME DEFAULT NULL AFTER status",
+            'is_verified' => "ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT FALSE AFTER deleted_at",
             'verification_method' => "ALTER TABLE users ADD COLUMN verification_method ENUM('email', 'sms') DEFAULT 'email' AFTER is_verified",
             'verification_code' => "ALTER TABLE users ADD COLUMN verification_code VARCHAR(10) DEFAULT NULL AFTER verification_method",
             'login_attempts' => "ALTER TABLE users ADD COLUMN login_attempts INT DEFAULT 0 AFTER verification_code",
@@ -82,6 +83,7 @@ try {
         "avatar_text",
         "profile_image",
         (in_array('status', $userColumns, true) ? "status" : "'Active' AS status"),
+        (in_array('deleted_at', $userColumns, true) ? "deleted_at" : "NULL AS deleted_at"),
         "role",
         (in_array('is_verified', $userColumns, true) ? "is_verified" : "1 AS is_verified"),
         (in_array('verification_method', $userColumns, true) ? "verification_method" : "'email' AS verification_method"),
@@ -173,6 +175,20 @@ try {
         $updateStmt = $pdo->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
         $updateStmt->execute([$newHash, $user['id']]);
         logger('info', 'SECURITY', "Updated legacy password hash for User ID: {$user['id']} to peppered format.");
+    }
+
+    if ($user['status'] === 'Deleted' || $user['deleted_at'] !== null) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'recovery_required' => true,
+            'message' => 'Your account is scheduled for deletion. Would you like to restore it?',
+            'data' => [
+                'id' => $user['id'],
+                'email' => $user['email']
+            ]
+        ]);
+        exit;
     }
 
     if ($user['status'] === 'Suspended') {

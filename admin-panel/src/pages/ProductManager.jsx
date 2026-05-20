@@ -68,6 +68,13 @@ export default function ProductManager() {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = React.useRef(null);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+
+  const defaultCategories = ['Optics', 'Connectors', 'Electromechanical', 'Semiconductors', 'Passives'];
+  const uniqueCategories = Array.from(new Set([
+    ...defaultCategories,
+    ...products.map(p => p.category).filter(Boolean)
+  ]));
 
   const user = JSON.parse(localStorage.getItem('ehub_user') || '{}');
   const isAccountant = user.role === 'accountant';
@@ -116,6 +123,8 @@ export default function ProductManager() {
   const handleOpenModal = (product = null) => {
     if (product) {
       setEditingProduct(product);
+      const isCustom = product.category && !defaultCategories.includes(product.category);
+      setIsCustomCategory(isCustom);
       const galleryData = Array.isArray(product.gallery) 
         ? [...product.gallery.map(img => formatImageUrl(img)), '', '', '', ''].slice(0, 4) 
         : ['', '', '', ''];
@@ -145,6 +154,7 @@ export default function ProductManager() {
       });
     } else {
       setEditingProduct(null);
+      setIsCustomCategory(false);
       setFormData({ 
         name: '', category: '', price: '', stock: '', description: '', image: '',
         colors: '', specs: '', included: '', directions: '', status: 'In Stock',
@@ -520,7 +530,7 @@ export default function ProductManager() {
                   boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
                   zIndex: 100
                 }}>
-                  {['All', 'Optics', 'Connectors', 'Electromechanical', 'Semiconductors', 'Passives'].map(cat => (
+                  {['All', ...uniqueCategories].map(cat => (
                     <button
                       key={cat}
                       onClick={() => {
@@ -790,44 +800,38 @@ export default function ProductManager() {
                 </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Category</label>
-                  <select 
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none' }}
-                  >
-                    <option value="">Select Category</option>
-                    <optgroup label="Optics">
-                      <option value="Optics">Optics (General)</option>
-                      <option value="Optics > LEDs">Optics &gt; LEDs</option>
-                      <option value="Optics > Displays">Optics &gt; Displays</option>
-                      <option value="Optics > Sensors">Optics &gt; Sensors</option>
-                    </optgroup>
-                    <optgroup label="Connectors">
-                      <option value="Connectors">Connectors (General)</option>
-                      <option value="Connectors > Headers">Connectors &gt; Headers</option>
-                      <option value="Connectors > Plugs">Connectors &gt; Plugs</option>
-                      <option value="Connectors > Sockets">Connectors &gt; Sockets</option>
-                    </optgroup>
-                    <optgroup label="Electromechanical">
-                      <option value="Electromechanical">Electromechanical (General)</option>
-                      <option value="Electromechanical > Switches">Electromechanical &gt; Switches</option>
-                      <option value="Electromechanical > Relays">Electromechanical &gt; Relays</option>
-                      <option value="Electromechanical > Motors">Electromechanical &gt; Motors</option>
-                    </optgroup>
-                    <optgroup label="Semiconductors">
-                      <option value="Semiconductors">Semiconductors (General)</option>
-                      <option value="Semiconductors > Diodes">Semiconductors &gt; Diodes</option>
-                      <option value="Semiconductors > Transistors">Semiconductors &gt; Transistors</option>
-                      <option value="Semiconductors > ICs">Semiconductors &gt; ICs</option>
-                    </optgroup>
-                    <optgroup label="Passives">
-                      <option value="Passives">Passives (General)</option>
-                      <option value="Passives > Resistors">Passives &gt; Resistors</option>
-                      <option value="Passives > Capacitors">Passives &gt; Capacitors</option>
-                      <option value="Passives > Inductors">Passives &gt; Inductors</option>
-                    </optgroup>
-                  </select>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '14px', fontWeight: 600 }}>Category</label>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsCustomCategory(!isCustomCategory)} 
+                      style={{ background: 'transparent', border: 'none', color: 'var(--primary-blue)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', padding: '0' }}
+                    >
+                      {isCustomCategory ? 'Select Existing' : '+ Add Custom'}
+                    </button>
+                  </div>
+                  {isCustomCategory ? (
+                    <input 
+                      type="text" 
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      placeholder="e.g. Cables & Wire"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none' }}
+                      required
+                    />
+                  ) : (
+                    <select 
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none' }}
+                      required
+                    >
+                      <option value="">Select Category</option>
+                      {uniqueCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Price (GH₵)</label>

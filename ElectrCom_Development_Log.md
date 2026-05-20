@@ -41,6 +41,8 @@ The legacy system only allowed returning one item at a time. If a user bought a 
 1. **Batch Item Processing:** Refactored `admin_returns.php` to accept an `items[]` array. It now iterates over all selected items, validating each against the maximum returnable quantity, and wrapping all `order_returns` inserts and stock replenishments into a single database transaction.
 2. **Consolidated Financial Refunds:** Updated `admin_refund.php` to accept a `return_ids` array. It now calculates the total value of all returned items in the batch and issues a *single* API call to Paystack. 
 3. **Frontend Upgrade:** Redesigned the `ReturnManager.jsx` UI from a single dropdown menu to an interactive table where admins can specify exact return quantities for multiple items simultaneously.
+4. **Help Center Documentation Synchronization:** Updated both the storefront customer FAQ/support page (`Support.jsx`) and the administrator back-office `HelpCenter.jsx` to outline the new Multi-Item and consolidated refund workflows. This ensures all support representatives and customers are aligned on the new unified logistics flow.
+5. **Accountant Financial Ledger & Auditing Upgrades:** Extended the `admin_analytics.php` API and the `AccountantDashboard.jsx` frontend to track returns and refunds. Added Net Revenue (Gross Revenue - Refunds), total refund amount, return count metrics, and a new double-ledger visual layout showcasing both Recent Order Inflow (revenue) and Recent Refund Outflow (reversals) for robust financial compliance and seamless CSV & Word document export auditing.
 
 ---
 

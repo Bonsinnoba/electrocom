@@ -75,44 +75,52 @@ export default function Home({ products, onProductClick, searchQuery, loading })
     setVisibleCount(itemsPerPage);
   }, [searchQuery, itemsPerPage]);
 
-  const displayedProducts = useMemo(() => {
-    return filteredProducts.slice(0, visibleCount);
-  }, [filteredProducts, visibleCount]);
-
   const recommendedProducts = useMemo(() => {
     if (searchQuery || !user) return [];
     return sortedProducts.slice(0, Math.min(6, sortedProducts.length));
   }, [sortedProducts, searchQuery, user]);
 
-  const catalogProducts = useMemo(() => {
-    if (searchQuery) return displayedProducts;
+  const eligibleProducts = useMemo(() => {
+    if (searchQuery) return filteredProducts;
     const recommendedIds = new Set(recommendedProducts.map((p) => p.id));
-    return displayedProducts.filter((p) => !recommendedIds.has(p.id));
-  }, [displayedProducts, recommendedProducts, searchQuery]);
+    return filteredProducts.filter((p) => !recommendedIds.has(p.id));
+  }, [filteredProducts, recommendedProducts, searchQuery]);
+
+  const catalogProducts = useMemo(() => {
+    return eligibleProducts.slice(0, visibleCount);
+  }, [eligibleProducts, visibleCount]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {!searchQuery && <HeroSlider />}
       
       <div style={{ flex: 1 }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px' }}>
-          {searchQuery ? `Search Results for "${searchQuery}"` : (siteSettings.homepageSectionTitle || 'Product Catalog')}
-        </h2>
-        
         {loading ? (
-          <div className="product-grid">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <ProductSkeleton key={i} />)}
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="card glass" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-            No products found matching "{searchQuery}"
-          </div>
-        ) : (
           <>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px' }}>
+              {searchQuery ? `Search Results for "${searchQuery}"` : (siteSettings.homepageSectionTitle || 'Product Catalog')}
+            </h2>
+            <div className="product-grid">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <ProductSkeleton key={i} />)}
+            </div>
+          </>
+        ) : filteredProducts.length === 0 ? (
+          <>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px' }}>
+              {searchQuery ? `Search Results for "${searchQuery}"` : (siteSettings.homepageSectionTitle || 'Product Catalog')}
+            </h2>
+            <div className="card glass" style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+              No products found matching "{searchQuery}"
+            </div>
+          </>
+        ) : (
+          <div className={`home-layout-container ${(!searchQuery && recommendedProducts.length > 0) ? 'has-sidebar' : ''}`}>
+            
+            {/* Recommendations Column */}
             {!searchQuery && recommendedProducts.length > 0 && (
-              <div style={{ marginBottom: '28px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '12px' }}>Recommended for You</h3>
-                <div className="product-grid">
+              <aside className="home-side-recommendations">
+                <h2 className="recommendations-title" style={{ fontSize: '22px', fontWeight: 800, marginBottom: '20px' }}>Recommended</h2>
+                <div className="recommendations-list">
                   {recommendedProducts.map((p, idx) => (
                     <div
                       key={`rec-${p.id}`}
@@ -136,59 +144,71 @@ export default function Home({ products, onProductClick, searchQuery, loading })
                     </div>
                   ))}
                 </div>
+              </aside>
+            )}
+
+            {/* Main Catalog Column */}
+            <div className="home-main-content">
+              {searchQuery && (
+                <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px' }}>
+                  Search Results for "{searchQuery}"
+                </h2>
+              )}
+
+              {!searchQuery && (
+                <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '20px' }}>
+                  {siteSettings.homepageSectionTitle || 'Product Catalog'}
+                </h2>
+              )}
+
+              <div className="product-grid">
+                {(searchQuery ? displayedProducts : catalogProducts).map((p, idx) => (
+                  <div
+                    key={p.id}
+                    className="animate-slide-up"
+                    style={{
+                      animationDelay: `${idx * 0.05}s`,
+                      animationFillMode: 'both'
+                    }}
+                  >
+                    <ProductCard
+                      id={p.id}
+                      name={p.name}
+                      price={p.price}
+                      image={p.image}
+                      rating={p.rating}
+                      discount_percent={p.discount_percent}
+                      sale_ends_at={p.sale_ends_at}
+                      stock_quantity={p.stock_quantity}
+                      onClick={() => onProductClick(p)}
+                    />
+                  </div>
+                ))}
               </div>
-            )}
 
-            {!searchQuery && recommendedProducts.length > 0 && (
-              <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '12px' }}>Explore More Products</h3>
-            )}
-
-            <div className="product-grid">
-              {(searchQuery ? displayedProducts : catalogProducts).map((p, idx) => (
-                <div
-                  key={p.id}
-                  className="animate-slide-up"
-                  style={{
-                    animationDelay: `${idx * 0.05}s`,
-                    animationFillMode: 'both'
-                  }}
-                >
-                  <ProductCard
-                    id={p.id}
-                    name={p.name}
-                    price={p.price}
-                    image={p.image}
-                    rating={p.rating}
-                    discount_percent={p.discount_percent}
-                    sale_ends_at={p.sale_ends_at}
-                    stock_quantity={p.stock_quantity}
-                    onClick={() => onProductClick(p)}
-                  />
+              {visibleCount < eligibleProducts.length && !loading && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '48px', marginBottom: '24px' }}>
+                  <button 
+                    className="btn-primary" 
+                    onClick={() => setVisibleCount(prev => prev + itemsPerPage)}
+                    style={{ 
+                      padding: '14px 48px', 
+                      borderRadius: '100px', 
+                      fontWeight: 800,
+                      fontSize: '15px',
+                      boxShadow: '0 8px 24px rgba(var(--primary-rgb), 0.2)',
+                      transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    View More
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
 
-            {visibleCount < filteredProducts.length && !loading && (
-              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '48px', marginBottom: '24px' }}>
-                <button 
-                  className="btn-primary" 
-                  onClick={() => setVisibleCount(prev => prev + itemsPerPage)}
-                  style={{ 
-                    padding: '14px 48px', 
-                    borderRadius: '100px', 
-                    fontWeight: 800,
-                    fontSize: '15px',
-                    boxShadow: '0 8px 24px rgba(var(--primary-rgb), 0.2)',
-                    transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                  View More
-                </button>
-              </div>
-            )}
-          </>
+          </div>
         )}
       </div>
     </div>

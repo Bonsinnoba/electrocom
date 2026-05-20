@@ -47,6 +47,25 @@ try {
     error_log('hygiene order_idempotency: ' . $e->getMessage());
 }
 
+try {
+    // Anonymize accounts that have been soft-deleted past the 30-day grace period
+    $a = $pdo->exec("
+        UPDATE users
+        SET email = CONCAT('anonymized_', id, '@deleted.local'),
+            password_hash = 'ERASED',
+            name = 'Data Erased',
+            phone = NULL,
+            address = NULL,
+            status = 'Purged'
+        WHERE deleted_at IS NOT NULL 
+          AND deleted_at < DATE_SUB(NOW(), INTERVAL 30 DAY)
+          AND status = 'Deleted'
+    ");
+    $report['accounts_anonymized'] = (int)$a;
+} catch (Exception $e) {
+    error_log('hygiene accounts_anonymized: ' . $e->getMessage());
+}
+
 if (function_exists('logger')) {
     logger('info', 'HYGIENE', json_encode($report));
 }
