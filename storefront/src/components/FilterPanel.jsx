@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Filter, X, RotateCcw, Star } from 'lucide-react';
+import { Filter, X, RotateCcw, Star, Check } from 'lucide-react';
 
 export default function FilterPanel({ filters, setFilters, onReset, isMobile, onClose, categories = [], maxRange = 1000 }) {
   // Local state for the slider to feel responsive without triggering expensive filtering
@@ -11,7 +11,14 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
   }, [filters.maxPrice]);
 
   const handleCategoryChange = (cat) => {
-    setFilters(prev => ({ ...prev, category: cat }));
+    setFilters(prev => {
+      const exists = prev.categories.includes(cat);
+      if (exists) {
+        return { ...prev, categories: prev.categories.filter(c => c !== cat) };
+      } else {
+        return { ...prev, categories: [...prev.categories, cat] };
+      }
+    });
   };
 
   const handlePriceDrag = (e) => {
@@ -77,38 +84,89 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
           paddingBottom: isMobile ? '8px' : '0',
           scrollbarWidth: 'none',
         }}>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => handleCategoryChange(cat)}
-              className={`filter-pill ${filters.category === cat ? 'active' : ''}`}
-              style={{
-                width: isMobile ? 'max-content' : '100%',
-                padding: isMobile ? '10px 20px' : '8px 18px',
-                textAlign: 'center',
-                fontSize: '14px',
-                flexShrink: 0,
-                borderRadius: '100px'
-              }}
-            >
-              {cat}
-            </button>
-          ))}
+          {categories.map(cat => {
+            const isActive = filters.categories.includes(cat);
+            return (
+              <button
+                key={cat}
+                onClick={() => handleCategoryChange(cat)}
+                className={`filter-pill ${isActive ? 'active' : ''}`}
+                style={{
+                  width: isMobile ? 'max-content' : '100%',
+                  padding: isMobile ? (isActive ? '10px 16px 10px 14px' : '10px 20px') : (isActive ? '8px 14px 8px 12px' : '8px 18px'),
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  fontSize: '14px',
+                  flexShrink: 0,
+                  borderRadius: '100px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {isActive && <Check size={14} strokeWidth={3} style={{ color: 'var(--primary-blue)' }} />}
+                {cat}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <div className="filter-group">
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px', alignItems: 'center' }}>
-          <label style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Max Price</label>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <label style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Price Range</label>
+        </div>
+        
+        {/* Min / Max Inputs */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
             <span style={{ 
               position: 'absolute', 
-              left: isMobile ? '16px' : '12px', 
-              color: 'var(--primary-blue)', 
+              left: '10px', 
+              color: 'var(--text-muted)', 
               fontWeight: 800,
-              fontSize: isMobile ? '16px' : '14px',
-              pointerEvents: 'none'
-            }}>GH₵</span>
+              fontSize: '11px',
+              pointerEvents: 'none',
+              textTransform: 'uppercase'
+            }}>Min</span>
+            <input 
+              type="number"
+              min="0"
+              max={maxRange}
+              value={filters.minPrice}
+              onChange={(e) => {
+                const val = e.target.value === '' ? 0 : parseInt(e.target.value);
+                setFilters(prev => ({ ...prev, minPrice: Math.max(0, val) }));
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 8px 8px 38px',
+                borderRadius: '12px',
+                border: '1.5px solid var(--border-light)',
+                background: 'var(--bg-surface-secondary)',
+                fontSize: '14px',
+                fontWeight: 700,
+                color: 'var(--text-main)',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                WebkitAppearance: 'none'
+              }}
+            />
+          </div>
+
+          <span style={{ color: 'var(--text-muted)', fontWeight: 700 }}>-</span>
+
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+            <span style={{ 
+              position: 'absolute', 
+              left: '10px', 
+              color: 'var(--text-muted)', 
+              fontWeight: 800,
+              fontSize: '11px',
+              pointerEvents: 'none',
+              textTransform: 'uppercase'
+            }}>Max</span>
             <input 
               type="number"
               min="0"
@@ -123,7 +181,6 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
                 }
               }}
               onBlur={() => {
-                // If empty, default to maxRange so all products show
                 const finalVal = localPrice === '' ? maxRange : localPrice;
                 setLocalPrice(finalVal);
                 setFilters(prev => ({ ...prev, maxPrice: finalVal }));
@@ -136,23 +193,22 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
                 }
               }}
               style={{
-                width: isMobile ? '130px' : '110px',
-                padding: isMobile ? '12px 16px 12px 30px' : '8px 12px 8px 25px',
+                width: '100%',
+                padding: '8px 8px 8px 38px',
                 borderRadius: '12px',
                 border: '1.5px solid var(--border-light)',
                 background: 'var(--bg-surface-secondary)',
-                fontSize: isMobile ? '16px' : '15px',
-                fontWeight: 800,
-                color: 'var(--primary-blue)',
-                textAlign: 'right',
+                fontSize: '14px',
+                fontWeight: 700,
+                color: 'var(--text-main)',
                 outline: 'none',
                 transition: 'border-color 0.2s',
                 WebkitAppearance: 'none'
               }}
-              className="price-input-manual"
             />
           </div>
         </div>
+
         <div className="slider-wrapper" style={{ position: 'relative', padding: '0 2px' }}>
           <input 
             type="range" 
@@ -226,6 +282,34 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
             {filters.minRating}+ stars and above
           </div>
         )}
+      </div>
+
+      <div className="filter-group">
+        <label style={{ display: 'block', marginBottom: '14px', fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Availability</label>
+        <label style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '10px', 
+          cursor: 'pointer',
+          color: 'var(--text-main)',
+          fontSize: '14px',
+          fontWeight: 600,
+          userSelect: 'none'
+        }}>
+          <input 
+            type="checkbox" 
+            checked={filters.inStockOnly} 
+            onChange={(e) => setFilters(prev => ({ ...prev, inStockOnly: e.target.checked }))}
+            style={{
+              width: '18px',
+              height: '18px',
+              borderRadius: '6px',
+              accentColor: 'var(--primary-blue)',
+              cursor: 'pointer'
+            }}
+          />
+          Show In-Stock Only
+        </label>
       </div>
 
       <div style={{ 

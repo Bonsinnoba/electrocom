@@ -9,6 +9,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useSettings } from '../context/SettingsContext';
+import { formatImageUrl } from '../services/api';
 
 const itemKey = (item) => `${item.id}-${item.selectedColor}`;
 
@@ -137,7 +138,7 @@ export default function Cart() {
                   style={{ display:'flex', flexDirection:'column', gap:'8px', padding:'10px', borderRadius:'12px' }}
                 >
                   <img
-                    src={item.image || item.image_url}
+                    src={formatImageUrl(item.image || item.image_url)}
                     alt={item.name}
                     style={{ width:'100%', aspectRatio:'1/1', objectFit:'cover', borderRadius:'8px', border:'1px solid var(--border-light)' }}
                   />
@@ -223,7 +224,7 @@ export default function Cart() {
                     </button>
 
                     <div className="cart-item-image-wrapper">
-                      <img src={item.image} alt={item.name} className="cart-item-image" />
+                      <img src={formatImageUrl(item.image || item.image_url)} alt={item.name} className="cart-item-image" />
                     </div>
 
                     <div className="cart-item-details">

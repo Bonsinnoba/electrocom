@@ -46,6 +46,96 @@ export default function POSInterface() {
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+  // --- Phase 2: Offline Mode Queue ---
+  const [offlineOrders, setOfflineOrders] = useState(() => {
+    const stored = localStorage.getItem('ehub_offline_orders');
+    return stored ? JSON.parse(stored) : [];
+  });
+
+  const syncOfflineOrders = async () => {
+    if (offlineOrders.length === 0) return;
+    const token = localStorage.getItem('ehub_token');
+    let remaining = [...offlineOrders];
+    let syncedCount = 0;
+    
+    for (const order of offlineOrders) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/pos_checkout.php`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(order.payload)
+        });
+        if (response.ok) {
+          remaining = remaining.filter(o => o.id !== order.id);
+          syncedCount++;
+        }
+      } catch (err) {
+        break; // Stop if network is still down
+      }
+    }
+    
+    setOfflineOrders(remaining);
+    localStorage.setItem('ehub_offline_orders', JSON.stringify(remaining));
+    if (syncedCount > 0) {
+      addToast(`Successfully synced ${syncedCount} offline orders.`, 'success');
+      fetchProducts();
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('online', syncOfflineOrders);
+    return () => window.removeEventListener('online', syncOfflineOrders);
+  }, [offlineOrders]);
+
+  // --- Phase 2: Global Barcode Listener ---
+  useEffect(() => {
+    let barcodeString = '';
+    let barcodeTimeout = null;
+
+    const handleKeyDown = (e) => {
+      // Don't intercept if user is typing in a field, or dialog is open
+      if (isSearchFocused || posMode !== 'sale' || showSuccess || refundStep || returnOrderData) return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      if (e.key === 'Enter' && barcodeString.length > 2) {
+        const query = barcodeString.toLowerCase();
+        barcodeString = '';
+        const exactMatch = products.find(p => p.product_code?.toLowerCase() === query);
+        if (exactMatch) {
+          setCart(prev => {
+             const existing = prev.find(item => item.id === exactMatch.id);
+             if (existing) {
+               if (existing.quantity >= exactMatch.stock_quantity) {
+                 addToast('Limited availability', 'warning');
+                 return prev;
+               }
+               addToast(`Added ${exactMatch.name}`, 'success');
+               return prev.map(item => item.id === exactMatch.id ? { ...item, quantity: item.quantity + 1 } : item);
+             }
+             addToast(`Added ${exactMatch.name}`, 'success');
+             return [{ ...exactMatch, quantity: 1 }, ...prev];
+          });
+        }
+        return;
+      }
+
+      if (e.key.length === 1) {
+        barcodeString += e.key;
+        clearTimeout(barcodeTimeout);
+        barcodeTimeout = setTimeout(() => { barcodeString = ''; }, 50); // fast scanner typing
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(barcodeTimeout);
+    };
+  }, [isSearchFocused, posMode, showSuccess, refundStep, returnOrderData, products, addToast]);
+
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -270,7 +360,25 @@ export default function POSInterface() {
         addToast(result.message, 'error');
       }
     } catch (error) {
-      addToast('Checkout error', 'error');
+      // Offline fallback
+      const offlineId = Date.now();
+      const payload = {
+        items: cart.map(item => ({ id: item.id, quantity: item.quantity, price: item.price })),
+        total_amount: total,
+        payment_method: paymentMethod,
+        customer_email: customerEmail,
+        notes: notes
+      };
+      const newOffline = [...offlineOrders, { id: offlineId, payload }];
+      setOfflineOrders(newOffline);
+      localStorage.setItem('ehub_offline_orders', JSON.stringify(newOffline));
+      
+      setLastOrderId('OFFLINE-' + offlineId);
+      setLastTransaction({ cart: [...cart], total, paymentMethod, customerEmail });
+      setShowSuccess(true);
+      setCart([]);
+      setCustomerEmail('');
+      addToast('Network error. Order saved offline.', 'warning');
     } finally {
       setProcessing(false);
     }
@@ -372,6 +480,15 @@ export default function POSInterface() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {offlineOrders.length > 0 && (
+            <button
+               onClick={syncOfflineOrders}
+               className="btn"
+               style={{ background: 'var(--warning)', color: '#000', fontSize: '12px', padding: '8px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px', border: 'none', fontWeight: 'bold' }}
+            >
+              <RotateCcw size={14} /> Sync {offlineOrders.length} Offline
+            </button>
+          )}
           <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-surface)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
             <button
               type="button"
@@ -546,7 +663,7 @@ export default function POSInterface() {
                           </div>
                         </div>
                      </div>
-                     <div style={{ fontWeight: 800, color: 'var(--primary-blue)' }}>GH₵ {p.price}</div>
+                     <div style={{ fontWeight: 800, color: 'var(--primary-blue)' }}>GH₵ {Number(p.price || 0).toFixed(2)}</div>
                    </div>
                  );
                })}
@@ -597,7 +714,7 @@ export default function POSInterface() {
                         <div style={{ fontWeight: 700, fontSize: '14px' }}>{item.name}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.product_code || 'No Code'}</div>
                       </td>
-                      <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 600 }}>GH₵ {item.price}</td>
+                      <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 600 }}>GH₵ {Number(item.price || 0).toFixed(2)}</td>
                       <td style={{ padding: '16px 24px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface-secondary)', borderRadius: '20px', padding: '2px 4px', width: 'fit-content' }}>
                           <button 

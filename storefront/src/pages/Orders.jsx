@@ -17,6 +17,22 @@ const StatusIcon = ({ status }) => {
   }
 };
 
+const steps = [
+  { id: 'pending', label: 'Placed', icon: Clock, desc: 'Your order has been received' },
+  { id: 'processing', label: 'Processing', icon: Package, desc: 'We are preparing your items' },
+  { id: 'shipped', label: 'Shipped', icon: Truck, desc: 'Your order is on the way' },
+  { id: 'delivered', label: 'Delivered', icon: CheckCircle, desc: 'Order has been delivered' }
+];
+
+const getStatusIndex = (status) => {
+  const s = (status || 'pending').toLowerCase();
+  if (s === 'delivered') return 3;
+  if (s === 'shipped' || s === 'completed') return 2;
+  if (['processing', 'received', 'picking', 'picked'].includes(s)) return 1;
+  return 0;
+};
+
+
 const StatusBadge = ({ status }) => {
   const s = status ? status.toLowerCase() : 'unknown';
   
@@ -132,6 +148,91 @@ export default function Orders({ searchQuery }) {
           </div>
         </div>
       </div>
+
+      {/* Active Stepper Timeline */}
+      {order.status !== 'completed' && order.status !== 'delivered' && (
+         <div className="card-timeline" style={{
+           padding: '16px 8px 8px 8px',
+           borderTop: '1px solid var(--border-light)',
+           width: '100%',
+           boxSizing: 'border-box',
+           marginTop: '4px'
+         }}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', marginBottom: '8px' }}>
+              {/* Connector track */}
+              <div style={{
+                position: 'absolute',
+                top: '18px',
+                left: '20px',
+                right: '20px',
+                height: '3px',
+                background: 'var(--bg-surface-secondary)',
+                zIndex: 1,
+                borderRadius: '2px'
+              }}>
+                <div style={{
+                  height: '100%',
+                  background: 'var(--primary-blue)',
+                  width: `${(getStatusIndex(order.status) / (steps.length - 1)) * 100}%`,
+                  borderRadius: '2px',
+                  transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 0 8px rgba(59, 130, 246, 0.5)'
+                }}></div>
+              </div>
+
+              {steps.map((step, idx) => {
+                 const stepIdx = getStatusIndex(order.status);
+                 const isCompleted = idx <= stepIdx;
+                 const isActive = idx === stepIdx;
+                 const Icon = step.icon;
+
+                 return (
+                   <div key={step.id} style={{
+                     display: 'flex',
+                     flexDirection: 'column',
+                     alignItems: 'center',
+                     position: 'relative',
+                     zIndex: 2,
+                     width: '60px'
+                   }}>
+                     <div 
+                       className={`timeline-icon-container ${isActive ? 'active-pulse' : ''}`}
+                       style={{
+                         width: '36px',
+                         height: '36px',
+                         borderRadius: '10px',
+                         display: 'flex',
+                         alignItems: 'center',
+                         justifyContent: 'center',
+                         background: isCompleted ? 'var(--primary-blue)' : 'var(--bg-surface-secondary)',
+                         color: isCompleted ? '#ffffff' : 'var(--text-muted)',
+                         transition: 'all 0.5s ease',
+                         boxShadow: isCompleted ? '0 4px 10px rgba(59, 130, 246, 0.3)' : 'none',
+                         border: isActive ? '2px solid #ffffff' : 'none'
+                       }}
+                     >
+                       <Icon size={16} />
+                     </div>
+                     <span 
+                       className="timeline-label"
+                       style={{
+                         fontSize: '11px',
+                         fontWeight: isActive ? '800' : '600',
+                         color: isActive ? 'var(--primary-blue)' : (isCompleted ? 'var(--text-main)' : 'var(--text-muted)'),
+                         marginTop: '6px',
+                         textAlign: 'center',
+                         whiteSpace: 'nowrap',
+                         transition: 'all 0.3s ease'
+                       }}
+                     >
+                       {step.label}
+                     </span>
+                   </div>
+                 );
+              })}
+           </div>
+         </div>
+      )}
       
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '10px', width: '100%' }}>
         <StatusBadge status={order.status} />
@@ -260,6 +361,58 @@ export default function Orders({ searchQuery }) {
         }
         .status-badge-container {
            border-color: transparent !important;
+        }
+        
+        .active-pulse {
+          position: relative;
+        }
+        .active-pulse::after {
+          content: '';
+          position: absolute;
+          inset: -4px;
+          border-radius: 12px;
+          border: 2px solid var(--primary-blue);
+          animation: timeline-pulse 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
+          pointer-events: none;
+        }
+        @keyframes timeline-pulse {
+          0% {
+            transform: scale(0.95);
+            opacity: 0.8;
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+          }
+          70% {
+            transform: scale(1.15);
+            opacity: 0;
+            box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+          }
+          100% {
+            transform: scale(0.95);
+            opacity: 0;
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .card-timeline {
+            padding: 12px 0px 4px 0px !important;
+          }
+          .timeline-label {
+            font-size: 9px !important;
+            letter-spacing: -0.3px;
+          }
+          .timeline-icon-container {
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 8px !important;
+          }
+          .timeline-icon-container svg {
+            width: 12px !important;
+            height: 12px !important;
+          }
+          .timeline-label {
+            font-size: 8px !important;
+          }
         }
       `}} />
     </div>

@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { fetchSlides } from '../services/api';
 import { useSettings } from '../context/SettingsContext';
 
+const isVideo = (url) => url && (url.match(/\.(mp4|webm)$/i) || url.startsWith('data:video'));
+
 export default function HeroSlider() {
   const { siteSettings } = useSettings();
   const [slides, setSlides] = useState([]);
@@ -60,6 +62,10 @@ export default function HeroSlider() {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
+  // OPTION A: If any slide contains a video, use it as a persistent, global background 
+  // while the text/content wrapper continues to slide over it.
+  const globalVideoSlide = slides.find(s => isVideo(s.image_url));
+
   const getSidePadding = () => {
     const width = window.innerWidth;
     if (width <= 768) return '20px'; // Mobile
@@ -83,6 +89,16 @@ export default function HeroSlider() {
 
   return (
     <div className="hero-slider" style={{ position: 'relative', height: `${sliderHeight}px`, overflow: 'hidden', borderRadius: '16px' }}>
+      
+      {/* GLOBAL VIDEO BACKGROUND */}
+      {globalVideoSlide && (
+         <video 
+            src={globalVideoSlide.image_url}
+            autoPlay loop muted playsInline
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+         />
+      )}
+
       <div 
         className="slides-wrapper" 
         style={{ 
@@ -90,28 +106,45 @@ export default function HeroSlider() {
           width: '100%', 
           height: '100%', 
           transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: `translateX(-${currentSlide * 100}%)`
+          transform: `translateX(-${currentSlide * 100}%)`,
+          position: 'relative',
+          zIndex: 1
         }}
       >
         {slides.map((slide, index) => {
           const styles = getPositionStyles(slide.text_position);
           const isActive = index === currentSlide;
+          
+          // If we are using a global video, we don't render individual slide backgrounds.
+          const hasGlobalVideo = !!globalVideoSlide;
+
           return (
             <div
               key={slide.id}
               style={{
                 flex: "0 0 100%",
                 height: '100%',
-                backgroundImage: `url(${slide.image_url})`,
+                backgroundImage: (hasGlobalVideo || isVideo(slide.image_url)) ? 'none' : `url(${slide.image_url})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                position: 'relative'
+                position: 'relative',
+                overflow: 'hidden'
               }}
             >
+              {/* Individual Slide Video (Fallback if not using Global) */}
+              {!hasGlobalVideo && isVideo(slide.image_url) && (
+                 <video 
+                    src={slide.image_url}
+                    autoPlay loop muted playsInline
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+                 />
+              )}
+              
               <div style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
+                zIndex: 1,
                 width: '100%',
                 height: '100%',
                 background: styles.gradient,

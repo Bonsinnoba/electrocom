@@ -8,11 +8,191 @@
 
 ## 📋 Table of Contents
 
-1. [POS & Admin Refund System](#pos--admin-refund-system)
-2. [Registration UX](#registration-ux)
-3. [Case Studies & Design Conversations](#case-studies--design-conversations)
-4. [Pending / Future Work](#pending--future-work)
-5. [Decisions Index](#decisions-index)
+1. [Phase 5 — Flash Sale Countdown Banners](#phase-5--flash-sale-countdown-banners)
+2. [Phase 4 — Order Tracking Timeline UX](#phase-4--order-tracking-timeline-ux)
+3. [Phase 3 — Push Alerts & Advanced Filtering](#phase-3--push-alerts--advanced-filtering)
+4. [Partners Marquee Slider](#partners-marquee-slider)
+5. [POS & Admin Refund System](#pos--admin-refund-system)
+6. [Registration UX](#registration-ux)
+7. [Case Studies & Design Conversations](#case-studies--design-conversations)
+8. [Pending / Future Work](#pending--future-work)
+9. [Decisions Index](#decisions-index)
+
+---
+
+## Phase 5 — Flash Sale Countdown Banners
+
+### ✅ Flash Sale Countdown Banner Component
+**Completed:** 2026-05-20 · 22:20 UTC
+
+**What was built:**
+
+#### `storefront/src/components/FlashSaleBanner.jsx` [NEW]
+A premium, glassmorphic flash-sale banner rendered directly on the storefront homepage below the Hero Slider. Key features:
+
+| Feature | Details |
+|---|---|
+| **Dynamic Product Scanning** | Filters `products[]` prop for active discounts (`discount_percent > 0`) with future `sale_ends_at` timestamps |
+| **Spotlight Logic** | Selects the product with the **highest discount percentage** as the featured deal |
+| **Self-Healing Fallback** | If no sale items exist in the catalog, renders a beautiful "Weekend Tech Extravaganza" promotional banner with a rolling midnight countdown so the banner never looks empty |
+| **Real-Time Countdown** | 4-block timer (Days · Hours · Mins · Secs) updates via `setInterval` every second |
+| **Featured Product Card** | Compact inline card with product image, strikethrough original price, green promo price, and floating `SAVE X%` badge |
+| **Promo Code Fallback** | In non-sale mode, shows a glowing `CODE: FLASH35` promo code chip |
+
+**Micro-Animations & Styling:**
+- Deep dark glassmorphic gradient background with dual ambient radial red/blue glows
+- Pulsing flame icon animation (`@keyframes flame-pulse`) with CSS `filter: drop-shadow`
+- Hover: banner lifts 4px, border colour shifts to `rgba(239,68,68,0.2)`, CTA button glows
+- Responsive stacking via `flexWrap: wrap` — countdown blocks and product info drop to new rows on mobile
+
+**Integration:**
+- Injected into `storefront/src/pages/Home.jsx` directly below `<HeroSlider />`, conditional on `!searchQuery` so it never appears alongside search results
+
+**Decision:** Always render the banner (with a fallback), never conditionally hide it.
+**Why:** Hiding the banner when no active sales exist wastes a high-visibility homepage slot. A graceful fallback (store-wide promo code + rolling timer) keeps the urgency alive without requiring a live database sale to be active, ensuring the page always looks rich and promotional.
+
+---
+
+## Phase 6 — Comparison Panel, Stock Urgency Labels & Wishlist Sync
+
+### ✅ D — Wishlist Server Sync
+**Status:** Already complete (pre-existing) — `WishlistContext.jsx` calls `fetchWishlist`, `addToWishlist`, and `removeFromWishlist` from `api.js` on login and on every toggle. No changes required.
+
+---
+
+### ✅ E — Low Stock Urgency Labels on Product Cards
+**Completed:** 2026-05-21 · 01:30 UTC
+
+**What was built:**
+
+#### `storefront/src/components/ProductCard.jsx`
+Replaced the generic `"Available: N"` stock count with tiered urgency labels:
+
+| Stock Level | Label | Style |
+|---|---|---|
+| 1–5 | `🔥 Only N left!` | `var(--danger)` + `stock-urgency-pulse` CSS flicker animation |
+| 6–10 | `⚡ Selling fast` | `var(--warning)` amber |
+| > 10 | `✓ In Stock` | `var(--success)` green, 80% opacity |
+| 0 | SOLD OUT overlay | Pre-existing blur overlay — no change |
+
+#### `storefront/src/style.css`
+Added `@keyframes stock-urgency-flicker` (opacity 1 → 0.6 → 1 at 1.4s loop) bound to the `.stock-urgency-pulse` utility class.
+
+---
+
+### ✅ C — Product Comparison Panel
+**Completed:** 2026-05-21 · 01:38 UTC
+
+**What was built:**
+
+#### `storefront/src/context/ComparisonContext.jsx` [NEW]
+Global React context managing the comparison basket. Key behaviours:
+- `compareList[]` — array of up to **3** product objects
+- `addToCompare(product)` — no-op if already in list or list is full
+- `removeFromCompare(id)`, `clearCompare()`
+- `isInCompare(id)` — used by ProductCard for toggle state
+- `isModalOpen` + `openModal` / `closeModal` — shared modal gate
+
+#### `storefront/src/components/CompareBar.jsx` [NEW]
+Sticky bottom panel that slides up when `compareList.length > 0`:
+- 3 product slots (filled products show image + name + ×; empty slots show `+ Add product` ghost)
+- Count badge `N / 3 selected`
+- **Compare Now** button — disabled (opacity 50%) until ≥ 2 products selected
+- Clear button with red hover border
+- Animated entry via `compareBarSlideUp` CSS keyframe
+
+#### `storefront/src/components/CompareModal.jsx` [NEW]
+Bottom-sheet modal overlay with a scrollable comparison table:
+- Rows: **Product**, **Price**, **Rating**, **Category**, **Availability**, **Discount**, **Action**
+- Highlights winning cells: lowest price, highest rating, highest discount
+- `🏆 BEST` badge pinned top-right of winning cells
+- Stock column uses same tiered labels as ProductCard
+- Per-column **Add to Cart** button using `CartContext`
+- Dismisses on backdrop click or `×` button
+
+#### `storefront/src/components/ProductCard.jsx`
+Added a `<GitCompareArrows>` compare toggle button at `bottom: 12px, right: 12px` (above the existing wishlist/cart buttons). Blue fill when active, muted when not. Grayed out at 40% opacity when comparison list is full.
+
+#### `storefront/src/App.jsx`
+- Imported `ComparisonProvider`, `CompareBar`, `CompareModal`
+- Wrapped `<CartProvider>` children with `<ComparisonProvider>`
+- Rendered `<CompareBar />` and `<CompareModal />` globally before `<BackToTop />`
+
+---
+
+## Phase 4 — Order Tracking Timeline UX
+
+### ✅ Inline Stepper Timeline on Orders Page
+**Completed:** 2026-05-20 · 22:15 UTC
+
+**What was built:**
+
+#### `storefront/src/pages/Orders.jsx`
+- **Steps Array:** Defined 4 canonical shipment stages (`Placed`, `Processing`, `Shipped`, `Delivered`) with matching Lucide icons, mirroring the full Order Tracking Modal.
+- **`getStatusIndex(status)` helper:** Maps raw database status strings (`pending`, `processing`, `received`, `picking`, `picked`, `shipped`, `completed`, `delivered`) to a 0–3 index used to calculate connector width and determine the active node.
+- **Inline `.card-timeline` stepper:** Rendered between order info and action buttons on every active order card. Features a relative-positioned track with an absolute progress fill bar (`width: index/(steps.length-1) * 100%`) and 4 circular icon nodes.
+- **Active node styling:** The current step node receives the `.active-pulse` class, which triggers a CSS `@keyframes timeline-pulse` scale + opacity outline animation with a `var(--primary-blue)` border glow.
+- **Mobile overrides:** `@media (max-width: 480px)` scales node containers to 28px, SVG icons to 12px, and label font-size to 8px to prevent clipping on small screens.
+
+---
+
+## Phase 3 — Push Alerts & Advanced Filtering
+
+### ✅ C — Admin Push Notifications & Audio Chime Alerts
+**Completed:** 2026-05-20 · 18:10 UTC
+
+**What was built:**
+- **`admin-panel/src/context/NotificationContext.jsx`** — Three improvements in one file:
+
+  1. **10-second poll rate** (down from 45s) for near-real-time order detection.
+  2. **Web Audio API chime synthesiser** — on each new notification, the browser builds and plays a dual-tone E5/G5 chord (`oscillatorType: 'sine'`) in memory. No MP3 or external audio files required. The chime fades out gracefully using a gain envelope.
+  3. **Native Desktop Push Notifications** — `Notification.requestPermission()` is called when an admin mounts the context. If granted, a native OS notification fires for every new order with the notification title and body from the server.
+  4. **Baseline filter** — a `useRef` (`maxSeenIdRef`) records the highest notification ID present on the very first poll. Only IDs greater than that baseline trigger audio + push. This prevents the entire notification history from becoming a wall of alert sounds on page load.
+
+**Decision:** Use the Web Audio API rather than a static MP3.
+**Why:** Hosting a sound file requires a build-step asset path, a CORS-safe server config, and browser autoplay exceptions. The Web Audio API synthesises the tone in one function call with zero dependencies, works across all modern browsers, and can be called from any user-interaction context (the first poll after login counts).
+
+---
+
+### ✅ D — Advanced Storefront Product Filtering
+**Completed:** 2026-05-20 · 18:10 UTC
+
+**What was built:**
+
+#### `storefront/src/pages/Shop.jsx`
+| Filter | Before | After |
+|---|---|---|
+| Category | Single string `'All'` | Array `[]` — empty = all |
+| Price | Max price only | `minPrice` + `maxPrice` range |
+| Stock | Not available | `inStockOnly` boolean |
+
+Filter logic now checks: category in selected array **AND** price ≥ min **AND** price ≤ max **AND** rating ≥ minRating **AND** (stock > 0 if inStockOnly). The fallback "browse a category" buttons in the empty-state panel updated to set `categories: [cat]` (array) instead of the old `category: cat`.
+
+#### `storefront/src/components/FilterPanel.jsx`
+- **Categories** — Single-select pills replaced with **multi-select toggle pills**. Each pill flips its `categories[]` membership on click. Active pills show a `<Check>` icon from lucide-react.
+- **Price Range** — Single "Max Price" row replaced with a **Min–Max dual-input** layout. Both inputs share the same 12px radius style. The range slider underneath still controls the Max field and commits on `mouseup`/`touchend`.
+- **Availability** — New **"AVAILABILITY"** filter group with a native `<input type="checkbox">` labelled "Show In-Stock Only", styled with `accentColor: var(--primary-blue)`.
+- **Reset** — Clears all five filter dimensions back to their default empty/zero state.
+
+**Decision:** Keep categories as pills (not a dropdown) for discoverability.
+**Why:** The storefront has a small, well-defined category list (< 15 items). Pills let a customer scan all options at a glance and toggle multiple in two taps. A dropdown would require an extra click to open, hide the full option set, and makes multi-select UX awkward on mobile.
+
+---
+
+## Partners Marquee Slider
+
+### ✅ Phase 1 — Global Marquee & Admin Manager Integration
+**Completed:** 2026-05-20 · 02:26 UTC
+
+**What was built:**
+- **Storefront Component:** Created a premium, CSS-powered infinite marquee slider (`PartnersMarquee.jsx`) for partner logos, featuring glassmorphism and hover-to-pause functionality.
+- **Global Integration:** Injected the slider globally into `App.jsx` right above the `Footer`.
+- **Admin Tabbed UI:** Enhanced `admin-panel/src/pages/SliderManager.jsx` with a tabbed interface to manage both Hero Slides and Partner Logos within the same view.
+- **Backend & APIs:** Implemented `api/get_partners.php` and `api/admin_partners.php` with self-healing table initialization (`CREATE TABLE IF NOT EXISTS`) and base64 logo uploading logic.
+- **Deprecation Cleanup:** Removed the legacy dedicated `/collaborators` page and associated links in `Footer.jsx` and `AboutUs.jsx`.
+
+**Decision:** Rely entirely on pure CSS animations (`@keyframes`) for the infinite scroll rather than JavaScript libraries or timers.
+**Why:** JavaScript intervals for scroll animations suffer from stuttering and main-thread blocking. A CSS-based transform guarantees buttery-smooth, hardware-accelerated 60fps rendering without taxing the client's processor.
 
 ---
 

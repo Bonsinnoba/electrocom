@@ -471,7 +471,70 @@ export const deleteSlide = async (id) => {
         console.error('Error deleting slide:', error);
         throw error;
     }
+};
 
+export const fetchAdminPartners = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_partners.php?_t=${Date.now()}`, {
+            headers: getAuthHeaders()
+        });
+        const result = await response.json();
+        const partners = result.success ? result.data : [];
+        return partners.map(partner => ({
+            ...partner,
+            name: decodeHtml(partner.name),
+            logo_url: formatImageUrl(partner.logo_url)
+        }));
+    } catch (error) {
+        console.error('Error fetching admin partners:', error);
+        return [];
+    }
+};
+
+export const createPartner = async (partnerData) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_partners.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'create', ...partnerData }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error creating partner:', error);
+        throw error;
+    }
+};
+
+export const updatePartner = async (id, partnerData) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_partners.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'update', id, ...partnerData }),
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating partner:', error);
+        throw error;
+    }
+};
+
+export const deletePartner = async (id) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin_partners.php`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ action: 'delete', id }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || result.error || 'Failed to delete partner');
+        }
+        return result;
+    } catch (error) {
+        console.error('Error deleting partner:', error);
+        throw error;
+    }
 };
 
 // ─── Super User Endpoints ─────────────────────────────────────────────────────

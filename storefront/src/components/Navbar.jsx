@@ -215,7 +215,7 @@ export default function Navbar({
                     <img src={product.image || product.image_url} alt={product.name} className="result-thumb" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '10px' }} />
                     <div className="result-info">
                       <span className="result-name">{product.name}</span>
-                      <span className="result-meta">GH₵{product.price} • View Details</span>
+                      <span className="result-meta">GH₵{Number(product.price || 0).toFixed(2)} • View Details</span>
                     </div>
                     <ArrowRight size={14} className="result-arrow" />
                   </div>

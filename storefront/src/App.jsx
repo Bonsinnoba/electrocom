@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, Component, lazy, Suspense } from 'r
 import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import PartnersMarquee from './components/PartnersMarquee'
 import { X } from 'lucide-react'
 import BackToTop from './components/BackToTop'
 import { secureStorage } from './utils/secureStorage';
@@ -12,6 +13,9 @@ import { NotificationProvider, useNotifications } from './context/NotificationCo
 import { UserProvider } from './context/UserContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { ConfirmProvider } from './context/ConfirmContext';
+import { ComparisonProvider } from './context/ComparisonContext';
+import CompareBar from './components/CompareBar';
+import CompareModal from './components/CompareModal';
 
 import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 const ProductModal = lazy(() => import('./components/ProductModal'));
@@ -45,7 +49,6 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const TrackOrder = lazy(() => import('./pages/TrackOrder'));
 const CMSPage = lazy(() => import('./pages/CMSPage'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
-const Collaborators = lazy(() => import('./pages/Collaborators'));
 const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 
 const ScrollToTop = () => {
@@ -420,7 +423,6 @@ function AppContent() {
             <Route path="/order-success" element={<RouteLoader><OrderSuccess /></RouteLoader>} />
             <Route path="/transactions" element={<RouteLoader><Transactions /></RouteLoader>} />
             <Route path="/about" element={<RouteLoader><AboutUs /></RouteLoader>} />
-            <Route path="/collaborators" element={<RouteLoader><Collaborators /></RouteLoader>} />
 
             <Route path="/reset-password" element={<RouteLoader><ResetPassword /></RouteLoader>} />
             <Route path="/privacy-policy" element={<RouteLoader><PrivacyPolicy /></RouteLoader>} />
@@ -435,6 +437,7 @@ function AppContent() {
           </Routes>
         </main>
 
+        <PartnersMarquee />
         <Footer />
       </div>
 
@@ -535,6 +538,8 @@ function AppContent() {
       <Suspense fallback={null}>
         <ToastContainer />
       </Suspense>
+      <CompareBar />
+      <CompareModal />
       <BackToTop />
     </div>
   );
@@ -549,7 +554,9 @@ const AppProviders = ({ children }) => {
           <SettingsProvider>
             <WishlistProvider>
               <CartProvider>
+                <ComparisonProvider>
                   {children}
+                </ComparisonProvider>
               </CartProvider>
             </WishlistProvider>
           </SettingsProvider>

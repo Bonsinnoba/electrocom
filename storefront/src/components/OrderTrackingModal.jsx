@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, Clock, Truck, Package, Calendar, MapPin, ExternalLink } from 'lucide-react';
-import { fetchOrderDetails } from '../services/api';
+import { fetchOrderDetails, formatImageUrl } from '../services/api';
 import { formatRelativeTime, formatDate } from '../utils/dateFormatter';
 
 
@@ -192,7 +192,7 @@ export default function OrderTrackingModal({ orderId, isOpen, onClose }) {
                            <div className="w-10 h-10 rounded-lg bg-[var(--bg-main)] border border-[var(--border-light)] flex items-center justify-center overflow-hidden">
                               {item.image_url ? (
                                 <img 
-                                  src={item.image_url} 
+                                  src={formatImageUrl(item.image_url)} 
                                   alt={item.name} 
                                   style={{ 
                                     width: '100%', 

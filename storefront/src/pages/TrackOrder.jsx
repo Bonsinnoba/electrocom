@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Package, TrendingUp, CheckCircle, Clock } from 'lucide-react';
-import { trackOrder } from '../services/api';
+import { trackOrder, formatImageUrl } from '../services/api';
 import { useSettings } from '../context/SettingsContext';
 import styles from './TrackOrder.module.css';
 
@@ -200,7 +200,7 @@ export default function TrackOrder() {
                       <div style={{ width: '60px', height: '60px', borderRadius: '8px', background: 'white', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {item.image_url ? (
                           <img 
-                            src={item.image_url} 
+                            src={formatImageUrl(item.image_url)} 
                             alt={item.name} 
                             style={{ 
                               width: '100%', 

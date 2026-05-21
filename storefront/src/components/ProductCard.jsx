@@ -1,13 +1,15 @@
-import React from 'react';
-import { X, Star, Heart, ShoppingCart } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Star, Heart, ShoppingCart, GitCompareArrows } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useUser } from '../context/UserContext';
 import { useCart } from '../context/CartContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useComparison } from '../context/ComparisonContext';
 
 
 export default function ProductCard({ id, name, price, image, rating, discount_percent, sale_ends_at, stock_quantity, status = 'active', onClick, onRemove }) {
+  const [imgLoaded, setImgLoaded] = useState(false);
   const { formatPrice } = useSettings();
   const safeRating = parseFloat(rating) || 0;
   
@@ -17,13 +19,16 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
   const effectivePrice = isSaleActive ? discountedPrice : price;
   const stockQty = Number.isFinite(Number(stock_quantity)) ? Number(stock_quantity) : null;
   
-  // Use hooks for wishlist and user state
+  // Use hooks for wishlist, user, comparison state
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { user, openAuthModal } = useUser();
   const { addToCart } = useCart();
   const { addToast } = useNotifications();
+  const { addToCompare, removeFromCompare, isInCompare, compareList } = useComparison();
   const isOutOfStock = status === 'out_of_stock' || (stockQty !== null && stockQty <= 0);
-  const inWishlist = isInWishlist(id); 
+  const inWishlist = isInWishlist(id);
+  const inCompare = isInCompare(id);
+  const compareAtMax = compareList.length >= 3 && !inCompare; 
 
   const handleWishlistClick = (e) => {
     e.stopPropagation();
@@ -81,6 +86,36 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
         </button>
       )}
 
+      {/* Compare Toggle Button */}
+      {!onRemove && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            inCompare ? removeFromCompare(id) : addToCompare({ id, name, price, image, rating, discount_percent, sale_ends_at, stock_quantity, status, category: undefined });
+          }}
+          title={compareAtMax ? 'Max 3 products' : inCompare ? 'Remove from compare' : 'Add to compare'}
+          aria-label={inCompare ? 'Remove from compare' : 'Add to compare'}
+          style={{
+            position: 'absolute',
+            bottom: '12px',
+            right: '12px',
+            width: '32px', height: '32px',
+            borderRadius: '8px',
+            border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: compareAtMax ? 'not-allowed' : 'pointer',
+            background: inCompare ? 'var(--primary-blue)' : 'var(--bg-surface)',
+            color: inCompare ? '#fff' : 'var(--text-muted)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            opacity: compareAtMax ? 0.4 : 1,
+            transition: 'all 0.2s',
+            zIndex: 12,
+          }}
+        >
+          <GitCompareArrows size={14} />
+        </button>
+      )}
+
       
       {onRemove && (
         <button 
@@ -96,11 +131,17 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
         </button>
       )}
 
-      <div style={{ position: 'relative', width: '100%', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '100%', borderRadius: 'var(--radius-sm)', overflow: 'hidden', aspectRatio: '1/1' }}>
+        {!imgLoaded && (
+          <div className="skeleton" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: 'inherit' }}></div>
+        )}
         <img 
           src={image} 
           alt={name} 
           className="product-image" 
+          loading="lazy"
+          onLoad={() => setImgLoaded(true)}
+          style={{ opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.3s ease-in-out', width: '100%', height: '100%', objectFit: 'cover' }}
         />
         {isSaleActive && (
           <div style={{
@@ -173,10 +214,20 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
                 </div>
             )}
         </div>
-        {stockQty !== null && (
-          <p style={{ margin: '6px 0 0', fontSize: '12px', color: stockQty > 0 ? 'var(--text-muted)' : 'var(--danger)', fontWeight: 600 }}>
-            {stockQty > 0 ? `Available: ${stockQty}` : 'Out of stock'}
-          </p>
+        {stockQty !== null && stockQty > 0 && !isOutOfStock && (
+          stockQty <= 5 ? (
+            <p className="stock-urgency-pulse" style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--danger)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '12px' }}>🔥</span> Only {stockQty} left!
+            </p>
+          ) : stockQty <= 10 ? (
+            <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--warning)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '12px' }}>⚡</span> Selling fast
+            </p>
+          ) : (
+            <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.8 }}>
+              ✓ In Stock
+            </p>
+          )
         )}
       </div>
     </div>

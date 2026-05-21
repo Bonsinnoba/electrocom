@@ -28,6 +28,17 @@ const stringToSpecs = (str) => {
   return specs;
 };
 
+/**
+ * Returns true only when a product is actively on promotion:
+ * - discount_percent must be > 0
+ * - sale_ends_at must be absent OR in the future
+ */
+const isPromoActive = (product) => {
+  if (!product.discount_percent || product.discount_percent <= 0) return false;
+  if (!product.sale_ends_at || product.sale_ends_at === '0000-00-00 00:00:00') return true;
+  return new Date(product.sale_ends_at) > new Date();
+};
+
 const validateShelvingClient = (aisle, rack, bin) => {
   const a = String(aisle || '').trim();
   const r = String(rack || '').trim();
@@ -608,7 +619,7 @@ export default function ProductManager() {
                         <span style={{ fontWeight: 600 }}>{p.name}</span>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '2px' }}>
                           {p.product_code && <span style={{ fontSize: '11px', color: 'var(--primary-blue)', fontWeight: 700 }}>{p.product_code}</span>}
-                          {p.discount_percent > 0 && (
+                          {isPromoActive(p) && (
                             <span style={{ 
                               fontSize: '10px', 
                               color: 'white', 
@@ -630,13 +641,13 @@ export default function ProductManager() {
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ 
                         fontWeight: 700, 
-                        color: p.discount_percent > 0 ? 'var(--success)' : 'inherit' 
+                        color: isPromoActive(p) ? 'var(--success)' : 'inherit' 
                       }}>
-                        {formatPrice(p.discount_percent > 0 
+                        {formatPrice(isPromoActive(p) 
                           ? (p.price * (1 - p.discount_percent / 100))
                           : p.price)}
                       </span>
-                      {p.discount_percent > 0 && (
+                      {isPromoActive(p) && (
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
                           {formatPrice(p.price)}
                         </span>

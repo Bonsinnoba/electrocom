@@ -111,20 +111,6 @@ export default function AboutUs() {
         <p style={{ color: 'var(--text-muted)', fontSize: '15px', maxWidth: '500px', margin: '0 auto 24px auto', lineHeight: '1.6' }}>
           {`Our mission is to provide the best electronics with world-class support. ${siteSettings.siteName} is community-driven and always ready to help.`}
         </p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
-            <a href="/collaborators" style={{ 
-                padding: '10px 24px', 
-                borderRadius: '12px', 
-                background: 'var(--info-bg)', 
-                color: 'var(--primary-blue)', 
-                fontSize: '14px', 
-                fontWeight: 800,
-                textDecoration: 'none',
-                transition: 'all 0.2s'
-            }} onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'} onMouseOut={(e) => e.target.style.transform = 'scale(1)'}>
-                Recognize our Supporters
-            </a>
-        </div>
       </div>
 
       <style>{`

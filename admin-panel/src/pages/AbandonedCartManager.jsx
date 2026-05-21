@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Clock, User, Mail, DollarSign, AlertCircle, Eye, ChevronDown, ChevronUp } from 'lucide-react';
-import { fetchAbandonedCarts } from '../services/api';
+import { fetchAbandonedCarts, formatImageUrl } from '../services/api';
 import { useNotifications } from '../context/NotificationContext';
 
 export default function AbandonedCartManager() {
@@ -151,11 +151,11 @@ export default function AbandonedCartManager() {
                                   border: '1px solid var(--border-light)' 
                                 }}>
                                   <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: 'var(--bg-surface-secondary)', overflow: 'hidden' }}>
-                                    <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={formatImageUrl(item.image_url || item.image)} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   </div>
                                   <div style={{ flex: 1 }}>
                                     <div style={{ fontWeight: 600, fontSize: '14px' }}>{item.name}</div>
-                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{item.quantity} x GH₵ {item.price}</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{item.quantity} x GH₵ {Number(item.price || 0).toFixed(2)}</div>
                                   </div>
                                 </div>
                               ))}

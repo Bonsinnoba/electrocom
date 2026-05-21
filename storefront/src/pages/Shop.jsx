@@ -14,9 +14,11 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
   const [visibleCount, setVisibleCount] = useState(9);
   const [sortBy, setSortBy] = useState('featured');
   const [filters, setFilters] = useState({
-    category: 'All',
+    categories: [],
+    minPrice: 0,
     maxPrice: 2000, // Initial high default
-    minRating: 0
+    minRating: 0,
+    inStockOnly: false
   });
 
   const effectiveSearch = useMemo(
@@ -32,7 +34,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
   // Dynamically extract categories from the product list
   const availableCategories = useMemo(() => {
     const cats = new Set(products.map(p => (p.category || 'Uncategorized')));
-    return ['All', ...Array.from(cats).sort()];
+    return Array.from(cats).sort();
   }, [products]);
 
   // Find the maximum price among all products precisely
@@ -45,7 +47,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
     return Math.max(...prices, 1); // Ensure at least 1 to avoid slider errors
   }, [products]);
 
-  // Sync maxPrice filter default ONLY on initial load or if maxPrice is currently at 0 (unset)
+  // Sync maxPrice filter default ONLY on initial load or if maxPrice is currently at 2000 (unset)
   useEffect(() => {
     if (products.length > 0 && filters.maxPrice === 2000) {
       setFilters(f => ({ ...f, maxPrice: maxPriceInRange }));
@@ -57,7 +59,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
       const query = effectiveSearch;
       const normalizedQuery = normalizeSearchText(query);
       const name = String(p.name || '').toLowerCase();
-      const category = String(p.category || '').toLowerCase();
+      const category = String(p.category || 'Uncategorized').toLowerCase();
       const code = String(p.product_code || '').toLowerCase();
       const exactMatch = !query || name.includes(query) || category.includes(query) || code.includes(query);
       const fuzzyMatch = !exactMatch && (
@@ -67,17 +69,20 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
       );
       const matchSearch = exactMatch || fuzzyMatch;
       
-      const matchCategory = filters.category === 'All' || 
-                            category === filters.category.toLowerCase();
+      const matchCategory = filters.categories.length === 0 || 
+                            filters.categories.map(c => c.toLowerCase()).includes(category);
       
       const rawPrice = String(p.price || '0').replace(/[^0-9.]/g, '');
       const itemPrice = parseFloat(rawPrice) || 0;
-      const matchPrice = itemPrice <= (Number(filters.maxPrice) || Infinity);
+      const matchPrice = itemPrice >= filters.minPrice && itemPrice <= (Number(filters.maxPrice) || Infinity);
       
       const itemRating = parseFloat(p.rating) || 0;
       const matchRating = itemRating >= filters.minRating;
+
+      const getStock = (item) => Number(item.stock_quantity || 0);
+      const matchStock = !filters.inStockOnly || getStock(p) > 0;
       
-      return matchSearch && matchCategory && matchPrice && matchRating;
+      return matchSearch && matchCategory && matchPrice && matchRating && matchStock;
     });
     return filtered;
   }, [filters, effectiveSearch, products]);
@@ -126,9 +131,11 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
 
   const resetFilters = () => {
     setFilters({
-      category: 'All',
+      categories: [],
+      minPrice: 0,
       maxPrice: maxPriceInRange,
-      minRating: 0
+      minRating: 0,
+      inStockOnly: false
     });
   };
 
@@ -260,7 +267,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
                       type="button"
                       className="btn-outline"
                       style={{ fontSize: '12px', padding: '6px 12px' }}
-                      onClick={() => setFilters((f) => ({ ...f, category: cat }))}
+                      onClick={() => setFilters((f) => ({ ...f, categories: [cat] }))}
                     >
                       {cat}
                     </button>

@@ -3,7 +3,7 @@ import { X, Plus, Minus, ShoppingCart, Heart, FileText, Info, List, Settings, St
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
 import { useUser } from '../context/UserContext';
-import { fetchProductReviews, submitReview } from '../services/api';
+import { fetchProductReviews, submitReview, formatImageUrl } from '../services/api';
 
 
 export default function ProductModal({ product, products = [], isOpen, onClose, onAddToCart, onAddToWishlist, onProductClick }) {
@@ -124,7 +124,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
       price: currentPrice.toString(),
       original_price: basePrice + (selectedVariant ? parseFloat(selectedVariant.price_modifier) : 0),
       discount_percent: discount,
-      image: selectedVariant?.image_url || product.image,
+      image: (selectedVariant && selectedVariant.image_url) ? formatImageUrl(selectedVariant.image_url) : product.image,
       variant_sku: selectedVariant ? selectedVariant.sku : null,
       selected_attributes: selectedVariant ? selectedVariant.attributes : null
     };
@@ -213,7 +213,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
               {/* Primary Image Stage */}
               <div className="modal-image-stage">
                 <img 
-                  src={selectedVariant?.image_url || activeImage} 
+                  src={(selectedVariant && selectedVariant.image_url) ? formatImageUrl(selectedVariant.image_url) : activeImage} 
                   alt={product.name} 
                   style={{ 
                     width: '100%', 
@@ -641,7 +641,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                       >
                         <div style={{ width: '100%', height: '120px', background: 'white', borderRadius: '10px', overflow: 'hidden', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <img 
-                              src={rp.image_url || rp.image} 
+                              src={formatImageUrl(rp.image_url || rp.image)} 
                               alt={rp.name} 
                               style={{ 
                                 width: '100%', 

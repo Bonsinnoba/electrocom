@@ -55,7 +55,7 @@ if ($config['DB_AUTO_REPAIR'] ?? false) {
 if (!function_exists('saveBase64Image')) {
     function saveBase64Image(string $base64String): string
     {
-        if (!$base64String || strpos($base64String, 'data:image') === false) {
+        if (!$base64String || (strpos($base64String, 'data:image') === false && strpos($base64String, 'data:video') === false)) {
             return normalizeLocalPath($base64String);
         }
 
@@ -70,7 +70,7 @@ if (!function_exists('saveBase64Image')) {
         $header = $parts[0];
         $data = base64_decode($parts[1]);
 
-        preg_match('/image\/([a-z+]+);/', $header, $matches);
+        preg_match('/(?:image|video)\/([a-z0-9+-]+);/', $header, $matches);
         $ext = $matches[1] ?? 'png';
         $ext = ($ext === 'jpeg') ? 'jpg' : $ext;
 

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import ProductCard from '../components/ProductCard';
 import HeroSlider from '../components/HeroSlider';
+import FlashSaleBanner from '../components/FlashSaleBanner';
 import ProductSkeleton from '../components/ProductSkeleton';
 import { useSettings } from '../context/SettingsContext';
 import { useUser } from '../context/UserContext';
@@ -93,6 +94,7 @@ export default function Home({ products, onProductClick, searchQuery, loading })
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {!searchQuery && <HeroSlider />}
+      {!searchQuery && <FlashSaleBanner products={products} onProductClick={onProductClick} />}
       
       <div style={{ flex: 1 }}>
         {loading ? (
@@ -162,7 +164,7 @@ export default function Home({ products, onProductClick, searchQuery, loading })
               )}
 
               <div className="product-grid">
-                {(searchQuery ? displayedProducts : catalogProducts).map((p, idx) => (
+                {catalogProducts.map((p, idx) => (
                   <div
                     key={p.id}
                     className="animate-slide-up"
