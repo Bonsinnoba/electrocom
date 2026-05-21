@@ -90,10 +90,12 @@ export const UserProvider = ({ children }) => {
     // 3. System Cleanup
     localStorage.setItem('site_theme', 'blue');
     window.dispatchEvent(new Event('themeChange'));
-    
+
     try {
         await logoutUser();
-    } catch (e) {}
+    } catch (e) {
+        console.warn('Failed to logout user:', e);
+    }
   };
 
   const resetUser = () => {

@@ -159,10 +159,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $stmt = $pdo->prepare("
             SELECT 
                 o.id, o.total_amount, o.status, o.delivery_method, o.pickup_location_id, o.created_at,
-                GROUP_CONCAT(p.name SEPARATOR ', ') as items
+                GROUP_CONCAT(p.name SEPARATOR ', ') as items,
+                COALESCE(SUM(r.amount), 0) as refunded_amount,
+                MAX(CASE WHEN r.status = 'pending' THEN 1 ELSE 0 END) as has_pending_refund
             FROM orders o
             LEFT JOIN order_items oi ON o.id = oi.order_id
             LEFT JOIN products p ON oi.product_id = p.id
+            LEFT JOIN refunds r ON o.id = r.order_id AND r.status != 'failed'
             WHERE o.user_id = ?
             GROUP BY o.id
             ORDER BY o.created_at DESC

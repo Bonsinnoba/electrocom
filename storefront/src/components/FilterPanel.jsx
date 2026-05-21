@@ -1,14 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Filter, X, RotateCcw, Star, Check } from 'lucide-react';
 
-export default function FilterPanel({ filters, setFilters, onReset, isMobile, onClose, categories = [], maxRange = 1000 }) {
-  // Local state for the slider to feel responsive without triggering expensive filtering
-  const [localPrice, setLocalPrice] = useState(filters.maxPrice);
-
-  // Sync local price with global filter state (e.g. when reset or loaded)
-  useEffect(() => {
-    setLocalPrice(filters.maxPrice);
-  }, [filters.maxPrice]);
+export default function FilterPanel({ filters, setFilters, onReset, isMobile, onClose, categories = [], maxRange = 1000, priceValue, onPriceChange }) {
 
   const handleCategoryChange = (cat) => {
     setFilters(prev => {
@@ -19,14 +12,6 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
         return { ...prev, categories: [...prev.categories, cat] };
       }
     });
-  };
-
-  const handlePriceDrag = (e) => {
-    setLocalPrice(parseInt(e.target.value));
-  };
-
-  const handlePriceCommit = () => {
-    setFilters(prev => ({ ...prev, maxPrice: localPrice }));
   };
 
   const handleRatingChange = (rating) => {
@@ -75,14 +60,13 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
 
       <div className="filter-group">
         <label style={{ display: 'block', marginBottom: '14px', fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Category</label>
-        <div className="category-scroll-container" style={{ 
-          display: 'flex', 
-          flexDirection: isMobile ? 'row' : 'column',
-          flexWrap: isMobile ? 'nowrap' : 'wrap',
-          overflowX: isMobile ? 'auto' : 'visible',
-          gap: '10px',
-          paddingBottom: isMobile ? '8px' : '0',
-          scrollbarWidth: 'none',
+        <div className="category-scroll-container" style={{
+          display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: '6px',
+          paddingBottom: '0',
+          margin: '0 -30px',
         }}>
           {categories.map(cat => {
             const isActive = filters.categories.includes(cat);
@@ -92,8 +76,8 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
                 onClick={() => handleCategoryChange(cat)}
                 className={`filter-pill ${isActive ? 'active' : ''}`}
                 style={{
-                  width: isMobile ? 'max-content' : '100%',
-                  padding: isMobile ? (isActive ? '10px 16px 10px 14px' : '10px 20px') : (isActive ? '8px 14px 8px 12px' : '8px 18px'),
+                  width: 'auto',
+                  padding: isMobile ? (isActive ? '10px 16px 10px 14px' : '10px 20px') : (isActive ? '6px 16px 6px 14px' : '8px 45px'),
                   textAlign: 'left',
                   display: 'flex',
                   alignItems: 'center',
@@ -101,8 +85,9 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
                   gap: '6px',
                   fontSize: '14px',
                   flexShrink: 0,
-                  borderRadius: '100px',
-                  transition: 'all 0.2s ease'
+                  borderRadius: '12px',
+                  transition: 'all 0.2s ease',
+                  margin: '2px'
                 }}
               >
                 {isActive && <Check size={14} strokeWidth={3} style={{ color: 'var(--primary-blue)' }} />}
@@ -113,13 +98,13 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
         </div>
       </div>
 
-      <div className="filter-group">
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px', alignItems: 'center' }}>
-          <label style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Price Range</label>
+      <div className="filter-group" style={{ margin: '0 -30px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px', alignItems: 'center', margin: '0 15px' }}>
+          <label style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '10px' }}>Price Range</label>
         </div>
-        
+
         {/* Min / Max Inputs */}
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px', margin: '0 6px' }}>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
             <span style={{ 
               position: 'absolute', 
@@ -141,7 +126,7 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
               }}
               style={{
                 width: '100%',
-                padding: '8px 8px 8px 38px',
+                padding: '8px 15px 8px 40px',
                 borderRadius: '12px',
                 border: '1.5px solid var(--border-light)',
                 background: 'var(--bg-surface-secondary)',
@@ -171,30 +156,30 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
               type="number"
               min="0"
               max={maxRange}
-              value={localPrice}
+              value={priceValue !== undefined ? priceValue : filters.maxPrice}
               onChange={(e) => {
                 const val = e.target.value === '' ? '' : parseInt(e.target.value);
                 if (val === '') {
-                  setLocalPrice('');
+                  onPriceChange?.('');
                 } else {
-                  setLocalPrice(Math.max(0, Math.min(val, maxRange)));
+                  onPriceChange?.(Math.max(0, Math.min(val, maxRange)));
                 }
               }}
               onBlur={() => {
-                const finalVal = localPrice === '' ? maxRange : localPrice;
-                setLocalPrice(finalVal);
+                const finalVal = priceValue === '' ? maxRange : priceValue;
+                onPriceChange?.(finalVal);
                 setFilters(prev => ({ ...prev, maxPrice: finalVal }));
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  const finalVal = localPrice === '' ? maxRange : localPrice;
-                  setLocalPrice(finalVal);
+                  const finalVal = priceValue === '' ? maxRange : priceValue;
+                  onPriceChange?.(finalVal);
                   setFilters(prev => ({ ...prev, maxPrice: finalVal }));
                 }
               }}
               style={{
                 width: '100%',
-                padding: '8px 8px 8px 38px',
+                padding: '8px 18px 8px 40px',
                 borderRadius: '12px',
                 border: '1.5px solid var(--border-light)',
                 background: 'var(--bg-surface-secondary)',
@@ -209,16 +194,16 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
           </div>
         </div>
 
-        <div className="slider-wrapper" style={{ position: 'relative', padding: '0 2px' }}>
+        <div className="slider-wrapper" style={{ position: 'relative', padding: '0 2px', margin: '0 6px' }}>
           <input 
             type="range" 
             min="0" 
             max={maxRange} 
             step="1"
-            value={localPrice || 0}
-            onChange={handlePriceDrag}
-            onMouseUp={handlePriceCommit}
-            onTouchEnd={handlePriceCommit}
+            value={priceValue !== undefined ? priceValue : filters.maxPrice}
+            onChange={(e) => onPriceChange?.(parseInt(e.target.value))}
+            onMouseUp={() => setFilters(prev => ({ ...prev, maxPrice: priceValue !== undefined ? priceValue : filters.maxPrice }))}
+            onTouchEnd={() => setFilters(prev => ({ ...prev, maxPrice: priceValue !== undefined ? priceValue : filters.maxPrice }))}
             className="filter-range-slider"
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
@@ -228,16 +213,17 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
         </div>
       </div>
 
-      <div className="filter-group">
-        <label style={{ display: 'block', marginBottom: '14px', fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Min Rating</label>
-        <div style={{ 
-          display: 'flex', 
+      <div className="filter-group" style={{ margin: '0 -30px' }}>
+        <label style={{ display: 'block', marginBottom: '18px', fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 15px' }}>Min Rating</label>
+        <div style={{
+          display: 'flex',
           gap: isMobile ? '6px' : '4px',
           background: 'var(--bg-surface-secondary)',
-          padding: isMobile ? '12px' : '12px 8px',
+          padding: isMobile ? '12px' : '4px 100px',
           borderRadius: '16px',
           border: '1.5px solid var(--border-light)',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          margin: '0 6px'
         }}>
           {[1, 2, 3, 4, 5].map(star => (
             <button
@@ -284,17 +270,18 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
         )}
       </div>
 
-      <div className="filter-group">
-        <label style={{ display: 'block', marginBottom: '14px', fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Availability</label>
-        <label style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '10px', 
+      <div className="filter-group" style={{ margin: '0 -30px' }}>
+        <label style={{ display: 'block', marginBottom: '18px', fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 15px' }}>Availability</label>
+        <label style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
           cursor: 'pointer',
           color: 'var(--text-main)',
           fontSize: '14px',
           fontWeight: 600,
-          userSelect: 'none'
+          userSelect: 'none',
+          margin: '0 6px'
         }}>
           <input 
             type="checkbox" 

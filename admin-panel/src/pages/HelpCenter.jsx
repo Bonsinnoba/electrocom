@@ -106,6 +106,7 @@ export default function HelpCenter() {
     { id: 'alerts', label: 'Alerts' },
     ...(!isMarketing ? [{ id: 'settings', label: 'Settings' }] : []),
     ...(isSuper ? [{ id: 'super', label: 'Super admin' }] : []),
+    { id: 'new-features', label: 'New Features (Phases 3-6)' },
   ];
 
   // ── Scrollspy: track which section is in view ─────────────────────────────
@@ -839,6 +840,81 @@ export default function HelpCenter() {
               </p>
             </Section>
           )}
+
+          <Section id="new-features" icon={<Lightbulb size={22} />} title="New Features (Phases 3-6)">
+            <p className="help-lead">
+              Recent development phases have added powerful new features to both the admin panel and storefront. This section documents the key additions from Phases 3–6.
+            </p>
+
+            <h3 style={{ fontSize: 15, fontWeight: 800, margin: '20px 0 8px', color: 'var(--text-main)' }}>Flash Sale Banner (Phase 5)</h3>
+            <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--text-main)' }}>
+              Flash Sale Banners allow you to create time-limited promotional offers with live countdown timers on product cards. When a product has a <code>discount_percent</code> and <code>sale_ends_at</code> set, customers see an animated countdown badge showing how much time remains.
+            </p>
+            <StepList
+              items={[
+                'In Product Manager, set a discount percentage (e.g., 20 for 20% off) in the "Discount %" field.',
+                'Set the "Sale Ends At" date and time. This is when the flash sale expires.',
+                'Save the product. The storefront will automatically display a countdown badge on the product card.',
+                'The countdown updates in real-time and disappears when the sale ends.',
+                'Products with active flash sales are highlighted in the storefront with a special badge and urgency styling.',
+              ]}
+            />
+            <Callout type="tip">
+              Flash sales work best for limited-time promotions, clearance items, or seasonal offers. Set the end time strategically (e.g., midnight) to create urgency.
+            </Callout>
+
+            <h3 style={{ fontSize: 15, fontWeight: 800, margin: '20px 0 8px', color: 'var(--text-main)' }}>Product Comparison (Phase 6)</h3>
+            <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--text-main)' }}>
+              Product Comparison is a customer-facing feature that allows shoppers to compare up to 4 products side-by-side. Customers can add products to a comparison bar and view specs, prices, and features in a unified table.
+            </p>
+            <Callout type="note">
+              This is a customer-facing feature with no admin configuration required. It is automatically available on the storefront for all products.
+            </Callout>
+            <StepList
+              items={[
+                'Customers click "Compare" on product cards to add them to the comparison bar (max 4 products).',
+                'The comparison bar appears at the bottom of the screen, showing selected products.',
+                'Clicking "Compare Now" opens a comparison modal with specs, prices, and features side-by-side.',
+                'Customers can remove products from the comparison or clear all selections.',
+                'The comparison feature helps customers make informed purchasing decisions.',
+              ]}
+            />
+
+            <h3 style={{ fontSize: 15, fontWeight: 800, margin: '20px 0 8px', color: 'var(--text-main)' }}>Push Notification Chime (Phase 3C)</h3>
+            <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--text-main)' }}>
+              Push Notification Chime provides audio and desktop notifications for important events. When enabled, the browser plays a chime sound and shows a desktop notification for new orders, low-stock alerts, and other critical updates.
+            </p>
+            <StepList
+              items={[
+                'In your browser settings, grant permission for the site to send notifications.',
+                'The admin panel will play a subtle chime sound when new orders arrive or low-stock alerts trigger.',
+                'Desktop notifications appear even when the admin panel is in a background tab.',
+                'Audio chime can be toggled on/off in Settings if needed.',
+                'Notifications help staff stay aware of important events without constantly refreshing the page.',
+              ]}
+            />
+            <Callout type="warning">
+              Desktop notifications require browser permission. If users block notifications, the audio chime will still play, but desktop popups will not appear.
+            </Callout>
+
+            <h3 style={{ fontSize: 15, fontWeight: 800, margin: '20px 0 8px', color: 'var(--text-main)' }}>Advanced Filtering (Phase 3D)</h3>
+            <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--text-main)' }}>
+              Advanced Filtering enhances the storefront product grid with powerful filtering options. Customers can filter by multiple categories simultaneously, set min/max price ranges, and toggle "In Stock Only" to see only available products.
+            </p>
+            <StepList
+              items={[
+                'Category filter: Customers can select multiple categories (e.g., "Optics" AND "Connectors") to see products matching all selections.',
+                'Price range: Min and max price sliders allow customers to filter by budget.',
+                'In Stock Only: Toggle shows only products with available stock, hiding out-of-stock items.',
+                'Filters work together — customers can combine category, price, and stock filters simultaneously.',
+                'Filter state persists during navigation, making it easy to refine searches.',
+              ]}
+            />
+            <Callout type="tip">
+              If customers call asking how to find specific products, guide them to use the Advanced Filtering panel. It's much more powerful than the basic search bar.
+            </Callout>
+          </Section>
+
         </div>
       </div>
     </div>

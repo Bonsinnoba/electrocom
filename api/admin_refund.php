@@ -10,7 +10,7 @@
  *     "order_id":   42,
  *     "return_id":  7,          // optional – links to a specific order_returns row
  *     "amount":     50.00,      // GHS – must be <= order total, validated server-side
- *     "method":     "paystack"  // "paystack" | "cash"
+ *     "method":     "paystack"  // "paystack" | "cash" | "store_credit"
  *     "note":       "..."       // optional
  *   }
  *
@@ -198,9 +198,9 @@ $amount    = round((float)($data['amount'] ?? 0), 2);
 $method    = sanitizeInput($data['method'] ?? '');
 $note      = sanitizeInput($data['note'] ?? '');
 
-if ($orderId <= 0 || $amount <= 0 || !in_array($method, ['paystack', 'cash'], true)) {
+if ($orderId <= 0 || $amount <= 0 || !in_array($method, ['paystack', 'cash', 'store_credit'], true)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'order_id, a positive amount, and method (paystack|cash) are required.']);
+    echo json_encode(['success' => false, 'message' => 'order_id, a positive amount, and method (paystack|cash|store_credit) are required.']);
     exit;
 }
 
@@ -313,6 +313,24 @@ try {
         $status     = 'processed';
     } elseif ($method === 'cash') {
         // No gateway call – staff confirms physical cash was returned
+        $status = 'processed';
+    } elseif ($method === 'store_credit') {
+        // Convert refund amount to loyalty points (1 point per GHS 10)
+        $pointsToAward = (int)floor($amount * 10);
+        
+        // Get user_id from the order
+        $userStmt = $pdo->prepare('SELECT user_id FROM orders WHERE id = ?');
+        $userStmt->execute([$orderId]);
+        $userId = $userStmt->fetchColumn();
+        
+        if ($userId) {
+            // Award loyalty points
+            $pdo->prepare('UPDATE users SET loyalty_points = loyalty_points + ? WHERE id = ?')
+                ->execute([$pointsToAward, $userId]);
+            
+            $note .= " (Store Credit: {$pointsToAward} loyalty points awarded)";
+        }
+        
         $status = 'processed';
     }
 

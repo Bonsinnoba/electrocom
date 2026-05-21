@@ -13,7 +13,11 @@ export default function Support({ searchQuery = '' }) {
     { q: "What is your return policy for components?", a: "We accept returns for DOA or damaged-on-arrival components and unopened STEM kits within 14 days. You can easily select and request returns for multiple items from the same order at once directly through your dashboard's Return Manager. Opened component packs and ESD-damaged items are not eligible for return." },
     { q: "How do refunds work if I return multiple items?", a: "To optimize your audit trail and keep your statement clean, the platform consolidates refunds for multi-item returns. We process all returned items together and issue a single consolidated refund back to your original payment method (Paystack) or via cash." },
     { q: "Do you provide datasheets or documentation?", a: "Yes. For most ICs, sensors, and modules we can provide the manufacturer datasheet on request. Contact us with the part number and we'll send it within 24 hours." },
-    { q: "How do I cancel my order?", a: "Orders can be cancelled within 1 hour of placement by contacting our support team immediately. Orders already in processing cannot be cancelled." }
+    { q: "How do I cancel my order?", a: "Orders can be cancelled within 1 hour of placement by contacting our support team immediately. Orders already in processing cannot be cancelled." },
+    { q: "How do I compare products before buying?", a: "Click the 'Compare' button on any product card to add it to your comparison bar. You can compare up to 4 products side-by-side, viewing their specifications, prices, and features in a unified table to make an informed decision." },
+    { q: "What do 'Only 3 left!' and 'Selling fast' mean?", a: "These are stock urgency labels that help you understand product availability. 'Only X left!' indicates limited remaining stock, while 'Selling fast' shows items with high recent demand. Both labels help you make timely purchasing decisions." },
+    { q: "How do I use a promo code?", a: "During checkout, you'll find a promo code field in the order summary section. Enter your flash sale code and click 'Apply'. The discount will be instantly reflected in your total. Flash sale codes have expiration dates, so use them before they expire." },
+    { q: "Can I track my order in real time?", a: "Yes! Visit the Orders page in your dashboard to see a live timeline of your order status. The timeline shows each stage from processing to delivery, with real-time updates as your order progresses through fulfillment." }
   ];
 
   const filteredFaqs = faqs.filter(f => 
@@ -118,9 +122,32 @@ export default function Support({ searchQuery = '' }) {
           <MessageCircle size={32} />
         </div>
         <h2 style={{ fontSize: '28px', fontWeight: 800, margin: '0 0 12px 0' }}>Need instant assistance?</h2>
-        <p style={{ fontSize: '16px', opacity: 0.9, maxWidth: '500px', lineHeight: '1.6', marginBottom: '32px' }}>
+        <p style={{ fontSize: '16px', opacity: 0.9, maxWidth: '500px', lineHeight: '1.6', marginBottom: '24px' }}>
           Connect with our experts right now. Our average response time is under 1 minute for all active sessions.
         </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            padding: '8px 16px', 
+            borderRadius: '20px', 
+            background: 'rgba(255, 255, 255, 0.2)', 
+            backdropFilter: 'blur(10px)',
+            fontSize: '13px',
+            fontWeight: 700,
+            animation: 'pulse 2s ease-in-out infinite'
+          }}>
+            <span style={{ 
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%', 
+              background: '#22c55e',
+              animation: 'pulse 2s ease-in-out infinite'
+            }}></span>
+            All systems operational
+          </div>
+        </div>
         <button className="btn-primary" style={{ 
           background: 'white', 
           color: 'var(--primary-blue)', 

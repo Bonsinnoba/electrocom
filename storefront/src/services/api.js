@@ -477,3 +477,16 @@ export const submitMissingItemConfirmation = async (id, choice) => {
         return { success: false };
     }
 };
+
+export const requestReturn = async (orderId, items, reason) => {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/customer_return_request.php`, getFetchOptions({
+            method: 'POST',
+            body: JSON.stringify({ order_id: orderId, items, reason }),
+        }));
+        return await response.json();
+    } catch (error) {
+        console.error('Error requesting return:', error);
+        return { success: false, error: 'Network error' };
+    }
+};

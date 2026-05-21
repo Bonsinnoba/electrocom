@@ -12,7 +12,7 @@ const obfuscate = (str) => {
     if (!str) return str;
     try {
         return btoa(unescape(encodeURIComponent(str)));
-    } catch (e) {
+    } catch {
         return str;
     }
 };
@@ -21,7 +21,7 @@ const deobfuscate = (str) => {
     if (!str) return str;
     try {
         return decodeURIComponent(escape(atob(str)));
-    } catch (e) {
+    } catch {
         return str;
     }
 };
@@ -56,7 +56,9 @@ export const secureStorage = {
                 // Optional: clear other keys with APP_PREFIX to make room
                 try {
                     // Logic to clear old logs or non-essential keys could go here
-                } catch (e2) {}
+                } catch (e2) {
+                    console.warn('Failed to clear storage for quota:', e2);
+                }
             }
         }
     },

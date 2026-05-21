@@ -92,9 +92,13 @@ export default function Dashboard() {
   const stats = loading ? [] : [
     { label: 'Total Revenue',   value: fmt(data?.total_revenue  || 0), change: `${data?.total_orders || 0} orders`,  icon: <TrendingUp size={20} />, color: 'var(--primary-gold)' },
     { label: 'Total Users',     value: fmtN(data?.total_users   || 0), change: `${data?.total_admins || 0} admins`,  icon: <Users size={20} />,      color: '#3b82f6' },
+    { label: 'Unique Visitors', value: fmtN(data?.visitor_stats?.total_unique_visitors || 0), change: `${data?.visitor_stats?.total_registered_visitors || 0} registered`,  icon: <Globe size={20} />,      color: '#22c55e' },
     { label: 'Products Listed', value: fmtN(data?.total_products|| 0), change: 'In catalogue',                       icon: <Package size={20} />,    color: '#a855f7' },
   ];
+
+  const showVisitorDataNotice = !loading && data?.visitor_stats?.total_unique_visitors === 0;
   const filteredRevenueChart = buildFilledSeries(analytics?.revenue_chart, chartRange, ['daily_revenue']);
+  const filteredVisitorChart = buildFilledSeries(data?.visitor_growth_chart, chartRange, ['unique_visitors', 'new_visitors']);
   const suggestedActions = [
     (data?.total_products || 0) > 0 && (data?.total_orders || 0) < 5 ? {
       level: 'medium',
@@ -152,6 +156,17 @@ export default function Dashboard() {
           <div>
             <span style={{ fontWeight:800, color:'#ef4444' }}>API Error: </span>
             <span style={{ color:'var(--text-muted)', fontSize:'14px' }}>{error} — displaying cached/fallback data.</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Visitor Data Notice ─────────────────────────────────────────────── */}
+      {showVisitorDataNotice && (
+        <div style={{ marginBottom:'24px', padding:'14px 20px', background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.25)', borderRadius:'12px', display:'flex', gap:'12px', alignItems:'center' }}>
+          <Globe size={18} color="#22c55e" />
+          <div>
+            <span style={{ fontWeight:800, color:'#22c55e' }}>Visitor Analytics: </span>
+            <span style={{ color:'var(--text-muted)', fontSize:'14px' }}>No visitor data yet. Visit the storefront to start collecting analytics.</span>
           </div>
         </div>
       )}
@@ -214,10 +229,10 @@ export default function Dashboard() {
       {!loading && analytics && (
         <div style={{ marginBottom: '32px' }}>
           <h2 style={{ fontSize:'20px', fontWeight:800, marginBottom:'20px', display:'flex', alignItems:'center', gap:'10px' }}>
-            <Activity size={20} color="var(--primary-blue)" /> Advanced Sales Analytics
+            <Activity size={20} color="var(--primary-blue)" /> Advanced Analytics
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '24px' }}>
-            
+
             {/* Revenue Area Chart */}
             <div className="card glass">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom:'16px', gap: '8px', flexWrap: 'wrap' }}>
@@ -338,6 +353,66 @@ export default function Dashboard() {
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ── Visitor Growth Analytics ─────────────────────────────────────────── */}
+      {!loading && data?.visitor_growth_chart && data.visitor_growth_chart.length > 0 && (
+        <div style={{ marginBottom: '32px' }}>
+          <h2 style={{ fontSize:'20px', fontWeight:800, marginBottom:'20px', display:'flex', alignItems:'center', gap:'10px' }}>
+            <Globe size={20} color="#22c55e" /> Visitor Growth Analytics
+          </h2>
+          <div className="card glass">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom:'16px', gap: '8px', flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:0, color:'var(--text-muted)' }}>Unique Visitors vs New Visitors</h3>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[7, 30, 90, 365].map((days) => (
+                  <button key={days} type="button" className={`btn ${chartRange === days ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 10px', fontSize: '11px' }} onClick={() => setChartRange(days)}>
+                    {days === 365 ? '1y' : `${days}d`}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ height: '300px', width: '100%' }}>
+              <ResponsiveContainer>
+                <AreaChart data={filteredVisitorChart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorUnique" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.32}/>
+                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorNew" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.32}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 4" stroke="var(--border-light)" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={formatChartTick}
+                    stroke="var(--text-muted)"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(num) => num >= 1000 ? `${(num/1000).toFixed(0)}k` : num}
+                    stroke="var(--text-muted)"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '12px' }}
+                    formatter={(value, name) => [value, name === 'unique_visitors' ? 'Unique Visitors' : 'New Visitors']}
+                    labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                  />
+                  <Area type="monotone" dataKey="unique_visitors" stroke="#22c55e" strokeWidth={2.5} fillOpacity={1} fill="url(#colorUnique)" />
+                  <Area type="monotone" dataKey="new_visitors" stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorNew)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       )}

@@ -32,7 +32,7 @@ const GHANA_REGIONS = [
 ];
 
 export default function Checkout() {
-  const { cartItems, subtotal: fullSubtotal, clearCart, removeCheckedOutItems, appliedCoupon, applyCoupon, removeCoupon, isApplyingCoupon, couponError } = useCart();
+  const { cartItems, removeCheckedOutItems, appliedCoupon, applyCoupon, removeCoupon, isApplyingCoupon, couponError } = useCart();
   const location = useLocation();
   // Use items passed from Cart's selection; fall back to full cart
   const selectedItems = location.state?.selectedItems?.length ? location.state.selectedItems : cartItems;
@@ -87,7 +87,7 @@ export default function Checkout() {
           city: res.city || ''
         });
       }
-    } catch (err) {
+    } catch {
       setShippingData({ fee: 0, is_discounted: false, city: '' });
     }
   }, [formData.deliveryMethod, formData.region, subtotal]);
@@ -164,7 +164,7 @@ export default function Checkout() {
 
   const initializePayment = usePaystackPayment(paystackConfig);
 
-  const onSuccess = async (reference) => {
+  const onSuccess = useCallback(async (reference) => {
       // Payment was successful, order is already created as pending
       // We can just redirect to the success page now
       addToast('Payment successful! Your order is being processed.', 'success');
@@ -175,14 +175,14 @@ export default function Checkout() {
       navigate(`/order-success?ref=${reference.reference}`);
       setLoading(false);
       isProcessingOrder.current = false;
-  };
+  }, [addToast, removeCheckedOutItems, selectedItems, navigate]);
 
-  const onClose = () => {
+  const onClose = useCallback(() => {
       setLoading(false);
       isProcessingOrder.current = false;
       setPaymentInterrupted(true);
       addToast('Payment window closed. Your stock hold may expire—try again or contact support if this persists.', 'info');
-  };
+  }, [addToast]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -285,7 +285,7 @@ export default function Checkout() {
         initializePayment(onSuccess, onClose);
         setPendingRef(null); // Reset
     }
-  }, [paystackConfig.reference, pendingRef, initializePayment]);
+  }, [paystackConfig.reference, pendingRef, initializePayment, onSuccess, onClose]);
 
   // --- NEW: Proactive Reservation Hardening (Heartbeat & Beacon) ---
   useEffect(() => {
@@ -332,13 +332,12 @@ export default function Checkout() {
     }
   }, [user, navigate, addToast]);
 
+  const [errors, setErrors] = useState({});
+
   if (!user || selectedItems.length === 0) {
     if (selectedItems.length === 0) navigate('/cart');
     return null;
   }
-
-
-  const [errors, setErrors] = useState({});
 
   const validateShipping = () => {
     const newErrors = {};

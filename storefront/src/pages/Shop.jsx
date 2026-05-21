@@ -9,10 +9,14 @@ import {
   applySynonymsToQuery,
 } from '../utils/searchUtils';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 export default function Shop({ products, onProductClick, searchQuery, loading }) {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [visibleCount, setVisibleCount] = useState(9);
   const [sortBy, setSortBy] = useState('featured');
+  const [categories, setCategories] = useState([]);
+  const [localPrice, setLocalPrice] = useState(2000); // Local state for responsive slider
   const [filters, setFilters] = useState({
     categories: [],
     minPrice: 0,
@@ -20,6 +24,11 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
     minRating: 0,
     inStockOnly: false
   });
+
+  // Sync local price with filters.maxPrice when filters change (e.g., on reset)
+  useEffect(() => {
+    setLocalPrice(filters.maxPrice);
+  }, [filters.maxPrice]);
 
   const effectiveSearch = useMemo(
     () => applySynonymsToQuery(searchQuery).toLowerCase().trim(),
@@ -31,11 +40,27 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
     setVisibleCount(9);
   }, [filters, effectiveSearch]);
 
-  // Dynamically extract categories from the product list
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/get_categories.php`);
+        const result = await res.json();
+        if (result.success) {
+          setCategories(result.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Dynamically extract categories from the product list and API
   const availableCategories = useMemo(() => {
-    const cats = new Set(products.map(p => (p.category || 'Uncategorized')));
-    return Array.from(cats).sort();
-  }, [products]);
+    const apiCategories = categories.filter(c => c.is_active).map(c => c.name);
+    return Array.from(apiCategories).sort();
+  }, [categories]);
 
   // Find the maximum price among all products precisely
   const maxPriceInRange = useMemo(() => {
@@ -137,6 +162,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
       minRating: 0,
       inStockOnly: false
     });
+    setLocalPrice(maxPriceInRange);
   };
 
   return (
@@ -147,12 +173,14 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
     }}>
       {/* Desktop Filter Sidebar */}
       <aside className="desktop-filters card glass" style={{ height: 'fit-content', position: 'sticky', top: '24px' }}>
-        <FilterPanel 
-          filters={filters} 
-          setFilters={setFilters} 
-          onReset={resetFilters} 
+        <FilterPanel
+          filters={filters}
+          setFilters={setFilters}
+          onReset={resetFilters}
           categories={availableCategories}
           maxRange={maxPriceInRange}
+          priceValue={localPrice}
+          onPriceChange={setLocalPrice}
         />
       </aside>
 
@@ -355,14 +383,16 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
       {/* Mobile Filter Drawer Overlay - Styled in CSS */}
       <div className={`mobile-filter-drawer ${showMobileFilters ? 'active' : ''}`}>
         <div className="mobile-filter-content">
-          <FilterPanel 
-            filters={filters} 
-            setFilters={setFilters} 
-            onReset={resetFilters} 
+          <FilterPanel
+            filters={filters}
+            setFilters={setFilters}
+            onReset={resetFilters}
+            categories={availableCategories}
             isMobile={true}
             onClose={() => setShowMobileFilters(false)}
-            categories={availableCategories}
             maxRange={maxPriceInRange}
+            priceValue={localPrice}
+            onPriceChange={setLocalPrice}
           />
         </div>
         <div className="mobile-filter-backdrop" onClick={() => setShowMobileFilters(false)}></div>

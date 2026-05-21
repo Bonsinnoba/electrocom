@@ -9,16 +9,26 @@ export const formatDateTime = (date, options = {}) => {
     const d = new Date(date);
     if (isNaN(d.getTime())) return 'Invalid Date';
 
-    const defaultOptions = {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        ...options,
-    };
+    // Handle dateStyle/timeStyle options (newer Intl API)
+    let finalOptions = { ...options };
+    if (options.dateStyle || options.timeStyle) {
+        // If using dateStyle/timeStyle, use them directly
+        finalOptions = {
+            ...options,
+        };
+    } else {
+        // Otherwise use legacy options
+        finalOptions = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            ...options,
+        };
+    }
 
-    return new Intl.DateTimeFormat('en-US', defaultOptions).format(d);
+    return new Intl.DateTimeFormat('en-US', finalOptions).format(d);
 };
 
 /**

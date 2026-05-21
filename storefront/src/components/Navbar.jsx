@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Menu, Search, Map, ShoppingCart, Moon, Sun, X, ExternalLink, ArrowRight, Bell } from 'lucide-react';
-import CategoryDropdown from './CategoryDropdown';
 import { useCart } from '../context/CartContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useUser } from '../context/UserContext';
@@ -34,7 +33,7 @@ export default function Navbar({
   const location = useLocation();
   const navigate = useNavigate();
   const { cartCount } = useCart();
-  const { unreadCount, addNotification } = useNotifications();
+  const { unreadCount } = useNotifications();
   const { user } = useUser();
 
   const pages = [
@@ -78,7 +77,6 @@ export default function Navbar({
   const hasResults = results.pages.length > 0 || results.products.length > 0;
   const showRecentRow = isProductPage && isFocused && !String(searchQuery || '').trim() && recentSearches.length > 0;
   const showSearchDropdown = isFocused && (hasResults || showRecentRow);
-  const showFilter = location.pathname === '/' || location.pathname === '/shop';
   const searchPlaceholder = isProductPage ? "Search for products..." : "Search settings & notifications...";
 
   useEffect(() => {
@@ -229,8 +227,6 @@ export default function Navbar({
           <X size={20} />
         </div>
       </div>
-
-      {showFilter && <CategoryDropdown onSelect={(cat) => setSearchQuery(cat === 'All Categories' ? '' : cat)} />}
 
       <div className="nav-actions">
         {/* Mobile Search Toggle */}

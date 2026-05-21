@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Package, Truck, CheckCircle, Clock, ExternalLink, Calendar, Hash, MapPin, Loader, FileText } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, ExternalLink, Calendar, Hash, MapPin, Loader, FileText, RotateCcw, X } from 'lucide-react';
 import { formatDateTime } from '../utils/dateFormatter';
 import { useUser } from '../context/UserContext';
-import { fetchOrders, getInvoiceUrl } from '../services/api';
+import { fetchOrders, getInvoiceUrl, requestReturn } from '../services/api';
 import { useSettings } from '../context/SettingsContext';
 import OrderTrackingModal from '../components/OrderTrackingModal';
 
@@ -33,7 +33,7 @@ const getStatusIndex = (status) => {
 };
 
 
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status, refundedAmount, hasPendingRefund }) => {
   const s = status ? status.toLowerCase() : 'unknown';
   
   const colors = {
@@ -45,24 +45,46 @@ const StatusBadge = ({ status }) => {
   };
   const style = colors[s] || { bg: 'var(--bg-surface-secondary)', text: 'var(--text-muted)', border: 'transparent', label: status };
   
+  // Refund badge logic
+  const showRefundBadge = (refundedAmount > 0 || hasPendingRefund) && (s === 'completed' || s === 'delivered');
+  
   return (
-    <span style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '6px', 
-      padding: '6px 14px', 
-      borderRadius: '20px', 
-      fontSize: '11px', 
-      fontWeight: 800, 
-      textTransform: 'uppercase',
-      letterSpacing: '0.8px',
-      background: style.bg, 
-      color: style.text,
-      border: `1px solid ${style.bg === 'var(--bg-surface-secondary)' ? 'transparent' : style.text}`
-    }} className="status-badge-container">
-      <StatusIcon status={style.label} />
-      {style.label}
-    </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <span style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '6px', 
+        padding: '6px 14px', 
+        borderRadius: '20px', 
+        fontSize: '11px', 
+        fontWeight: 800, 
+        textTransform: 'uppercase',
+        letterSpacing: '0.8px',
+        background: style.bg, 
+        color: style.text,
+        border: `1px solid ${style.bg === 'var(--bg-surface-secondary)' ? 'transparent' : style.text}`
+      }} className="status-badge-container">
+        <StatusIcon status={style.label} />
+        {style.label}
+      </span>
+      {showRefundBadge && (
+        <span style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '4px 10px',
+          borderRadius: '12px',
+          fontSize: '10px',
+          fontWeight: 700,
+          background: hasPendingRefund ? 'var(--warning-bg)' : 'var(--success-bg)',
+          color: hasPendingRefund ? 'var(--warning)' : 'var(--success)',
+          border: `1px solid ${hasPendingRefund ? 'var(--warning)' : 'var(--success)'}`,
+          alignSelf: 'flex-start'
+        }}>
+          {hasPendingRefund ? '⏳ Pending Refund' : `✓ Refunded: GH₵ ${parseFloat(refundedAmount || 0).toFixed(2)}`}
+        </span>
+      )}
+    </div>
   );
 };
 
@@ -73,10 +95,57 @@ export default function Orders({ searchQuery }) {
   const [loading, setLoading] = useState(true);
   const [trackingOrderId, setTrackingOrderId] = useState(null);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+  
+  // Return request modal state
+  const [returnModalOrder, setReturnModalOrder] = useState(null);
+  const [selectedReturnItems, setSelectedReturnItems] = useState({});
+  const [returnReason, setReturnReason] = useState('');
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
 
   const openTracking = (id) => {
     setTrackingOrderId(id);
     setIsTrackingOpen(true);
+  };
+
+  const openReturnModal = (order) => {
+    setReturnModalOrder(order);
+    setSelectedReturnItems({});
+    setReturnReason('');
+  };
+
+  const closeReturnModal = () => {
+    setReturnModalOrder(null);
+    setSelectedReturnItems({});
+    setReturnReason('');
+  };
+
+  const handleSubmitReturn = async () => {
+    if (!returnModalOrder) return;
+    
+    const itemsPayload = Object.keys(selectedReturnItems).map(pid => ({
+      product_id: parseInt(pid, 10),
+      quantity: selectedReturnItems[pid]
+    })).filter(i => i.quantity > 0);
+
+    if (itemsPayload.length === 0) {
+      alert('Please select at least one item to return.');
+      return;
+    }
+
+    setIsSubmittingReturn(true);
+    try {
+      const res = await requestReturn(returnModalOrder.id, itemsPayload, returnReason);
+      if (res.success) {
+        alert('Return request submitted successfully! Awaiting admin approval.');
+        closeReturnModal();
+      } else {
+        alert(res.error || res.message || 'Failed to submit return request.');
+      }
+    } catch (error) {
+      alert('An error occurred while submitting your return request.');
+    } finally {
+      setIsSubmittingReturn(false);
+    }
   };
 
   useEffect(() => {
@@ -235,7 +304,33 @@ export default function Orders({ searchQuery }) {
       )}
       
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '10px', width: '100%' }}>
-        <StatusBadge status={order.status} />
+        <StatusBadge 
+          status={order.status} 
+          refundedAmount={order.refunded_amount} 
+          hasPendingRefund={order.has_pending_refund} 
+        />
+        {(order.status === 'completed' || order.status === 'delivered') && (
+          <button 
+            onClick={() => openReturnModal(order)}
+            className="btn-secondary" 
+            style={{ 
+              fontSize: '13px', 
+              fontWeight: 700,
+              padding: '10px 20px', 
+              borderRadius: '12px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              width: '100%',
+              justifyContent: 'center',
+              background: 'var(--warning-bg)',
+              color: 'var(--warning)',
+              border: '1px solid var(--warning)'
+            }}
+          >
+            <RotateCcw size={14} /> Request Return
+          </button>
+        )}
         <button 
           onClick={() => openTracking(order.id)}
           className="btn-secondary" 
@@ -344,6 +439,114 @@ export default function Orders({ searchQuery }) {
         orderId={trackingOrderId}
         onClose={() => setIsTrackingOpen(false)}
       />
+
+      {/* Return Request Modal */}
+      {returnModalOrder && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)',
+            borderRadius: '16px',
+            maxWidth: '500px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '24px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Request Return</h2>
+              <button
+                onClick={closeReturnModal}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '20px', padding: '12px', background: 'var(--bg-main)', borderRadius: '8px' }}>
+              <div style={{ fontWeight: 700, color: 'var(--primary-blue)' }}>Order #{returnModalOrder.id}</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                {formatPrice(parseFloat(returnModalOrder.total_amount || 0))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>
+                Select Items to Return
+              </label>
+              {returnModalOrder.items && Array.isArray(returnModalOrder.items) ? (
+                returnModalOrder.items.map((item, idx) => {
+                  const pid = item.product_id || item.id;
+                  const maxQty = item.quantity || item.qty || 1;
+                  return (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-main)', borderRadius: '8px', marginBottom: '8px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: '14px' }}>{item.name || item.product_name}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Max: {maxQty}</div>
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        max={maxQty}
+                        value={selectedReturnItems[pid] || 0}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setSelectedReturnItems(prev => ({
+                            ...prev,
+                            [pid]: isNaN(val) ? 0 : Math.min(maxQty, Math.max(0, val))
+                          }));
+                        }}
+                        style={{ width: '70px', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-light)', textAlign: 'center' }}
+                      />
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  No items found for this order.
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '14px' }}>
+                Reason for Return
+              </label>
+              <textarea
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                placeholder="Please explain why you want to return these items..."
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-main)', minHeight: '80px', resize: 'vertical', fontSize: '14px' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={closeReturnModal}
+                disabled={isSubmittingReturn}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-main)', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitReturn}
+                disabled={isSubmittingReturn}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: 'var(--primary-blue)', color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isSubmittingReturn ? 0.7 : 1 }}
+              >
+                {isSubmittingReturn ? 'Submitting...' : 'Submit Request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{ __html: `
         @media (min-width: 1024px) {

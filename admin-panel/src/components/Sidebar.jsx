@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, Settings, Tag,
   LogOut, MapPin, ShieldAlert, Database, Globe, Zap, Activity, ShieldCheck,
   Star, Bell, ShoppingBag, RotateCcw, ClipboardList, MessageSquare, Truck, Megaphone,
-  BookOpen, Mail, Layout
+  BookOpen, Mail, Layout, Layers
 } from 'lucide-react';
 import { useAdminSettings } from '../context/AdminSettingsContext';
 import { useConfirm } from '../context/ConfirmContext';

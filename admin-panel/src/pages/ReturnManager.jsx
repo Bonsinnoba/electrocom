@@ -17,6 +17,7 @@ import {
   Loader,
   BadgeDollarSign,
   XCircle,
+  Star,
 } from 'lucide-react';
 import { fetchReturns, processReturn, fetchOrders, fetchRefundInfo, issueRefund } from '../services/api';
 import { useNotifications } from '../context/NotificationContext';
@@ -329,7 +330,7 @@ export default function ReturnManager() {
               <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
                 REFUND METHOD
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '16px' }}>
                 <button
                   type="button"
                   className={`btn ${refundMethod === 'cash' ? 'btn-primary' : 'btn-secondary'}`}
@@ -346,11 +347,25 @@ export default function ReturnManager() {
                 >
                   <CreditCard size={14} /> PAYSTACK
                 </button>
+                <button
+                  type="button"
+                  className={`btn ${refundMethod === 'store_credit' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontSize: '12px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  onClick={() => setRefundMethod('store_credit')}
+                >
+                  <Star size={14} /> STORE CREDIT
+                </button>
               </div>
 
               {refundMethod === 'paystack' && !refundInfo?.order?.payment_reference && (
                 <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.10)', borderRadius: '10px', marginBottom: '14px', fontSize: '12px', color: 'var(--warning)', fontWeight: 600 }}>
                   ⚠ No Paystack reference on this order. Switch to Cash or verify the payment method.
+                </div>
+              )}
+              {refundMethod === 'store_credit' && (
+                <div style={{ padding: '10px 14px', background: 'rgba(99,102,241,0.10)', borderRadius: '10px', marginBottom: '14px', fontSize: '12px', color: 'var(--primary-blue)', fontWeight: 600 }}>
+                  <Star size={12} style={{ marginRight: '4px' }} />
+                  Customer will receive {Math.floor(parseFloat(refundAmount || 0) * 10)} loyalty points (1 point per GHS 10)
                 </div>
               )}
 

@@ -71,8 +71,7 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
   const inWishlist = isInWishlist(product.id);
   const gallery = Array.isArray(product.gallery) ? product.gallery : [];
   const allImages = Array.from(new Set([product.image, ...gallery].filter(Boolean))).slice(0, 4);
-  const datasheetQuery = encodeURIComponent(`${product.product_code || product.name} datasheet pdf`);
-  const datasheetUrl = `https://www.google.com/search?q=${datasheetQuery}`;
+  const datasheetUrl = product.datasheet_url || `https://www.google.com/search?q=${encodeURIComponent(`${product.product_code} ${product.name} datasheet pdf`)}`;
 
   // Smarter recommendations based on category, price proximity, ratings, popularity, and user behavior.
   let related = [];

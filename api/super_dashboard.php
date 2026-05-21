@@ -43,6 +43,37 @@ try {
     // ── Products ─────────────────────────────────────────────────────────────
     $productRow = $pdo->query("SELECT COUNT(*) AS total_products FROM products")->fetch();
 
+    // ── Visitor Statistics ────────────────────────────────────────────────────
+    $visitorStats = [];
+    $visitorGrowthChart = [];
+    try {
+        // Get total unique visitors
+        $totalVisitors = $pdo->query("SELECT COUNT(*) as total FROM site_analytics")->fetch(PDO::FETCH_ASSOC)['total'];
+
+        // Get total registered visitors (users with accounts who have visited)
+        $totalRegisteredVisitors = $pdo->query("SELECT COUNT(*) as total FROM site_analytics WHERE is_registered = 1")->fetch(PDO::FETCH_ASSOC)['total'];
+
+        $visitorStats = [
+            'total_unique_visitors' => (int)$totalVisitors,
+            'total_registered_visitors' => (int)$totalRegisteredVisitors
+        ];
+
+        // Get visitor growth data for the last 30 days
+        $visitorGrowthChart = $pdo->query("
+            SELECT date, unique_visitors, registered_visitors, total_visits, new_visitors
+            FROM site_analytics_history
+            WHERE date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            ORDER BY date ASC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        // Table might not exist yet, default to 0
+        $visitorStats = [
+            'total_unique_visitors' => 0,
+            'total_registered_visitors' => 0
+        ];
+        $visitorGrowthChart = [];
+    }
+
     // ── Recent Orders (last 5) ────────────────────────────────────────────────
     $recent = $pdo->query("
         SELECT o.id, o.total_amount, o.status, o.created_at,
@@ -131,6 +162,9 @@ try {
             'cancelled'  => (int)($revenueRow['cancelled'] ?? 0),
         ],
         'recent_orders'  => $recent,
+
+        'visitor_stats'  => $visitorStats,
+        'visitor_growth_chart' => $visitorGrowthChart,
 
         'auth_origins'   => $authOrigins,
         'auth_origins_window_days' => $authLogTotal > 0 ? 30 : null,

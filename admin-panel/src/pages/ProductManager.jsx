@@ -57,11 +57,12 @@ export default function ProductManager() {
   const { addToast } = useNotifications();
   const { confirm } = useConfirm();
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [formData, setFormData] = useState({ 
+  const [formData, setFormData] = useState({
     name: '', category: '', price: '', stock: '', description: '', image: '',
     rating: 5,
     product_code: '',
@@ -72,7 +73,8 @@ export default function ProductManager() {
     gallery: ['', '', '', ''],
     variants: [],
     discount_percent: 0,
-    sale_ends_at: ''
+    sale_ends_at: '',
+    datasheet_url: ''
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
@@ -81,9 +83,10 @@ export default function ProductManager() {
   const fileInputRef = React.useRef(null);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
 
-  const defaultCategories = ['Optics', 'Connectors', 'Electromechanical', 'Semiconductors', 'Passives'];
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
   const uniqueCategories = Array.from(new Set([
-    ...defaultCategories,
+    ...categories.map(c => c.name),
     ...products.map(p => p.category).filter(Boolean)
   ]));
 
@@ -94,8 +97,21 @@ export default function ProductManager() {
   useEffect(() => {
     if (!isAccountant) {
       loadProducts();
+      loadCategories();
     }
   }, []);
+
+  const loadCategories = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/get_categories.php`);
+      const result = await res.json();
+      if (result.success) {
+        setCategories(result.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    }
+  };
 
   if (isAccountant) {
     return (
@@ -134,10 +150,11 @@ export default function ProductManager() {
   const handleOpenModal = (product = null) => {
     if (product) {
       setEditingProduct(product);
-      const isCustom = product.category && !defaultCategories.includes(product.category);
+      const categoryNames = categories.map(c => c.name);
+      const isCustom = product.category && !categoryNames.includes(product.category);
       setIsCustomCategory(isCustom);
-      const galleryData = Array.isArray(product.gallery) 
-        ? [...product.gallery.map(img => formatImageUrl(img)), '', '', '', ''].slice(0, 4) 
+      const galleryData = Array.isArray(product.gallery)
+        ? [...product.gallery.map(img => formatImageUrl(img)), '', '', '', ''].slice(0, 4)
         : ['', '', '', ''];
 
       setFormData({
@@ -159,14 +176,15 @@ export default function ProductManager() {
         gallery: galleryData,
         variants: product.variants || [],
         discount_percent: product.discount_percent ? parseInt(product.discount_percent) : 0,
-        sale_ends_at: (product.sale_ends_at && product.sale_ends_at !== '0000-00-00 00:00:00') 
-            ? String(product.sale_ends_at).substring(0, 16).replace(' ', 'T') 
-            : ''
+        sale_ends_at: (product.sale_ends_at && product.sale_ends_at !== '0000-00-00 00:00:00')
+            ? String(product.sale_ends_at).substring(0, 16).replace(' ', 'T')
+            : '',
+        datasheet_url: product.datasheet_url || ''
       });
     } else {
       setEditingProduct(null);
       setIsCustomCategory(false);
-      setFormData({ 
+      setFormData({
         name: '', category: '', price: '', stock: '', description: '', image: '',
         colors: '', specs: '', included: '', directions: '', status: 'In Stock',
         rating: 5,
@@ -178,7 +196,8 @@ export default function ProductManager() {
         gallery: ['', '', '', ''],
         variants: [],
         discount_percent: 0,
-        sale_ends_at: ''
+        sale_ends_at: '',
+        datasheet_url: ''
       });
     }
     setShowModal(true);
@@ -707,9 +726,9 @@ export default function ProductManager() {
                 </td>
                 <td style={{ padding: '16px 24px' }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn" onClick={() => handleOpenModal(p)} title="Edit Product" style={{ padding: '8px', color: 'var(--primary-blue)', background: 'var(--info-bg)', borderRadius: '8px' }}><Edit2 size={16} /></button>
+                    <button className="btn" onClick={(e) => { e.stopPropagation(); handleOpenModal(p); }} title="Edit Product" style={{ padding: '8px', color: 'var(--primary-blue)', background: 'var(--info-bg)', borderRadius: '8px', cursor: 'pointer' }}><Edit2 size={16} /></button>
                     {!isMarketing && (
-                      <button className="btn" onClick={() => handleDelete(p.id)} title="Delete Product" style={{ padding: '8px', color: 'var(--danger)', background: 'var(--danger-bg)', borderRadius: '8px' }}><Trash2 size={16} /></button>
+                      <button className="btn" onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }} title="Delete Product" style={{ padding: '8px', color: 'var(--danger)', background: 'var(--danger-bg)', borderRadius: '8px', cursor: 'pointer' }}><Trash2 size={16} /></button>
                     )}
                   </div>
                 </td>
@@ -770,6 +789,16 @@ export default function ProductManager() {
                       onChange={(e) => setFormData({ ...formData, product_code: e.target.value })}
                       style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none' }}
                       placeholder="e.g. NE555"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Datasheet URL</label>
+                    <input 
+                      type="url" 
+                      value={formData.datasheet_url}
+                      onChange={(e) => setFormData({ ...formData, datasheet_url: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)', color: 'var(--text-main)', outline: 'none' }}
+                      placeholder="https://example.com/datasheet.pdf"
                     />
                   </div>
                 </div>

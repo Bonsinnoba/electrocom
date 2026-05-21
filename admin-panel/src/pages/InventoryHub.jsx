@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ProductManager from './ProductManager';
 import BulkShelvingTool from './BulkShelvingTool';
-import { Package, Layers } from 'lucide-react';
+import CategoryManager from './CategoryManager';
+import { Package, Layers, Tag } from 'lucide-react';
 
 export default function InventoryHub() {
   const { user } = useAuth();
@@ -12,13 +13,20 @@ export default function InventoryHub() {
   const isPicker = role === 'picker';
 
   const availableTabs = [];
-  
+  const isManager = role === 'store_manager' || role === 'super' || role === 'admin';
+
   if (!isAccountant && !isPicker) {
-    availableTabs.push({ 
-      id: 'products', 
-      label: 'Product Catalog', 
-      icon: <Package size={16} />, 
-      component: <ProductManager /> 
+    availableTabs.push({
+      id: 'products',
+      label: 'Product Catalog',
+      icon: <Package size={16} />,
+      component: <ProductManager />
+    });
+    availableTabs.push({
+      id: 'categories',
+      label: 'Category Manager',
+      icon: <Tag size={16} />,
+      component: <CategoryManager />,
     });
     availableTabs.push({
       id: 'bulk_shelving',

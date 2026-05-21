@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   Download,
   FileText,
+  RotateCcw,
+  Clock,
 } from 'lucide-react';
 import { fetchAnalytics } from '../services/api';
 import { useAdminSettings } from '../context/AdminSettingsContext';
@@ -575,7 +577,7 @@ export default function Dashboard() {
               <Activity size={16} className="text-success animate-pulse" /> LIVE FEED
            </div>
            <div className="glass" style={{ padding: '8px 16px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Calendar size={16} /> MARCH 2026
+              <Calendar size={16} /> {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }).toUpperCase()}
            </div>
         </div>
       </header>
@@ -627,6 +629,29 @@ export default function Dashboard() {
           color="var(--success)"
           trendLabel="Direct Reach"
         />
+        <StatCard
+          icon={<DollarSign size={24} />}
+          label="Net Revenue"
+          value={`GH₵ ${Number(data?.net_revenue || 0).toLocaleString()}`}
+          color="var(--success)"
+          trendLabel="After Refunds"
+        />
+        <StatCard
+          icon={<RotateCcw size={24} />}
+          label="Returns Rate"
+          value={data?.total_orders > 0 ? `${((data?.total_returns_count || 0) / data.total_orders * 100).toFixed(1)}%` : '0.0%'}
+          color="var(--warning)"
+          trendLabel="Of Total Orders"
+        />
+        {data?.pending_orders !== undefined && (
+          <StatCard
+            icon={<Clock size={24} />}
+            label="Pending Orders"
+            value={String(data.pending_orders)}
+            color="var(--info)"
+            trendLabel="Awaiting Processing"
+          />
+        )}
       </div>
 
       {suggestedActions.length > 0 && (

@@ -18,6 +18,21 @@ try {
 // Self-healing: Ensure table and columns exist
 if ($config['DB_AUTO_REPAIR'] ?? false) {
     try {
+        // Create categories table for centralized category management
+        $pdo->exec("CREATE TABLE IF NOT EXISTS categories (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL UNIQUE,
+            slug VARCHAR(100) NOT NULL UNIQUE,
+            description TEXT,
+            icon VARCHAR(50),
+            display_order INT DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_display_order (display_order),
+            INDEX idx_is_active (is_active)
+        )");
+
         $pdo->exec("CREATE TABLE IF NOT EXISTS products (
             id INT AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
@@ -71,6 +86,9 @@ if ($config['DB_AUTO_REPAIR'] ?? false) {
         }
         if (!in_array('sale_ends_at', $columns)) {
             $pdo->exec("ALTER TABLE products ADD COLUMN sale_ends_at DATETIME DEFAULT NULL AFTER discount_percent");
+        }
+        if (!in_array('datasheet_url', $columns)) {
+            $pdo->exec("ALTER TABLE products ADD COLUMN datasheet_url VARCHAR(500) DEFAULT NULL AFTER sale_ends_at");
         }
 
         // Performance Indexing
@@ -290,6 +308,7 @@ if ($method === 'POST') {
     $gallery_input = $decoded['gallery'] ?? [];
     $variants = $decoded['variants'] ?? [];
     $discount_percent = max(0, min(100, (int)($decoded['discount_percent'] ?? 0)));
+    $datasheet_url = sanitizeInput($decoded['datasheet_url'] ?? '');
     
     $sale_ends_at = null;
     if (!empty($decoded['sale_ends_at'])) {
@@ -326,8 +345,8 @@ if ($method === 'POST') {
         try {
             $pdo->beginTransaction();
             $status = ($stock > 0) ? 'active' : 'out_of_stock';
-            $stmt = $pdo->prepare("INSERT INTO products (name, category, price, discount_percent, sale_ends_at, stock_quantity, rating, description, image_url, gallery, colors, specs, included, directions, product_code, location, aisle, rack, bin, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$name, $category, $price, $discount_percent, $sale_ends_at, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location, $aisle, $rack, $bin, $status]);
+            $stmt = $pdo->prepare("INSERT INTO products (name, category, price, discount_percent, sale_ends_at, datasheet_url, stock_quantity, rating, description, image_url, gallery, colors, specs, included, directions, product_code, location, aisle, rack, bin, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$name, $category, $price, $discount_percent, $sale_ends_at, $datasheet_url, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location, $aisle, $rack, $bin, $status]);
             $productId = $pdo->lastInsertId();
 
             if (is_array($variants)) {
@@ -401,8 +420,8 @@ if ($method === 'POST') {
             $pdo->beginTransaction();
             // Manual status sync during update
             $newStatus = ($stock > 0) ? 'active' : 'out_of_stock';
-            $stmt = $pdo->prepare("UPDATE products SET name = ?, category = ?, price = ?, discount_percent = ?, sale_ends_at = ?, stock_quantity = ?, rating = ?, description = ?, image_url = ?, gallery = ?, colors = ?, specs = ?, included = ?, directions = ?, product_code = ?, location = ?, aisle = ?, rack = ?, bin = ?, status = ? WHERE id = ?");
-            $stmt->execute([$name, $category, $price, $discount_percent, $sale_ends_at, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location, $aisle, $rack, $bin, $newStatus, $id]);
+            $stmt = $pdo->prepare("UPDATE products SET name = ?, category = ?, price = ?, discount_percent = ?, sale_ends_at = ?, datasheet_url = ?, stock_quantity = ?, rating = ?, description = ?, image_url = ?, gallery = ?, colors = ?, specs = ?, included = ?, directions = ?, product_code = ?, location = ?, aisle = ?, rack = ?, bin = ?, status = ? WHERE id = ?");
+            $stmt->execute([$name, $category, $price, $discount_percent, $sale_ends_at, $datasheet_url, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location, $aisle, $rack, $bin, $newStatus, $id]);
 
             if ($oldProduct) {
                 if ($image_url !== $oldProduct['image_url'] && $oldProduct['image_url'] && file_exists($oldProduct['image_url']) && is_file($oldProduct['image_url'])) unlink($oldProduct['image_url']);

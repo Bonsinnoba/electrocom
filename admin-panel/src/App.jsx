@@ -30,6 +30,7 @@ const PickupLocationManager = lazy(() => import('./pages/super-user/PickupLocati
 const PickerDashboard = lazy(() => import('./pages/PickerDashboard'));
 const HelpCenter = lazy(() => import('./pages/HelpCenter'));
 const CMSManager = lazy(() => import('./pages/CMSManager'));
+const CategoryManager = lazy(() => import('./pages/CategoryManager'));
 
 // ─── Toast Overlay ────────────────────────────────────────────────────────────
 const AdminToasts = () => {
@@ -326,6 +327,7 @@ function AppContent() {
         } />
 
         <Route path="/catalog" element={<ProtectedLayout><RouteLoader><InventoryHub /></RouteLoader></ProtectedLayout>} />
+        <Route path="/categories" element={<ProtectedLayout><RouteLoader><CategoryManager /></RouteLoader></ProtectedLayout>} />
         <Route path="/sales" element={<ProtectedLayout><RouteLoader><SalesHub /></RouteLoader></ProtectedLayout>} />
         <Route path="/marketing" element={<ProtectedLayout><RouteLoader><MarketingHub /></RouteLoader></ProtectedLayout>} />
         

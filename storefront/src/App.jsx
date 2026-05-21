@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import PartnersMarquee from './components/PartnersMarquee'
+import RecentlyViewedProducts from './components/RecentlyViewedProducts'
 import { X } from 'lucide-react'
 import BackToTop from './components/BackToTop'
 import { secureStorage } from './utils/secureStorage';
@@ -104,7 +105,9 @@ function AppContent() {
         } else {
           setIsMaintenanceMode(false);
         }
-      } catch {}
+      } catch (error) {
+        console.warn('Failed to check maintenance mode:', error);
+      }
     };
     checkMaintenance();
     const intervalId = setInterval(checkMaintenance, 300000); // re-check every 5 minutes
@@ -181,7 +184,7 @@ function AppContent() {
 
   // Apply dynamic site branding
   useEffect(() => {
-    const { primaryColor, accentColor, headerBg, fontFamily, siteName, siteTagline, metaDescription, faviconUrl, maintenanceMode } = siteSettings;
+    const { primaryColor, accentColor, headerBg, fontFamily, siteName, siteTagline, metaDescription, faviconUrl } = siteSettings;
     
     if (primaryColor) {
       document.documentElement.style.setProperty('--primary-blue', primaryColor);
@@ -316,11 +319,53 @@ function AppContent() {
             try {
                 const data = await fetchOrders(user.id);
                 setOrders(data);
-            } catch (error) {}
+            } catch (error) {
+                console.warn('Failed to load orders:', error);
+            }
         };
         loadOrders();
     }
   }, [user, activeDrawer]);
+
+  // Track site visits (only once per session across all tabs)
+  useEffect(() => {
+    const trackVisit = async () => {
+      try {
+        // Check if already tracked in this session (shared across tabs via localStorage)
+        const sessionStartTime = localStorage.getItem('ehub_session_start');
+        const now = Date.now();
+        const SESSION_DURATION = 30 * 60 * 1000; // 30 minutes
+
+        if (sessionStartTime && (now - parseInt(sessionStartTime)) < SESSION_DURATION) {
+          return; // Already tracked within session duration
+        }
+
+        // Get or generate visitor ID
+        let visitorId = localStorage.getItem('ehub_visitor_id');
+        if (!visitorId) {
+          visitorId = crypto.randomUUID();
+          localStorage.setItem('ehub_visitor_id', visitorId);
+        }
+
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        await fetch(`${API_BASE}/track_visit.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            visitor_id: visitorId,
+            user_id: user?.id || null
+          })
+        });
+
+        // Mark session as tracked with timestamp
+        localStorage.setItem('ehub_session_start', now.toString());
+      } catch (error) {
+        console.warn('Failed to track visit:', error);
+      }
+    };
+
+    trackVisit();
+  }, [user]);
 
   const closeDrawers = () => setActiveDrawer(null);
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
@@ -437,6 +482,9 @@ function AppContent() {
           </Routes>
         </main>
 
+        {(location.pathname === '/' || location.pathname === '/shop') && (
+          <RecentlyViewedProducts products={products} />
+        )}
         <PartnersMarquee />
         <Footer />
       </div>
@@ -572,7 +620,7 @@ class ErrorBoundary extends Component {
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error) {
     return { hasError: true };
   }
 
