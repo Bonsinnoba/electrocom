@@ -8,10 +8,6 @@ require __DIR__ . '/vendor/autoload.php';
 
 use League\OAuth2\Client\Provider\GenericProvider;
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 header('Content-Type: application/json');
 
 if (!isset($config) || !is_array($config)) {
@@ -239,8 +235,30 @@ try {
             'sms_tracking'       => (bool)($user['sms_tracking'] ?? true),
             'theme'              => $user['theme'] ?? 'blue',
         ];
-        $encodedUser = base64_encode(json_encode($minimalUser));
-        $location = rtrim($frontend, '/') . '/?social_token=' . urlencode($token) . '&social_user=' . urlencode($encodedUser);
+        
+        // Store opaque code in a shared file (not $_SESSION) so the exchange
+        // endpoint can read it cross-origin without relying on cookie-based sessions.
+        $opaqueCode = bin2hex(random_bytes(16));
+        $codeFile = __DIR__ . '/data/social_auth_codes.json';
+        if (!is_dir(__DIR__ . '/data')) {
+            mkdir(__DIR__ . '/data', 0755, true);
+        }
+        $codes = [];
+        if (file_exists($codeFile)) {
+            $codes = json_decode(file_get_contents($codeFile), true) ?: [];
+        }
+        // Purge any expired codes while we're here
+        $now = time();
+        $codes = array_filter($codes, fn($c) => isset($c['expires_at']) && $c['expires_at'] > $now);
+        $codes[$opaqueCode] = [
+            'token'      => $token,
+            'user'       => $minimalUser,
+            'expires_at' => $now + 300 // 5 minutes
+        ];
+        file_put_contents($codeFile, json_encode($codes, JSON_PRETTY_PRINT), LOCK_EX);
+        
+        // Redirect with opaque code instead of actual token
+        $location = rtrim($frontend, '/') . '/?social_auth=' . urlencode($opaqueCode);
         
         // Use window.location.replace to prevent history bloat (Backward/Forward situtation fix)
         header('Content-Type: text/html; charset=UTF-8');

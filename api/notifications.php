@@ -46,7 +46,7 @@ class NotificationService
                 $message, 
                 !empty($payload) ? json_encode($payload) : null
             ]);
-            logger('info', 'NOTIF_QUEUE', "Queued $type for $recipient: " . substr($message, 0, 50) . "...");
+            // Reduced logging: Only log errors, not successful queue operations
             return true;
         } catch (Exception $e) {
             logger('error', 'NOTIF_QUEUE', "Failed to queue notification: " . $e->getMessage());

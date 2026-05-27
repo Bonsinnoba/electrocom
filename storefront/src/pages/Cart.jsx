@@ -176,7 +176,7 @@ export default function Cart() {
 
 
   return (
-    <div className="animate-fade-in cart-container" style={{ display:'flex', flexDirection:'column', gap:'24px', position:'relative', width:'100%', maxWidth:'100%' }}>
+    <div className="animate-fade-in cart-container">
       <div className="page-header cart-page-header">
         <h1 className="cart-title">Shopping Cart</h1>
         <p className="cart-subtitle">You have {cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in your cart.</p>
@@ -188,18 +188,19 @@ export default function Cart() {
           <div className="cart-items-section">
 
             {/* Select-All bar */}
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', marginBottom:'12px', background:'var(--bg-surface)', borderRadius:'12px', border:'1px solid var(--border-light)' }}>
+            <div className="cart-select-all-bar">
               <button
                 onClick={toggleSelectAll}
-                style={{ display:'flex', alignItems:'center', gap:'10px', background:'none', border:'none', cursor:'pointer', color:'var(--text-main)', fontWeight:700, fontSize:'14px', padding:0 }}
+                className="btn-select-all"
+                title={allSelected ? 'Deselect All' : 'Select All'}
               >
                 {allSelected
                   ? <CheckSquare size={20} color="var(--primary-blue)" />
                   : <Square size={20} color="var(--text-muted)" />
                 }
-                {allSelected ? 'Deselect All' : 'Select All'}
+                <span>{allSelected ? 'Deselect All' : 'Select All'}</span>
               </button>
-              <span style={{ fontSize:'13px', color:'var(--text-muted)' }}>
+              <span className="selected-items-count">
                 {selectedKeys.size} of {cartItems.length} selected
               </span>
             </div>
@@ -208,17 +209,18 @@ export default function Cart() {
               {cartItems.map((item, index) => {
                 const k = itemKey(item);
                 const isSelected = selectedKeys.has(k);
+                const inWish = isInWishlist(item.id);
                 return (
                   <div
                     key={`${item.id}-${item.selectedColor}-${index}`}
-                    className="cart-item-card animate-slide-up"
-                    style={{ animationDelay:`${index * 0.05}s`, animationFillMode:'both', opacity: isSelected ? 1 : 0.45, transition:'opacity 0.2s' }}
+                    className={`cart-item-card animate-slide-up ${isSelected ? 'selected' : ''}`}
+                    style={{ animationDelay:`${index * 0.05}s`, animationFillMode:'both', opacity: isSelected ? 1 : 0.5, transition:'all 0.3s ease' }}
                   >
                     {/* Checkbox */}
                     <button
                       onClick={() => toggleItem(item)}
                       title={isSelected ? 'Deselect' : 'Select'}
-                      style={{ background:'none', border:'none', cursor:'pointer', padding:'0 8px 0 0', flexShrink:0, display:'flex', alignItems:'center', color: isSelected ? 'var(--primary-blue)' : 'var(--text-muted)' }}
+                      className={`cart-item-checkbox ${isSelected ? 'selected' : ''}`}
                     >
                       {isSelected ? <CheckSquare size={20} /> : <Square size={20} />}
                     </button>
@@ -228,36 +230,59 @@ export default function Cart() {
                     </div>
 
                     <div className="cart-item-details">
-                      <div className="cart-item-header">
-                        <div>
+                      {/* Left column: name, color, unit price, quantity */}
+                      <div className="cart-item-left">
+                        <div className="cart-item-info">
                           <h4 className="cart-item-name">{item.name}</h4>
-                          <div className="cart-item-color">{item.selectedColor}</div>
+                          <div className="cart-item-meta">
+                            <span className={`cart-item-color ${(!item.selectedColor || item.selectedColor.toLowerCase() === 'default') ? 'default-badge' : 'color-badge'}`}>
+                              {item.selectedColor || 'Default'}
+                            </span>
+                            <span className="cart-item-unit-price">{formatPrice(parseFloat(item.price))} each</span>
+                          </div>
                         </div>
-                        <button onClick={() => setConfirmDelete(item)} className="btn-remove-cart" title="Remove Item">
-                          <Trash2 size={20} />
-                        </button>
+
+                        <div className="cart-qty-wrapper">
+                          <div className="cart-qty-control">
+                            <button onClick={() => updateQuantity(item.id, item.selectedColor, -1)} className="btn-qty btn" title="Decrease Quantity"><Minus size={14} /></button>
+                            <span className="qty-display">{item.quantity}</span>
+                            <button onClick={() => updateQuantity(item.id, item.selectedColor, 1)} className="btn-qty btn" title="Increase Quantity"><Plus size={14} /></button>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="cart-item-footer">
-                        <div className="cart-qty-control">
-                          <button onClick={() => updateQuantity(item.id, item.selectedColor, -1)} className="btn-qty btn"><Minus size={16} /></button>
-                          <span className="qty-display">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.id, item.selectedColor, 1)} className="btn-qty btn"><Plus size={16} /></button>
-                        </div>
-                        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
+                      {/* Right column: subtotal, discount, actions */}
+                      <div className="cart-item-right">
+                        <div className="cart-item-price-wrapper">
                           <div className="item-total-price" style={{ color: item.discount_percent > 0 ? 'var(--success)' : 'inherit' }}>
                             {formatPrice(parseFloat(item.price) * item.quantity)}
                           </div>
                           {item.discount_percent > 0 && (
-                            <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                              <span style={{ fontSize:'12px', color:'var(--text-muted)', textDecoration:'line-through' }}>
+                            <div className="cart-item-discount-row">
+                              <span className="original-price-strike">
                                 {formatPrice(parseFloat(item.original_price || item.price) * item.quantity)}
                               </span>
-                              <span style={{ fontSize:'10px', fontWeight:800, background:'var(--danger-bg)', color:'var(--danger)', padding:'2px 6px', borderRadius:'4px' }}>
+                              <span className="discount-badge-percent">
                                 -{item.discount_percent}%
                               </span>
                             </div>
                           )}
+                        </div>
+
+                        <div className="cart-item-actions">
+                          <button
+                            onClick={() => {
+                              toggleWishlist(item);
+                              addToast(inWish ? `${item.name} removed from wishlist` : `${item.name} saved to wishlist`, 'success');
+                            }}
+                            className={`btn-wishlist-cart ${inWish ? 'active' : ''}`}
+                            title={inWish ? 'Remove from Wishlist' : 'Save to Wishlist'}
+                          >
+                            <Heart size={18} fill={inWish ? 'var(--danger)' : 'none'} color={inWish ? 'var(--danger)' : 'currentColor'} />
+                          </button>
+                          <button onClick={() => setConfirmDelete(item)} className="btn-remove-cart" title="Remove Item">
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -273,7 +298,7 @@ export default function Cart() {
               <h3 className="cart-summary-title">Order Summary</h3>
 
               {siteSettings?.allowDoorToDoorDelivery !== false && Number(siteSettings?.doorToDoorThreshold || 0) > 0 && (
-                <div style={{ marginBottom: '20px', padding: '14px', borderRadius: '12px', background: 'var(--bg-main)', border: '1px solid var(--border-light)', fontSize: '13px' }}>
+                <div className="cart-threshold-delivery-box">
                   {(() => {
                     const threshold = Number(siteSettings?.doorToDoorThreshold || 0);
                     const diff = threshold - selectedSubtotal;
@@ -281,17 +306,17 @@ export default function Cart() {
                       const pct = Math.min(100, (selectedSubtotal / threshold) * 100);
                       return (
                         <>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
-                            <span style={{ color: 'var(--text-muted)' }}>Door-to-Door Delivery</span>
-                            <span style={{ fontWeight: 600, color: 'var(--primary-blue)' }}>Add {formatPrice(diff)}</span>
+                          <div className="threshold-status-row">
+                            <span className="threshold-label">Door-to-Door Delivery</span>
+                            <span className="threshold-value">Add {formatPrice(diff)}</span>
                           </div>
-                          <div style={{ height: '6px', background: 'var(--bg-surface)', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${pct}%`, background: 'var(--primary-blue)', transition: 'width 0.3s', borderRadius: '3px' }}></div>
+                          <div className="threshold-progress-bg">
+                            <div className="threshold-progress-bar" style={{ width: `${pct}%` }}></div>
                           </div>
                         </>
                       );
                     } else {
-                      return <div style={{ color: 'var(--success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}><CheckSquare size={16} /> Eligible for Door-to-Door Delivery!</div>;
+                      return <div className="threshold-success-msg"><CheckSquare size={16} /> Eligible for Door-to-Door Delivery!</div>;
                     }
                   })()}
                 </div>
@@ -312,13 +337,13 @@ export default function Cart() {
                 </div>
 
                 {appliedCoupon && (
-                  <div className="animate-fade-in" style={{ display:'flex', justifyContent:'space-between', fontSize:'14px', color:'var(--danger)', background:'var(--danger-bg)', padding:'8px 12px', borderRadius:'8px', marginBottom:'12px' }}>
+                  <div className="animate-fade-in cart-summary-discount-tag" style={{ display:'flex', justifyContent:'space-between', fontSize:'14px', color:'var(--danger)', background:'var(--danger-bg)', padding:'8px 12px', borderRadius:'8px', marginBottom:'12px' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:'6px' }}><Tag size={14} /><span>Promo Code ({appliedCoupon.code})</span></div>
                     <span>-{formatPrice(couponDiscount)}</span>
                   </div>
                 )}
                 {hasLoyalty && (
-                  <div className="animate-fade-in" style={{ display:'flex', justifyContent:'space-between', fontSize:'14px', color:'var(--danger)', background:'var(--danger-bg)', padding:'8px 12px', borderRadius:'8px', marginBottom:'12px' }}>
+                  <div className="animate-fade-in cart-summary-discount-tag" style={{ display:'flex', justifyContent:'space-between', fontSize:'14px', color:'var(--danger)', background:'var(--danger-bg)', padding:'8px 12px', borderRadius:'8px', marginBottom:'12px' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:'6px' }}><ShieldCheck size={14} /><span>Loyalty Reward ({intPct}%)</span></div>
                     <span>-{formatPrice(loyaltyAmt)}</span>
                   </div>
@@ -332,31 +357,29 @@ export default function Cart() {
               </div>
 
               {/* Coupon form */}
-              <div style={{ marginTop:'20px', paddingTop:'20px', borderTop:'1px dashed var(--border-light)' }}>
+              <div className="cart-coupon-wrapper">
                 {!appliedCoupon ? (
-                  <div style={{ marginTop:'20px' }}>
-                    <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+                  <div className="cart-coupon-form-group">
+                    <div className="cart-coupon-input-row">
                       <input
                         type="text" value={couponInput}
                         onChange={e => setCouponInput(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon(couponInput).then(ok => ok && setCouponInput('')); } }}
-                        placeholder="Promo Code" className="input-premium"
-                        style={{ flex:1, padding:'12px 16px', height:'48px', fontSize:'14px', color:'var(--text-main)', background:'var(--bg-surface)' }}
+                        placeholder="Promo Code" className="cart-coupon-input input-premium"
                       />
                       <button
                         onClick={() => applyCoupon(couponInput).then(ok => ok && setCouponInput(''))}
                         disabled={isApplyingCoupon || !couponInput.trim()}
-                        className="btn-primary"
-                        style={{ padding:'0 24px', height:'48px', fontSize:'14px', borderRadius:'12px', whiteSpace:'nowrap' }}
+                        className="btn-primary btn-coupon-apply"
                       >
                         {isApplyingCoupon ? '...' : 'Apply'}
                       </button>
                     </div>
-                    {couponError && <div style={{ color:'var(--danger)', fontSize:'12px', marginTop:'8px' }}>{couponError}</div>}
+                    {couponError && <div className="coupon-error-message">{couponError}</div>}
                   </div>
                 ) : (
-                  <div style={{ marginTop:'20px' }}>
-                    <button onClick={removeCoupon} className="btn-outline" style={{ width:'100%', fontSize:'13px', padding:'10px', color:'var(--danger)', borderColor:'var(--danger)' }}>
+                  <div className="cart-coupon-remove-group">
+                    <button onClick={removeCoupon} className="btn-outline btn-coupon-remove">
                       Remove Coupon
                     </button>
                   </div>
@@ -393,26 +416,26 @@ export default function Cart() {
 
       {/* ── Remove confirmation modal ── */}
       {confirmDelete && (
-        <div className="modal-overlay" style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:3000, padding:'20px' }}>
-          <div className="card glass animate-scale-in" style={{ maxWidth:'450px', width:'100%', padding:'32px', textAlign:'center', position:'relative', border:'1px solid var(--primary-blue)' }}>
-            <button onClick={() => setConfirmDelete(null)} style={{ position:'absolute', top:'16px', right:'16px', background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer' }}>
-              <X size={24} />
+        <div className="modal-overlay cart-modal-overlay">
+          <div className="card glass modal-content cart-delete-modal animate-scale-in">
+            <button onClick={() => setConfirmDelete(null)} className="modal-close-btn" title="Close">
+              <X size={20} />
             </button>
-            <div style={{ width:'64px', height:'64px', background:'var(--danger-bg)', color:'var(--danger)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px' }}>
+            <div className="modal-icon-wrapper danger">
               <AlertCircle size={32} />
             </div>
-            <h2 style={{ fontSize:'24px', fontWeight:800, marginBottom:'12px' }}>Remove Item?</h2>
-            <p style={{ color:'var(--text-muted)', lineHeight:'1.6', marginBottom:'32px' }}>
-              Would you like to move <strong>{confirmDelete.name}</strong> to your wishlist for later, or remove it entirely?
+            <h2 className="modal-title">Remove Item?</h2>
+            <p className="modal-description">
+              Would you like to move <strong>{confirmDelete.name}</strong> to your wishlist for later, or remove it permanently?
             </p>
-            <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
-              <button className="btn-primary" onClick={handleMoveToWishlist} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px' }}>
+            <div className="modal-actions-list">
+              <button className="btn-primary btn-move-wishlist" onClick={handleMoveToWishlist}>
                 <Heart size={18} fill="white" /> Move to Wishlist
               </button>
-              <button className="btn-outline" onClick={handleFinalDelete} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', color:'var(--danger)', borderColor:'var(--danger-bg)' }}>
+              <button className="btn-outline btn-delete-permanent" onClick={handleFinalDelete}>
                 <Trash2 size={18} /> Remove Permanently
               </button>
-              <button className="btn-secondary" onClick={() => setConfirmDelete(null)} style={{ width:'100%', marginTop:'8px' }}>
+              <button className="btn-secondary btn-cancel-delete" onClick={() => setConfirmDelete(null)}>
                 Cancel
               </button>
             </div>

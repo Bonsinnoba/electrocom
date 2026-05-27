@@ -76,7 +76,7 @@ try {
     // Hash password and insert user
     $hashedPassword = hashPassword($password);
     $avatarText = generateInitials($name);
-    $verificationCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+    $verificationCode = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
     $verificationMethod = sanitizeInput($data['verification_method'] ?? 'email');
 
 

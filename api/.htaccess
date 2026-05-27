@@ -9,3 +9,9 @@
     Order Allow,Deny
     Allow from all
 </FilesMatch>
+
+# Allow access to social_auth_exchange endpoint
+<FilesMatch "social_auth_exchange\.php$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>

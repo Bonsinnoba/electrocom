@@ -29,7 +29,7 @@ const Cart = lazy(() => import('./pages/Cart'));
 const Favorites = lazy(() => import('./pages/Favorites'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Checkout = lazy(() => import('./pages/Checkout'));
-import { fetchOrders, fetchProducts } from './services/api';
+import { fetchOrders, fetchProducts, socialAuthExchange } from './services/api';
 import { useUser } from './context/UserContext';
 import { formatRelativeTime, formatDate } from './utils/dateFormatter';
 import MaintenancePage from './pages/MaintenancePage';
@@ -79,6 +79,7 @@ function AppContent() {
   const { siteSettings, formatPrice } = useSettings();
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const lastFetchRef = React.useRef(0); 
+  const processingSocialAuthRef = useRef(null); 
 
   // Check maintenance mode from backend
   useEffect(() => {
@@ -89,19 +90,7 @@ function AppContent() {
           // Note: credentials 'include' ensures cookies are sent automatically
         });
         if (res.status === 503) {
-          const data = await res.json();
-          // Even if 503, Super Admins should bypass
-          if (data.maintenance === true) {
-            // Check for bypass using the last active user ID
-            const lastId = localStorage.getItem('ehub_last_user_id');
-            const ehub_user = lastId ? secureStorage.getItem('user', lastId) : null;
-            
-            if (ehub_user && ehub_user.role === 'super') {
-              setIsMaintenanceMode(false);
-            } else {
-              setIsMaintenanceMode(true);
-            }
-          }
+          setIsMaintenanceMode(true);
         } else {
           setIsMaintenanceMode(false);
         }
@@ -135,11 +124,50 @@ function AppContent() {
   // Handle social login redirects
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const socialAuthCode = params.get('social_auth');
     const token = params.get('social_token');
     const encodedUser = params.get('social_user');
     const error = params.get('social_error');
 
-    if (token && encodedUser) {
+    if (socialAuthCode) {
+      if (processingSocialAuthRef.current === socialAuthCode) {
+        return;
+      }
+      processingSocialAuthRef.current = socialAuthCode;
+
+      // Clean up the URL parameter immediately to prevent duplicate runs on render
+      navigate('/', { replace: true });
+
+      socialAuthExchange(socialAuthCode).then(res => {
+        if (res && res.success && res.data) {
+          const { token: authToken, user: rawUser } = res.data;
+          const userObj = {
+            id: rawUser.id,
+            name: rawUser.name,
+            email: rawUser.email,
+            phone: rawUser.phone || '',
+            address: rawUser.address || '',
+            level: rawUser.level || 1,
+            levelName: rawUser.levelName || rawUser.level_name || 'Starter',
+            avatar: rawUser.avatar_text || rawUser.avatar || (rawUser.name ? rawUser.name.slice(0, 2).toUpperCase() : '??'),
+            profileImage: rawUser.profileImage || rawUser.profile_image || null,
+            role: rawUser.role || 'customer',
+            email_notif: rawUser.email_notif !== undefined ? Boolean(rawUser.email_notif) : true,
+            push_notif: rawUser.push_notif !== undefined ? Boolean(rawUser.push_notif) : true,
+            sms_tracking: rawUser.sms_tracking !== undefined ? Boolean(rawUser.sms_tracking) : true,
+            theme: rawUser.theme || 'blue',
+          };
+          // Pass both user and token to the centralized login handler
+          handleContextLogin(userObj, authToken);
+          addToast("Login successful!", "success");
+        } else {
+          addToast(res?.message || "Failed to complete social sign-in.", "error");
+        }
+      }).catch(err => {
+        console.error('Failed to exchange social auth code:', err);
+        addToast("Failed to complete social sign-in.", "error");
+      });
+    } else if (token && encodedUser) {
       try {
         const rawUser = JSON.parse(atob(decodeURIComponent(encodedUser)));
         const userObj = {
@@ -170,7 +198,7 @@ function AppContent() {
       addToast(decodeURIComponent(error), "error");
       navigate('/', { replace: true });
     }
-  }, [navigate, updateUser, addToast, addNotification]);
+  }, [navigate, handleContextLogin, addToast, addNotification]);
 
   useEffect(() => {
     maintenanceRef.current = isMaintenanceMode;

@@ -176,6 +176,7 @@ export const deleteCMSPage = async (id) => authFetch(`/cms.php?id=${id}`, { meth
 
 // deleteCustomer is kept as a backward-compat alias for deleteUser
 export const deleteCustomer = deleteUser;
+export const generateReportToken = async () => authFetch('/generate_report_token.php', { method: 'POST' });
 export const setUserRole = async (id, role) => {
     try {
         const response = await fetch(`${API_BASE_URL}/admin_customers.php`, {

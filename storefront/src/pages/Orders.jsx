@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Package, Truck, CheckCircle, Clock, ExternalLink, Calendar, Hash, MapPin, Loader, FileText, RotateCcw, X } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, ExternalLink, Calendar, Hash, MapPin, Loader, FileText, RotateCcw, X, XCircle } from 'lucide-react';
 import { formatDateTime } from '../utils/dateFormatter';
 import { useUser } from '../context/UserContext';
 import { fetchOrders, getInvoiceUrl, requestReturn } from '../services/api';
@@ -35,13 +35,14 @@ const getStatusIndex = (status) => {
 
 const StatusBadge = ({ status, refundedAmount, hasPendingRefund }) => {
   const s = status ? status.toLowerCase() : 'unknown';
-  
+
   const colors = {
     'completed': { bg: 'var(--success-bg)', text: 'var(--success)', border: 'var(--success)', label: 'Delivered' },
     'delivered': { bg: 'var(--success-bg)', text: 'var(--success)', border: 'var(--success)', label: 'Delivered' },
     'shipped': { bg: 'var(--info-bg)', text: 'var(--primary-blue)', border: 'var(--primary-blue)', label: 'Shipped' },
     'pending': { bg: 'var(--warning-bg)', text: 'var(--warning)', border: 'var(--warning)', label: 'Processing' },
     'processing': { bg: 'var(--warning-bg)', text: 'var(--warning)', border: 'var(--warning)', label: 'Processing' },
+    'cancelled': { bg: 'var(--danger-bg)', text: 'var(--danger)', border: 'var(--danger)', label: 'Cancelled' },
   };
   const style = colors[s] || { bg: 'var(--bg-surface-secondary)', text: 'var(--text-muted)', border: 'transparent', label: status };
   
@@ -88,7 +89,7 @@ const StatusBadge = ({ status, refundedAmount, hasPendingRefund }) => {
   );
 };
 
-export default function Orders({ searchQuery }) {
+export default function Orders() {
   const { user } = useUser();
   const { formatPrice } = useSettings();
   const [orders, setOrders] = useState([]);
@@ -101,6 +102,10 @@ export default function Orders({ searchQuery }) {
   const [selectedReturnItems, setSelectedReturnItems] = useState({});
   const [returnReason, setReturnReason] = useState('');
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+
+  // Cancel order modal state
+  const [cancelModalOrder, setCancelModalOrder] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const openTracking = (id) => {
     setTrackingOrderId(id);
@@ -117,6 +122,45 @@ export default function Orders({ searchQuery }) {
     setReturnModalOrder(null);
     setSelectedReturnItems({});
     setReturnReason('');
+  };
+
+  const openCancelModal = (order) => {
+    setCancelModalOrder(order);
+  };
+
+  const closeCancelModal = () => {
+    setCancelModalOrder(null);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!cancelModalOrder) return;
+
+    setIsCancelling(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/orders.php?order_id=${cancelModalOrder.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Order cancelled successfully');
+        closeCancelModal();
+        // Reload orders
+        const ordersData = await fetchOrders(user.id);
+        setOrders(ordersData);
+      } else {
+        alert(data.message || 'Failed to cancel order');
+      }
+    } catch {
+      alert('An error occurred while cancelling the order');
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   const handleSubmitReturn = async () => {
@@ -304,22 +348,22 @@ export default function Orders({ searchQuery }) {
       )}
       
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '10px', width: '100%' }}>
-        <StatusBadge 
-          status={order.status} 
-          refundedAmount={order.refunded_amount} 
-          hasPendingRefund={order.has_pending_refund} 
+        <StatusBadge
+          status={order.status}
+          refundedAmount={order.refunded_amount}
+          hasPendingRefund={order.has_pending_refund}
         />
         {(order.status === 'completed' || order.status === 'delivered') && (
-          <button 
+          <button
             onClick={() => openReturnModal(order)}
-            className="btn-secondary" 
-            style={{ 
-              fontSize: '13px', 
+            className="btn-secondary"
+            style={{
+              fontSize: '13px',
               fontWeight: 700,
-              padding: '10px 20px', 
-              borderRadius: '12px', 
-              display: 'flex', 
-              alignItems: 'center', 
+              padding: '10px 20px',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
               gap: '8px',
               width: '100%',
               justifyContent: 'center',
@@ -331,16 +375,38 @@ export default function Orders({ searchQuery }) {
             <RotateCcw size={14} /> Request Return
           </button>
         )}
-        <button 
+        {(order.status === 'pending' || order.status === 'processing') && (
+          <button
+            onClick={() => openCancelModal(order)}
+            className="btn-secondary"
+            style={{
+              fontSize: '13px',
+              fontWeight: 700,
+              padding: '10px 20px',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              width: '100%',
+              justifyContent: 'center',
+              background: 'var(--danger-bg)',
+              color: 'var(--danger)',
+              border: '1px solid var(--danger)'
+            }}
+          >
+            <XCircle size={14} /> Cancel Order
+          </button>
+        )}
+        <button
           onClick={() => openTracking(order.id)}
-          className="btn-secondary" 
-          style={{ 
-            fontSize: '13px', 
+          className="btn-secondary"
+          style={{
+            fontSize: '13px',
             fontWeight: 700,
-            padding: '10px 20px', 
-            borderRadius: '12px', 
-            display: 'flex', 
-            alignItems: 'center', 
+            padding: '10px 20px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
             gap: '8px',
             width: '100%',
             justifyContent: 'center'
@@ -348,18 +414,18 @@ export default function Orders({ searchQuery }) {
         >
           Track Order <ExternalLink size={14} />
         </button>
-        <a 
+        <a
           href={getInvoiceUrl(order.id)}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn-secondary" 
-          style={{ 
-            fontSize: '13px', 
+          className="btn-secondary"
+          style={{
+            fontSize: '13px',
             fontWeight: 700,
-            padding: '10px 20px', 
-            borderRadius: '12px', 
-            display: 'flex', 
-            alignItems: 'center', 
+            padding: '10px 20px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
             gap: '8px',
             width: '100%',
             justifyContent: 'center',
@@ -542,6 +608,66 @@ export default function Orders({ searchQuery }) {
                 style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: 'var(--primary-blue)', color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isSubmittingReturn ? 0.7 : 1 }}
               >
                 {isSubmittingReturn ? 'Submitting...' : 'Submit Request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Order Confirmation Modal */}
+      {cancelModalOrder && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)',
+            borderRadius: '16px',
+            maxWidth: '400px',
+            width: '100%',
+            padding: '24px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Cancel Order</h2>
+              <button
+                onClick={closeCancelModal}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '20px', padding: '12px', background: 'var(--danger-bg)', borderRadius: '8px', border: '1px solid var(--danger)' }}>
+              <div style={{ fontWeight: 700, color: 'var(--danger)', marginBottom: '4px' }}>Order #{cancelModalOrder.id}</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                {formatPrice(parseFloat(cancelModalOrder.total_amount || 0))}
+              </div>
+            </div>
+
+            <p style={{ marginBottom: '20px', fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              Are you sure you want to cancel this order? This action cannot be undone. If you have already paid, a refund will be processed.
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={closeCancelModal}
+                disabled={isCancelling}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--bg-main)', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Keep Order
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={isCancelling}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: 'var(--danger)', color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isCancelling ? 0.7 : 1 }}
+              >
+                {isCancelling ? 'Cancelling...' : 'Cancel Order'}
               </button>
             </div>
           </div>

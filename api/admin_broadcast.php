@@ -90,27 +90,47 @@ if ($method === 'GET') {
         
         require_once 'notifications.php';
         $notifier = new NotificationService();
-        
+
         $emailCount = 0;
         $smsCount = 0;
         $inAppCount = 0;
         $eligibleCount = 0;
 
-        $inAppStmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'promo')");
-        
-        foreach ($users as $user) {
-            // Every targeted customer should receive an in-app broadcast.
-            $broadcastTitle = !empty($title) ? $title : 'New Broadcast';
-            if ($inAppStmt->execute([$user['id'], $broadcastTitle, $message])) {
-                $inAppCount++;
-            }
+        // Bulk insert in-app notifications (performance optimization)
+        $broadcastTitle = !empty($title) ? $title : 'New Broadcast';
+        $inAppValues = [];
+        $inAppParams = [];
 
+        foreach ($users as $user) {
+            $inAppValues[] = "(?, ?, 'promo')";
+            $inAppParams[] = $user['id'];
+            $inAppParams[] = $broadcastTitle;
+            $inAppParams[] = $message;
+
+            // Batch insert every 500 users to prevent memory issues
+            if (count($inAppValues) >= 500) {
+                $bulkSql = "INSERT INTO notifications (user_id, title, message, type) VALUES " . implode(',', $inAppValues);
+                $pdo->prepare($bulkSql)->execute($inAppParams);
+                $inAppCount += count($inAppValues);
+                $inAppValues = [];
+                $inAppParams = [];
+            }
+        }
+
+        // Insert remaining batch
+        if (!empty($inAppValues)) {
+            $bulkSql = "INSERT INTO notifications (user_id, title, message, type) VALUES " . implode(',', $inAppValues);
+            $pdo->prepare($bulkSql)->execute($inAppParams);
+            $inAppCount += count($inAppValues);
+        }
+
+        // Process email/SMS queueing (still sequential but much faster without DB writes)
+        foreach ($users as $user) {
             $hadEligibleChannel = false;
 
             // Send Email if applicable
             if (($type === 'email' || $type === 'both') && !empty($user['email'])) {
-                // We honor the general email preference for marketing broadcasts
-                    if ($user['email_notif']) {
+                if ($user['email_notif']) {
                     $hadEligibleChannel = true;
                     $emailPayload = [
                         'broadcast' => true,
@@ -122,11 +142,9 @@ if ($method === 'GET') {
                     }
                 }
             }
-            
+
             // Send SMS if applicable
             if (($type === 'sms' || $type === 'both') && !empty($user['phone'])) {
-                // For SMS, we check either sms_tracking or a general push preference 
-                // Since this is a promo, we check if they have any notifications on
                 if ($user['sms_tracking']) {
                     $hadEligibleChannel = true;
                     $smsPayload = [

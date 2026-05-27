@@ -8,15 +8,19 @@
 
 ## 📋 Table of Contents
 
-1. [Phase 5 — Flash Sale Countdown Banners](#phase-5--flash-sale-countdown-banners)
-2. [Phase 4 — Order Tracking Timeline UX](#phase-4--order-tracking-timeline-ux)
-3. [Phase 3 — Push Alerts & Advanced Filtering](#phase-3--push-alerts--advanced-filtering)
-4. [Partners Marquee Slider](#partners-marquee-slider)
-5. [POS & Admin Refund System](#pos--admin-refund-system)
-6. [Registration UX](#registration-ux)
-7. [Case Studies & Design Conversations](#case-studies--design-conversations)
-8. [Pending / Future Work](#pending--future-work)
-9. [Decisions Index](#decisions-index)
+1. [Phase 9 — Concurrency & Webhook Hardening](#phase-9--concurrency--webhook-hardening)
+2. [Phase 8 — Order Simulation & Component Refactoring](#phase-8--order-simulation--component-refactoring)
+3. [Phase 7 — ProductModal UX Improvements & Admin Panel Enhancements](#phase-7--productmodal-ux-improvements--admin-panel-enhancements)
+4. [Phase 6 — Comparison Panel, Stock Urgency Labels & Wishlist Sync](#phase-6--comparison-panel-stock-urgency-labels--wishlist-sync)
+5. [Phase 5 — Flash Sale Countdown Banners](#phase-5--flash-sale-countdown-banners)
+6. [Phase 4 — Order Tracking Timeline UX](#phase-4--order-tracking-timeline-ux)
+7. [Phase 3 — Push Alerts & Advanced Filtering](#phase-3--push-alerts--advanced-filtering)
+8. [Partners Marquee Slider](#partners-marquee-slider)
+9. [POS & Admin Refund System](#pos--admin-refund-system)
+10. [Registration UX](#registration-ux)
+11. [Case Studies & Design Conversations](#case-studies--design-conversations)
+12. [Pending / Future Work](#pending--future-work)
+13. [Decisions Index](#decisions-index)
 
 ---
 
@@ -50,6 +54,154 @@ A premium, glassmorphic flash-sale banner rendered directly on the storefront ho
 
 **Decision:** Always render the banner (with a fallback), never conditionally hide it.
 **Why:** Hiding the banner when no active sales exist wastes a high-visibility homepage slot. A graceful fallback (store-wide promo code + rolling timer) keeps the urgency alive without requiring a live database sale to be active, ensuring the page always looks rich and promotional.
+
+---
+
+## Phase 9 — Concurrency & Webhook Hardening
+
+### ✅ Online Checkout Deadlock Elimination
+**Completed:** 2026-05-26 · 11:12 UTC
+
+**What was built:**
+#### `api/orders.php`
+- Integrated an item sorting routine (`usort`) before locking database rows in checkout.
+- Cart items are now sorted numerically by product ID before entering the `FOR UPDATE` loop.
+- **Why:** Guarantees a consistent lock acquisition order across all concurrent transactions, entirely preventing database deadlocks when multiple users attempt to checkout overlapping carts at the exact same millisecond.
+
+---
+
+### ✅ Webhook Processing Restructuring & Crash Resolution
+**Completed:** 2026-05-26 · 11:28 UTC
+
+**What was fixed:**
+#### `api/paystack_webhook.php` & `api/cron_process_webhooks.php`
+- Removed all redundant, nested transaction calls (`$pdo->beginTransaction()` and `$pdo->commit()`) from both the webhook handler and the retry background worker.
+- **Why:** Downstream logic (such as `completeOrder`) already uses its own self-contained transaction layer. Attempting nested transactions on a single PDO connection triggered fatal `PDOException` crashes, failing 100% of inline checkouts and retry events.
+- Added **Proactive DLQ Alerting**: Updated `api/cron_process_webhooks.php` to trigger an administrative dashboard alert (`logAdminNotification`) if a webhook event fails all 5 retries, instantly alerting staff to manually reconcile dead-lettered events.
+
+---
+
+### ✅ Payment Reconciliation Cron Implementation
+**Completed:** 2026-05-26 · 11:13 UTC
+
+**What was built:**
+#### `api/cron_reconcile_payments.php` [NEW]
+- Developed an automated background script to reconcile unpaid pending orders directly with Paystack's Transaction Verification API.
+- Scans for `pending` orders created in the last 60 minutes with valid payment references, verifies status, and completes them using `completeOrder()`.
+- **Why:** Acts as a bulletproof Dead Letter Queue (DLQ) / recovery mechanism. If the server goes offline during checkout and misses the Paystack webhook, this cron script recovers the order before `lazyCancelOrders()` auto-cancels it, protecting customer purchases from silent auto-cancellation.
+
+---
+
+## Phase 8 — Order Simulation & Component Refactoring
+
+### ✅ Order Simulation Infrastructure (Temporary)
+**Completed:** 2026-05-21 · (Testing Phase) — **Removed:** 2026-05-21
+
+**What was built (and later removed):**
+- `api/simulate_order.php` — Backend endpoint for testing order creation without Paystack payment verification
+- `test_order_simulation.php` — CLI script for one-time order creation verification
+- `TEST_MODE_NO_PAYSTACK` flag in `Checkout.jsx` — Temporary toggle to bypass Paystack for testing
+
+**Why removed:** Testing completed, strict Paystack integration restored for production security.
+
+---
+
+### ✅ FilterPanel & Shop Component Refactoring
+**Completed:** 2026-05-21
+
+**What was built:**
+
+#### `storefront/src/components/FilterPanel.jsx`
+- Removed internal `localPrice` state
+- Implemented controlled component pattern
+- Accepts `priceValue` and `onPriceChange` props from parent
+
+#### `storefront/src/pages/Shop.jsx`
+- Added local state for price control
+- Passes price state to `FilterPanel` as controlled props
+
+**Decision:** Implement controlled component pattern.
+**Why:** Fixed React `setState` in `useEffect` warnings by lifting state to parent component, ensuring proper React lifecycle management.
+
+---
+
+### ✅ Checkout Paystack Integration Cleanup
+**Completed:** 2026-05-21
+
+**What was built:**
+
+#### `storefront/src/pages/Checkout.jsx`
+- Removed `TEST_MODE_NO_PAYSTACK` constant and all test mode logic
+- Removed `simulate_order.php` endpoint usage
+- Enforced strict Paystack public key configuration requirement
+- Fixed lint errors:
+  - Removed unused `fullSubtotal` from destructuring
+  - Changed `catch (err)` to `catch` to remove unused variable
+  - Added `onSuccess` and `onClose` to useEffect dependencies
+  - Wrapped `onSuccess` and `onClose` in `useCallback` hooks
+  - Moved `useState` declaration before conditional return
+
+**Decision:** Remove all test mode code for production security.
+**Why:** Test mode bypasses payment gateway validation, which is unacceptable in production. Strict Paystack integration ensures all orders are properly authenticated and tracked.
+
+---
+
+### ✅ Bug Fixes
+**Completed:** 2026-05-21
+
+**What was fixed:**
+- **"invalid token format" error**: Updated token retrieval to use `secureStorage` instead of `localStorage`
+- **"no active transaction" error**: Removed nested transaction handling in `simulate_order.php`
+- **Orders page breaking**: Wrapped cart clearing logic in try-catch to prevent errors from causing unexpected navigation
+- **Date formatter compatibility**: Updated `formatDateTime` to support `dateStyle`/`timeStyle` options for newer Intl API
+
+---
+
+## Phase 7 — ProductModal UX Improvements & Admin Panel Enhancements
+
+### ✅ ProductModal Conditional Rendering
+**Completed:** 2026-05-22 · 08:35 UTC
+
+**What was built:**
+
+#### `storefront/src/components/ProductModal.jsx`
+Added conditional rendering logic to hide unfilled form fields:
+- **Documentation tab**: Only displays if `datasheet_url` or `directions` exists
+- **Included Items tab**: Only displays if `included` array has items
+- **Technical Specs tab**: Only displays if `product_code`, `specs`, or `directions` exists
+- **Product description**: Now displays after rating section (if present)
+
+**Decision:** Hide empty sections rather than showing placeholder content.
+**Why:** Empty sections create visual noise and reduce user trust. Conditional rendering keeps the modal clean and only shows relevant information.
+
+---
+
+### ✅ Technical Specs Display Format
+**Completed:** 2026-05-22 · 08:35 UTC
+
+**What was built:**
+
+#### `storefront/src/components/ProductModal.jsx`
+Changed technical specs from a grid layout to comma-separated styled badges:
+- Each spec displays as "key: value" in a styled badge
+- Badges have background, border, and rounded corners
+- Flex layout with wrapping for responsive display
+
+**Decision:** Use badge-style display instead of grid.
+**Why:** Badge layout is more compact, easier to scan, and matches the modern aesthetic of other UI elements. It also handles variable spec counts more gracefully.
+
+---
+
+### ✅ Admin Panel Product Editor Modal Width
+**Completed:** 2026-05-22 · 08:29 UTC
+
+**What was built:**
+
+#### `admin-panel/src/pages/ProductManager.jsx`
+Increased product editor modal width from 500px to 900px.
+
+**Decision:** Increase modal width for better editing experience.
+**Why:** The previous 500px width was too narrow for comfortable editing of product details, especially with the expanded form fields. 900px provides adequate space for all form elements while maintaining usability.
 
 ---
 
@@ -637,6 +789,9 @@ Inline "Sign In here" link switches the modal view. Overlay panel updated with m
 
 | Date (UTC) | Decision | Rationale |
 |---|---|---|
+| 2026-05-26 | Sort cart items by ID before locking | Guarantees consistent lock acquisition sequence, eliminating transaction deadlocks under high checkout volumes. |
+| 2026-05-26 | Delegate transaction handling to completeOrder() | Avoids fatal PHP PDO nested transaction crashes in the webhook handler while preserving atomic stock updates. |
+| 2026-05-26 | Run background reconciliation cron for pending orders | Automatically recovers paid orders whose webhooks were missed, preventing their dynamic soft reservations from being auto-cancelled. |
 | 2026-05-17 | Use Paystack for refunds, not direct MTN MoMo API | Single integration covers card + MoMo + USSD. No new credentials or compliance overhead. |
 | 2026-05-17 | `refunds` table separate from `order_returns` | Returns = inventory event. Refunds = financial event. Separate concerns, separate tables. |
 | 2026-05-18 | Refund panel appears *after* return confirmation | Can't issue a refund before goods are back. The return record is the legal proof that authorises the money movement. |

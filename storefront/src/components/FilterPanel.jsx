@@ -18,6 +18,10 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
     setFilters(prev => ({ ...prev, minRating: rating }));
   };
 
+  const handleDiscountChange = (discount) => {
+    setFilters(prev => ({ ...prev, minDiscount: discount }));
+  };
+
   return (
     <div className={`filter-panel ${isMobile ? 'mobile' : ''}`} style={{
       display: 'flex',
@@ -266,6 +270,51 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
           }}>
             <Star size={14} fill="var(--warning)" stroke="var(--warning)" />
             {filters.minRating}+ stars and above
+          </div>
+        )}
+      </div>
+
+      <div className="filter-group" style={{ margin: '0 -30px' }}>
+        <label style={{ display: 'block', marginBottom: '18px', fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 15px' }}>Min Discount</label>
+        <div style={{
+          display: 'flex',
+          gap: isMobile ? '6px' : '4px',
+          flexWrap: 'wrap',
+          margin: '0 6px'
+        }}>
+          {[0, 10, 20, 30, 50].map(discount => (
+            <button
+              key={discount}
+              onClick={() => handleDiscountChange(discount)}
+              className={`discount-btn ${filters.minDiscount >= discount ? 'active' : ''}`}
+              style={{
+                background: filters.minDiscount >= discount ? 'var(--primary-blue)' : 'var(--bg-surface-secondary)',
+                color: filters.minDiscount >= discount ? 'white' : 'var(--text-main)',
+                border: filters.minDiscount >= discount ? '1px solid var(--primary-blue)' : '1px solid var(--border-light)',
+                padding: isMobile ? '8px 12px' : '8px 16px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                flex: '1',
+                minWidth: isMobile ? '60px' : '80px'
+              }}
+            >
+              {discount === 0 ? 'All' : `${discount}%+`}
+            </button>
+          ))}
+        </div>
+        {filters.minDiscount > 0 && (
+          <div style={{
+            marginTop: '10px',
+            textAlign: 'center',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: 'var(--success)',
+            margin: '0 6px'
+          }}>
+            {filters.minDiscount}% discount and above
           </div>
         )}
       </div>

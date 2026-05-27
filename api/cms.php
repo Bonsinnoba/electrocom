@@ -59,9 +59,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 }
 
-// Write Operations (Require Admin)
+// Write Operations (POST/DELETE require Admin auth)
+if (!in_array($_SERVER['REQUEST_METHOD'], ['POST', 'DELETE'])) {
+    // Non-write methods that weren't handled above (e.g. PUT, PATCH) get a 405
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Method not allowed.']);
+    exit;
+}
+
 try {
-    $userId = authenticate();
+    $userId = authenticate($pdo);
     requireRole(['store_manager', 'super'], $pdo);
 } catch (Exception $e) {
     sendResponse(false, 'Forbidden: Admins only', null, 403);

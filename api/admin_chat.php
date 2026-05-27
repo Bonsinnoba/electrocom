@@ -1,6 +1,4 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
 require_once 'cors_middleware.php';
 require_once 'security.php';
@@ -52,9 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     if ($action === 'history') {
         $with_user = isset($_GET['with_user']) && $_GET['with_user'] !== 'global' ? (int)$_GET['with_user'] : null;
+        $limit = min(200, max(50, (int)($_GET['limit'] ?? 150)));
 
         if ($with_user === null) {
-            // Global channel
+            // Global channel — paginated
             $stmt = $pdo->prepare("
                 SELECT m.*, u.name as sender_name, u.avatar_text, u.profile_image, 
                        p.name as pinner_name, r.message as reply_to_message, ru.name as reply_to_name
@@ -65,10 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 LEFT JOIN users ru ON r.sender_id = ru.id
                 WHERE m.receiver_id IS NULL 
                 ORDER BY m.created_at ASC
+                LIMIT $limit
             ");
             $stmt->execute();
         } else {
-            // DM
+            // DM — paginated
             $stmt = $pdo->prepare("
                 SELECT m.*, u.name as sender_name, u.avatar_text, u.profile_image, 
                        p.name as pinner_name, r.message as reply_to_message, ru.name as reply_to_name
@@ -79,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 LEFT JOIN users ru ON r.sender_id = ru.id
                 WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?) 
                 ORDER BY m.created_at ASC
+                LIMIT $limit
             ");
             $stmt->execute([$user['id'], $with_user, $with_user, $user['id']]);
         }
@@ -112,24 +113,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pinned_by = $is_pinned ? $user['id'] : null;
         
-        // Handle file attachment
+        // Handle file attachment — validate real MIME type from decoded bytes
         $attachment_url = null;
         if (!empty($data['attachment_base64'])) {
             $base64Parts = explode(',', $data['attachment_base64']);
             if (count($base64Parts) === 2) {
-                // Determine extension based on mime type, simplistic here:
-                $mimeType = explode(';', $base64Parts[0])[0];
-                $mimeType = str_replace('data:', '', $mimeType);
-                $ext = explode('/', $mimeType)[1] ?? 'png';
-                
-                $uploadDir = __DIR__ . '/uploads/chat/';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0755, true);
+                $decodedBytes = base64_decode($base64Parts[1], true);
+                if ($decodedBytes !== false && strlen($decodedBytes) > 0) {
+                    // Determine MIME from actual file bytes, NOT client-supplied header
+                    $finfo = new finfo(FILEINFO_MIME_TYPE);
+                    $realMime = $finfo->buffer($decodedBytes);
+
+                    $allowedMimes = [
+                        'image/jpeg' => 'jpg',
+                        'image/png'  => 'png',
+                        'image/gif'  => 'gif',
+                        'image/webp' => 'webp',
+                    ];
+
+                    if (!isset($allowedMimes[$realMime])) {
+                        echo json_encode(['error' => 'Only image attachments (JPEG, PNG, GIF, WebP) are allowed.']);
+                        exit;
+                    }
+
+                    // Enforce max 5 MB
+                    if (strlen($decodedBytes) > 5 * 1024 * 1024) {
+                        echo json_encode(['error' => 'Attachment exceeds the 5 MB size limit.']);
+                        exit;
+                    }
+
+                    $ext = $allowedMimes[$realMime];
+                    $uploadDir = __DIR__ . '/uploads/chat/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0755, true);
+                    }
+
+                    $fileName = time() . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
+                    file_put_contents($uploadDir . $fileName, $decodedBytes);
+                    $attachment_url = 'api/uploads/chat/' . $fileName;
                 }
-                
-                $fileName = time() . '_' . uniqid() . '.' . $ext;
-                file_put_contents($uploadDir . $fileName, base64_decode($base64Parts[1]));
-                $attachment_url = 'api/uploads/chat/' . $fileName;
             }
         }
 
@@ -206,8 +228,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'mark_read') {
         $with_user = (int)($data['with_user'] ?? 0);
-        
-        $stmt = $pdo->prepare("UPDATE admin_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ?");
+        if ($with_user <= 0) {
+            echo json_encode(['success' => false, 'error' => 'Invalid user ID']);
+            exit;
+        }
+
+        // Ownership check: only mark messages as read for conversations that involve the current user
+        $stmt = $pdo->prepare(
+            "UPDATE admin_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ?"
+        );
         $stmt->execute([$with_user, $user['id']]);
 
         echo json_encode(['success' => true]);

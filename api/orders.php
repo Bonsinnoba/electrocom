@@ -154,8 +154,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    // Otherwise, fetch all orders for the user
+    // Otherwise, fetch all orders for the user with pagination
     try {
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = max(10, min(50, (int)($_GET['limit'] ?? 20)));
+        $offset = ($page - 1) * $limit;
+
+        // Get total count for pagination metadata
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ?");
+        $countStmt->execute([$authenticatedUserId]);
+        $totalOrders = (int)$countStmt->fetchColumn();
+        $totalPages = ceil($totalOrders / $limit);
+
         $stmt = $pdo->prepare("
             SELECT 
                 o.id, o.total_amount, o.status, o.delivery_method, o.pickup_location_id, o.created_at,
@@ -169,14 +179,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             WHERE o.user_id = ?
             GROUP BY o.id
             ORDER BY o.created_at DESC
+            LIMIT ? OFFSET ?
         ");
-        $stmt->execute([$authenticatedUserId]);
+        $stmt->execute([$authenticatedUserId, $limit, $offset]);
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode(['success' => true, 'data' => $orders]);
+        
+        echo json_encode([
+            'success' => true, 
+            'data' => $orders,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $totalOrders,
+                'total_pages' => $totalPages,
+                'has_next' => $page < $totalPages,
+                'has_prev' => $page > 1
+            ]
+        ]);
     } catch (Exception $e) {
         error_log("Order fetch error: " . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Failed to fetch orders']);
+    }
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    // User-initiated order cancellation
+    $orderIdStr = $_GET['order_id'] ?? null;
+    if (!$orderIdStr) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Order ID is required']);
+        exit;
+    }
+
+    $orderId = str_replace('ORD-', '', $orderIdStr);
+
+    try {
+        $pdo->beginTransaction();
+
+        // Get order details
+        $stmt = $pdo->prepare("SELECT id, user_id, status, payment_reference, total_amount FROM orders WHERE id = ? FOR UPDATE");
+        $stmt->execute([$orderId]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$order) {
+            $pdo->rollBack();
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Order not found']);
+            exit;
+        }
+
+        // Verify ownership
+        if ($order['user_id'] != $authenticatedUserId) {
+            $pdo->rollBack();
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'You can only cancel your own orders']);
+            exit;
+        }
+
+        // Check if order can be cancelled (only pending or processing)
+        if (!in_array($order['status'], ['pending', 'processing'])) {
+            $pdo->rollBack();
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Order can only be cancelled while in pending or processing status']);
+            exit;
+        }
+
+        // Update order status to cancelled
+        $updateStmt = $pdo->prepare("UPDATE orders SET status = 'cancelled' WHERE id = ?");
+        $updateStmt->execute([$orderId]);
+
+        // Log the cancellation
+        $logStmt = $pdo->prepare("INSERT INTO order_status_logs (order_id, status_key, message) VALUES (?, 'cancelled', 'Order cancelled by user')");
+        $logStmt->execute([$orderId]);
+
+        // Restore stock quantities
+        $itemStmt = $pdo->prepare("SELECT product_id, quantity FROM order_items WHERE order_id = ?");
+        $itemStmt->execute([$orderId]);
+        $items = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($items as $item) {
+            $restoreStmt = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?");
+            $restoreStmt->execute([$item['quantity'], $item['product_id']]);
+        }
+
+        // If payment was made, initiate refund
+        if ($order['payment_reference'] && $order['status'] === 'processing') {
+            // TODO: Integrate with Paystack refund API
+            // For now, just log that a refund should be processed
+            error_log("Refund needed for order {$orderId} with reference {$order['payment_reference']}");
+        }
+
+        $pdo->commit();
+
+        echo json_encode(['success' => true, 'message' => 'Order cancelled successfully']);
+
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log("Order cancellation error: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Failed to cancel order']);
     }
     exit;
 }
@@ -196,18 +299,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $orderRef = $decoded['reference'] ?? $decoded['payment_reference'] ?? null;
 
     if ($action === 'heartbeat' && $orderRef) {
-        $stmt = $pdo->prepare("UPDATE orders SET last_activity_at = NOW() WHERE payment_reference = ? AND status = 'pending'");
-        $stmt->execute([$orderRef]);
+        $stmt = $pdo->prepare("UPDATE orders SET last_activity_at = NOW() WHERE payment_reference = ? AND user_id = ? AND status = 'pending'");
+        $stmt->execute([$orderRef, $authenticatedUserId]);
         echo json_encode(['success' => true, 'message' => 'Heartbeat updated']);
         exit;
     }
 
     if ($action === 'cancel' && $orderRef) {
-        $stmt = $pdo->prepare("UPDATE orders SET status = 'cancelled' WHERE payment_reference = ? AND status = 'pending'");
-        $stmt->execute([$orderRef]);
+        $stmt = $pdo->prepare("UPDATE orders SET status = 'cancelled' WHERE payment_reference = ? AND user_id = ? AND status = 'pending'");
+        $stmt->execute([$orderRef, $authenticatedUserId]);
         if ($stmt->rowCount() > 0) {
-            $getOid = $pdo->prepare("SELECT id FROM orders WHERE payment_reference = ?");
-            $getOid->execute([$orderRef]);
+            $getOid = $pdo->prepare("SELECT id FROM orders WHERE payment_reference = ? AND user_id = ?");
+            $getOid->execute([$orderRef, $authenticatedUserId]);
             $orderId = $getOid->fetchColumn();
             if ($orderId) {
                 $pdo->prepare("INSERT INTO order_status_logs (order_id, status_key, message) VALUES (?, 'cancelled', 'User abandoned checkout (Proactive Release)')")
@@ -225,6 +328,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userRegion = $uStmt->fetchColumn() ?: 'Greater Accra (GA)';
 
     $items = $decoded['items'] ?? [];
+    usort($items, function($a, $b) {
+        return (int)($a['id'] ?? 0) <=> (int)($b['id'] ?? 0);
+    });
     $totalAmount = round((float)($decoded['total_amount'] ?? 0), 2);
     $shippingAddress = sanitizeInput($decoded['shipping_address'] ?? '');
     $paymentMethod = sanitizeInput($decoded['payment_method'] ?? 'card');
@@ -320,7 +426,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $maxLoyaltyDiscount = round($calculatedSubtotal * ($loyaltyPct / 100), 2);
             if (abs($requestedLoyaltyDiscount - $maxLoyaltyDiscount) <= 0.10) {
                  $calculatedDiscount += $maxLoyaltyDiscount;
-                 $loyaltyPointsToDeduct = $userPoints; 
+                 // Deduct only the points equivalent to the discount applied, not the entire balance.
+                 // Points earning rate: 1 point per GHS 1 spent. Deduction rate matches earning rate.
+                 $loyaltyPointsToDeduct = (int)ceil($maxLoyaltyDiscount);
             }
         }
     }

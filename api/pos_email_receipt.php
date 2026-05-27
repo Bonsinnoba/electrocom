@@ -92,8 +92,9 @@ try {
     $html .= "</div>";
 
     $notifier = new NotificationService();
-    // Use queueNotification or sendEmail directly depending on setup, sendEmail is simpler right here for an explicit user action
-    $success = $notifier->sendEmail($email, "Receipt for Order #ORD-{$orderId} from {$siteName}", $html, strip_tags(str_replace(['<br>', '</th>', '</td>', '</tr>'], "\n", $html)));
+    // Use queueNotification for consistency and to prevent POS delays
+    // HTML content is preserved and sent by the cron job
+    $success = $notifier->queueNotification('email', $email, $html, "Receipt for Order #ORD-{$orderId} from {$siteName}");
 
     echo json_encode(['success' => (bool)$success]);
 

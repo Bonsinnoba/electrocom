@@ -87,11 +87,12 @@ export const AuthProvider = ({ children }) => {
         console.error('Failed to save auth to localStorage:', e);
         // If it still fails, clear everything and try to save AT LEAST the token
         if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-            localStorage.clear();
+            localStorage.removeItem('ehub_user');
+            localStorage.removeItem('ehub_token');
             try {
                 localStorage.setItem('ehub_token', newToken);
             } catch (e2) {
-                console.error('CRITICAL: Failed to save token even after clear:', e2);
+                console.error('CRITICAL: Failed to save token even after local cleanup:', e2);
             }
         }
     }

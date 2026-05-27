@@ -37,7 +37,7 @@ if ($method === 'GET') {
         $filterSql = "";
         $params = [];
         
-        $search = trim($_GET['search'] ?? '');
+        $search = mb_substr(trim($_GET['search'] ?? ''), 0, 100);
         if ($search !== '') {
             $searchStr = str_ireplace('ORD-', '', $search);
             if (is_numeric($searchStr)) {
@@ -124,6 +124,14 @@ if ($method === 'GET') {
 
         $idStr = $decoded['id'] ?? null;
         $status = $decoded['status'] ?? 'pending';
+
+        // Allowlist validation — prevent invalid enum values from corrupting order state
+        $allowedStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'];
+        if (!in_array($status, $allowedStatuses, true)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid status value.']);
+            exit;
+        }
 
         if (!$idStr) {
             http_response_code(400);
@@ -459,7 +467,7 @@ if ($method === 'GET') {
                 exit;
             }
 
-            if ($order['delivery_otp'] !== $otp) {
+            if (!hash_equals((string)$order['delivery_otp'], (string)$otp)) {
                 echo json_encode(['success' => false, 'error' => 'Invalid Delivery Code. Please check with the customer.']);
                 exit;
             }

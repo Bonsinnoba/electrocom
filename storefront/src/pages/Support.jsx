@@ -1,305 +1,384 @@
-import React, { useState } from 'react';
-import { HelpCircle, MessageCircle, Phone, Mail, ChevronDown, Headphones, Heart, ExternalLink } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  HelpCircle, MessageCircle, Phone, Mail, ChevronDown,
+  Headphones, Heart, Search, Clock, Zap, Shield,
+  ArrowRight, CheckCircle, Send, User, FileText
+} from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
 export default function Support({ searchQuery = '' }) {
   const [openIndex, setOpenIndex] = useState(null);
+  const [localSearch, setLocalSearch] = useState(searchQuery);
+  const [formState, setFormState] = useState({ name: '', email: '', subject: '', message: '' });
+  const [formSent, setFormSent] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('all');
   const { siteSettings } = useSettings();
 
-  const faqs = [
-    { q: "How can I track my order?", a: "You can track your order in the Orders section of your dashboard. A tracking number is also sent via SMS or email once your package is dispatched." },
-    { q: "Are the electronic components genuine?", a: "Yes. All components are sourced from verified suppliers. Datasheets are available on request for ICs, transistors, and modules. Dead-on-arrival (DOA) items are replaced free of charge." },
-    { q: "Do you offer bulk pricing for schools or businesses?", a: `Yes! Email us at ${siteSettings.siteEmail} with your parts list and quantities. We offer competitive bulk discounts for institutions, universities, and engineering firms.` },
-    { q: "What is your return policy for components?", a: "We accept returns for DOA or damaged-on-arrival components and unopened STEM kits within 14 days. You can easily select and request returns for multiple items from the same order at once directly through your dashboard's Return Manager. Opened component packs and ESD-damaged items are not eligible for return." },
-    { q: "How do refunds work if I return multiple items?", a: "To optimize your audit trail and keep your statement clean, the platform consolidates refunds for multi-item returns. We process all returned items together and issue a single consolidated refund back to your original payment method (Paystack) or via cash." },
-    { q: "Do you provide datasheets or documentation?", a: "Yes. For most ICs, sensors, and modules we can provide the manufacturer datasheet on request. Contact us with the part number and we'll send it within 24 hours." },
-    { q: "How do I cancel my order?", a: "Orders can be cancelled within 1 hour of placement by contacting our support team immediately. Orders already in processing cannot be cancelled." },
-    { q: "How do I compare products before buying?", a: "Click the 'Compare' button on any product card to add it to your comparison bar. You can compare up to 4 products side-by-side, viewing their specifications, prices, and features in a unified table to make an informed decision." },
-    { q: "What do 'Only 3 left!' and 'Selling fast' mean?", a: "These are stock urgency labels that help you understand product availability. 'Only X left!' indicates limited remaining stock, while 'Selling fast' shows items with high recent demand. Both labels help you make timely purchasing decisions." },
-    { q: "How do I use a promo code?", a: "During checkout, you'll find a promo code field in the order summary section. Enter your flash sale code and click 'Apply'. The discount will be instantly reflected in your total. Flash sale codes have expiration dates, so use them before they expire." },
-    { q: "Can I track my order in real time?", a: "Yes! Visit the Orders page in your dashboard to see a live timeline of your order status. The timeline shows each stage from processing to delivery, with real-time updates as your order progresses through fulfillment." }
+  const categories = [
+    { id: 'all', label: 'All Topics' },
+    { id: 'orders', label: 'Orders & Shipping' },
+    { id: 'products', label: 'Products' },
+    { id: 'returns', label: 'Returns & Refunds' },
+    { id: 'account', label: 'Account' },
   ];
 
-  const filteredFaqs = faqs.filter(f => 
-    !searchQuery || 
-    f.q.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    f.a.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const faqs = [
+    { cat: 'orders', q: "How can I track my order?", a: "You can track your order in the Orders section of your dashboard. A tracking number is also sent via SMS or email once your package is dispatched." },
+    { cat: 'products', q: "Are the electronic components genuine?", a: "Yes. All components are sourced from verified suppliers. Datasheets are available on request for ICs, transistors, and modules. Dead-on-arrival (DOA) items are replaced free of charge." },
+    { cat: 'products', q: "Do you offer bulk pricing for schools or businesses?", a: `Yes! Email us at ${siteSettings.siteEmail} with your parts list and quantities. We offer competitive bulk discounts for institutions, universities, and engineering firms.` },
+    { cat: 'returns', q: "What is your return policy for components?", a: "We accept returns for DOA or damaged-on-arrival components and unopened STEM kits within 14 days. You can easily select and request returns for multiple items from the same order at once directly through your dashboard's Return Manager. Opened component packs and ESD-damaged items are not eligible for return." },
+    { cat: 'returns', q: "How do refunds work if I return multiple items?", a: "To optimize your audit trail and keep your statement clean, the platform consolidates refunds for multi-item returns. We process all returned items together and issue a single consolidated refund back to your original payment method (Paystack) or via cash." },
+    { cat: 'products', q: "Do you provide datasheets or documentation?", a: "Yes. For most ICs, sensors, and modules we can provide the manufacturer datasheet on request. Contact us with the part number and we'll send it within 24 hours." },
+    { cat: 'orders', q: "How do I cancel my order?", a: "Orders can be cancelled within 1 hour of placement by contacting our support team immediately. Orders already in processing cannot be cancelled." },
+    { cat: 'products', q: "How do I compare products before buying?", a: "Click the 'Compare' button on any product card to add it to your comparison bar. You can compare up to 4 products side-by-side, viewing their specifications, prices, and features in a unified table." },
+    { cat: 'products', q: "What do 'Only 3 left!' and 'Selling fast' mean?", a: "'Only X left!' indicates limited remaining stock, while 'Selling fast' shows items with high recent demand. Both labels help you make timely purchasing decisions." },
+    { cat: 'orders', q: "How do I use a promo code?", a: "During checkout, you'll find a promo code field in the order summary section. Enter your flash sale code and click 'Apply'. The discount will be instantly reflected in your total." },
+    { cat: 'orders', q: "Can I track my order in real time?", a: "Yes! Visit the Orders page in your dashboard to see a live timeline of your order status, with real-time updates as your order progresses through fulfillment." },
+    { cat: 'account', q: "How do I update my account information?", a: "Go to the Profile section from the sidebar to update your personal details, delivery addresses, and notification preferences at any time." },
+  ];
 
-  const FAQCard = ({ item, index }) => {
-    const isOpen = openIndex === index;
+  const effectiveSearch = localSearch || searchQuery;
 
-    return (
-      <div className={`faq-card glass ${isOpen ? 'active' : ''}`} 
-        onClick={() => setOpenIndex(isOpen ? null : index)}
-        style={{ 
-          padding: '24px', 
-          display: 'flex',
-          flexDirection: 'column',
-          gap: isOpen ? '16px' : '0',
-          cursor: 'pointer',
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-main)', paddingRight: '24px' }}>{item.q}</div>
-          <ChevronDown size={18} color={isOpen ? "var(--primary-blue)" : "var(--text-muted)"} 
-            style={{ 
-              transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-              transform: isOpen ? 'rotate(-180deg)' : 'rotate(0deg)'
-            }} 
-          />
-        </div>
-        
-        <div style={{ 
-          maxHeight: isOpen ? '200px' : '0',
-          opacity: isOpen ? 1 : 0,
-          overflow: 'hidden',
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          fontSize: '15px', 
-          color: 'var(--text-muted)', 
-          lineHeight: '1.6'
-        }}>
-          {item.a}
-        </div>
+  const filteredFaqs = faqs.filter(f => {
+    const matchCat = activeCategory === 'all' || f.cat === activeCategory;
+    const matchSearch = !effectiveSearch ||
+      f.q.toLowerCase().includes(effectiveSearch.toLowerCase()) ||
+      f.a.toLowerCase().includes(effectiveSearch.toLowerCase());
+    return matchCat && matchSearch;
+  });
 
-        <div className="card-hover-bg" style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: 'linear-gradient(135deg, var(--info-bg), transparent)', 
-          opacity: isOpen ? 1 : 0, 
-          transition: 'opacity 0.3s', 
-          pointerEvents: 'none' 
-        }}></div>
-      </div>
-    );
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    setFormSent(true);
+    setTimeout(() => setFormSent(false), 4000);
+    setFormState({ name: '', email: '', subject: '', message: '' });
   };
 
+  const stats = [
+    { icon: <Clock size={20} />, label: 'Avg. Response', value: '< 2 hrs' },
+    { icon: <Zap size={20} />, label: 'Satisfaction Rate', value: '98%' },
+    { icon: <Shield size={20} />, label: 'Days DOA Coverage', value: '14' },
+    { icon: <CheckCircle size={20} />, label: 'Issues Resolved', value: '2,400+' },
+  ];
+
   return (
-    <div className="support-page" style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: '24px'
-    }}>
-      <div className="page-header" style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        padding: '24px 0 8px' 
-      }}>
-        <div>
-          <h1 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1px' }}>Help & Support</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginTop: '4px' }}>Dedicated support to ensure your success with {siteSettings.siteName}.</p>
-        </div>
-      </div>
+    <div className="support-page">
 
-      {/* Hero: Live Chat */}
-      <div style={{ 
-        background: 'linear-gradient(135deg, var(--primary-blue), var(--accent-blue))', 
-        borderRadius: '24px', 
-        padding: '48px', 
-        color: 'white',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        boxShadow: '0 20px 40px rgba(59, 130, 246, 0.2)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <div style={{ 
-          background: 'rgba(255, 255, 255, 0.2)', 
-          padding: '16px', 
-          borderRadius: '50%', 
-          marginBottom: '24px',
-          backdropFilter: 'blur(10px)'
-        }}>
-          <MessageCircle size={32} />
-        </div>
-        <h2 style={{ fontSize: '28px', fontWeight: 800, margin: '0 0 12px 0' }}>Need instant assistance?</h2>
-        <p style={{ fontSize: '16px', opacity: 0.9, maxWidth: '500px', lineHeight: '1.6', marginBottom: '24px' }}>
-          Connect with our experts right now. Our average response time is under 1 minute for all active sessions.
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            padding: '8px 16px', 
-            borderRadius: '20px', 
-            background: 'rgba(255, 255, 255, 0.2)', 
-            backdropFilter: 'blur(10px)',
-            fontSize: '13px',
-            fontWeight: 700,
-            animation: 'pulse 2s ease-in-out infinite'
-          }}>
-            <span style={{ 
-              width: '8px', 
-              height: '8px', 
-              borderRadius: '50%', 
-              background: '#22c55e',
-              animation: 'pulse 2s ease-in-out infinite'
-            }}></span>
-            All systems operational
+      {/* ── Hero Banner ── */}
+      <div className="support-hero">
+        <div className="support-hero-glow" />
+        <div className="support-hero-content">
+          <div className="support-hero-badge">
+            <Headphones size={14} />
+            <span>Support Center</span>
           </div>
-        </div>
-        <button className="btn-primary" style={{ 
-          background: 'white', 
-          color: 'var(--primary-blue)', 
-          padding: '16px 40px', 
-          borderRadius: '16px', 
-          fontWeight: 800,
-          border: 'none',
-          boxShadow: '0 10px 15px rgba(0,0,0,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          cursor: 'pointer'
-        }}>
-          Start Live Chat <ExternalLink size={18} />
-        </button>
-        
-        {/* Decorative elements */}
-        <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '300px', height: '300px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '50%' }}></div>
-        <div style={{ position: 'absolute', bottom: '-50px', left: '-50px', width: '150px', height: '150px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '50%' }}></div>
-      </div>
+          <h1 className="support-hero-title">How can we help?</h1>
+          <p className="support-hero-sub">
+            Dedicated support for {siteSettings.siteName} — get answers, reach our team, or send us a message.
+          </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
-        {/* FAQs Section */}
-        <div className="support-section">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-            <HelpCircle size={24} color="var(--primary-blue)" />
-            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Frequently Asked Questions</h2>
-          </div>
-          <div className="support-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-            {filteredFaqs.length > 0 ? (
-              filteredFaqs.map((item, i) => <FAQCard key={i} index={i} item={item} />)
-            ) : (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                No questions matching "{searchQuery}"
-              </div>
+          {/* Inline search */}
+          <div className="support-search-wrap">
+            <Search size={18} className="support-search-icon" />
+            <input
+              id="support-search"
+              type="text"
+              className="support-search-input"
+              placeholder="Search FAQs…"
+              value={localSearch}
+              onChange={e => { setLocalSearch(e.target.value); setOpenIndex(null); }}
+            />
+            {localSearch && (
+              <button
+                className="support-search-clear"
+                onClick={() => setLocalSearch('')}
+                aria-label="Clear search"
+              >×</button>
             )}
           </div>
         </div>
-
-        {/* Contact Channels Section */}
-        <div className="support-section">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-            <Headphones size={24} color="var(--primary-blue)" />
-            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Direct Channels</h2>
-          </div>
-          <div className="support-grid" style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-            gap: '24px' 
-          }}>
-            {/* Phone Support */}
-            <div className="contact-card glass" style={{ 
-              padding: '32px', 
-              borderRadius: '24px', 
-              border: '1px solid var(--border-light)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              gap: '20px',
-              transition: 'all 0.3s ease'
-            }}>
-              <div style={{ background: 'var(--info-bg)', padding: '20px', borderRadius: '50%', color: 'var(--primary-blue)' }}>
-                <Phone size={32} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 800, fontSize: '18px', marginBottom: '6px' }}>Call Support</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.5' }}>Immediate voice assistance available 9am - 6pm</div>
-              </div>
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <a href={`tel:${siteSettings.phone1}`} className="btn-secondary" style={{ width: '100%', borderRadius: '14px', textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px' }}>
-                  {siteSettings.phone1}
-                </a>
-                <a href={`tel:${siteSettings.phone2}`} className="btn-secondary" style={{ width: '100%', borderRadius: '14px', textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px' }}>
-                  {siteSettings.phone2}
-                </a>
-              </div>
-            </div>
-
-            {/* WhatsApp Support */}
-            <div className="contact-card glass" style={{ 
-              padding: '32px', 
-              borderRadius: '24px', 
-              border: '1px solid var(--border-light)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              gap: '20px',
-              transition: 'all 0.3s ease'
-            }}>
-              <div style={{ background: 'var(--success-bg)', padding: '20px', borderRadius: '50%', color: 'var(--success)' }}>
-                <MessageCircle size={32} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 800, fontSize: '18px', marginBottom: '6px' }}>WhatsApp Chat</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.5' }}>Message us for quick replies and image sharing</div>
-              </div>
-              <a href={`https://wa.me/${siteSettings.whatsapp}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ 
-                width: '100%', 
-                borderRadius: '14px', 
-                textDecoration: 'none', 
-                background: 'var(--success-bg)', 
-                color: 'var(--success)',
-                borderColor: 'var(--success)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '16px',
-                fontWeight: 700,
-                opacity: 0.8
-              }}>
-                Chat on WhatsApp
-              </a>
-            </div>
-
-            {/* Email Support */}
-            <div className="contact-card glass" style={{ 
-              padding: '32px', 
-              borderRadius: '24px', 
-              border: '1px solid var(--border-light)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              gap: '20px',
-              transition: 'all 0.3s ease'
-            }}>
-              <div style={{ background: 'var(--danger-bg)', padding: '20px', borderRadius: '50%', color: 'var(--danger)' }}>
-                <Mail size={32} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 800, fontSize: '18px', marginBottom: '6px' }}>Email Inquiry</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.5' }}>For detailed requests, returns or order queries</div>
-              </div>
-              <a href={`mailto:${siteSettings.siteEmail}`} className="btn-secondary" style={{ width: '100%', borderRadius: '14px', textDecoration: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '16px' }}>
-                {siteSettings.siteEmail}
-              </a>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border-light)', padding: '48px 0', textAlign: 'center', marginTop: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', color: 'var(--primary-blue)', marginBottom: '12px' }}>
-          <Heart size={20} fill="var(--primary-blue)" />
-          <span style={{ fontWeight: 800, fontSize: '18px' }}>We're here for you</span>
+      {/* ── Stats Strip ── */}
+      <div className="support-stats-strip">
+        {stats.map((s, i) => (
+          <div key={i} className="support-stat">
+            <div className="support-stat-icon">{s.icon}</div>
+            <div>
+              <div className="support-stat-value">{s.value}</div>
+              <div className="support-stat-label">{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── FAQ Section ── */}
+      <section className="support-section">
+        <div className="support-section-header">
+          <div className="support-section-icon-wrap" style={{ background: 'var(--info-bg)', color: 'var(--primary-blue)' }}>
+            <HelpCircle size={22} />
+          </div>
+          <div>
+            <h2 className="support-section-title">Frequently Asked Questions</h2>
+            <p className="support-section-sub">Quick answers to common questions</p>
+          </div>
         </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '15px', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>
-          Our mission is to provide the best electronics with world-class support. {siteSettings.siteName} is community-driven and always ready to help.
+
+        {/* Category pills */}
+        <div className="support-category-pills">
+          {categories.map(c => (
+            <button
+              key={c.id}
+              className={`support-pill ${activeCategory === c.id ? 'active' : ''}`}
+              onClick={() => { setActiveCategory(c.id); setOpenIndex(null); }}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        {/* FAQ list */}
+        <div className="support-faq-list">
+          {filteredFaqs.length > 0 ? filteredFaqs.map((item, i) => (
+            <FAQItem
+              key={`${item.cat}-${i}`}
+              item={item}
+              index={i}
+              isOpen={openIndex === i}
+              onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+            />
+          )) : (
+            <div className="support-empty">
+              <HelpCircle size={40} />
+              <p>No results for <strong>"{effectiveSearch}"</strong></p>
+              <button className="support-pill active" onClick={() => { setLocalSearch(''); setActiveCategory('all'); }}>
+                Clear filters
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Contact Channels + Message Form ── */}
+      <section className="support-section">
+        <div className="support-section-header">
+          <div className="support-section-icon-wrap" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
+            <MessageCircle size={22} />
+          </div>
+          <div>
+            <h2 className="support-section-title">Get in Touch</h2>
+            <p className="support-section-sub">Choose the channel that works best for you</p>
+          </div>
+        </div>
+
+        <div className="support-contact-grid">
+
+          {/* ── Contact cards column ── */}
+          <div className="support-contact-cards">
+            {/* Phone */}
+            <ContactCard
+              iconBg="var(--info-bg)"
+              iconColor="var(--primary-blue)"
+              icon={<Phone size={24} />}
+              title="Call Us"
+              desc="Voice support available Mon–Sat, 9 am – 6 pm"
+              badge="Live"
+              badgeColor="success"
+            >
+              <a href={`tel:${siteSettings.phone1}`} className="support-cta-link" id="support-call-1">
+                <Phone size={15} /> {siteSettings.phone1}
+              </a>
+              {siteSettings.phone2 && (
+                <a href={`tel:${siteSettings.phone2}`} className="support-cta-link secondary" id="support-call-2">
+                  <Phone size={15} /> {siteSettings.phone2}
+                </a>
+              )}
+            </ContactCard>
+
+            {/* WhatsApp */}
+            <ContactCard
+              iconBg="var(--success-bg)"
+              iconColor="var(--success)"
+              icon={<MessageCircle size={24} />}
+              title="WhatsApp"
+              desc="Fast replies and image sharing for component questions"
+              badge="Fastest"
+              badgeColor="success"
+            >
+              <a
+                href={`https://wa.me/${siteSettings.whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="support-cta-link whatsapp"
+                id="support-whatsapp"
+              >
+                <MessageCircle size={15} /> Chat on WhatsApp <ArrowRight size={14} />
+              </a>
+            </ContactCard>
+
+            {/* Email */}
+            <ContactCard
+              iconBg="var(--danger-bg)"
+              iconColor="var(--danger)"
+              icon={<Mail size={24} />}
+              title="Email"
+              desc="For detailed queries, bulk orders, or documentation requests"
+              badge="24 hr"
+              badgeColor="warning"
+            >
+              <a href={`mailto:${siteSettings.siteEmail}`} className="support-cta-link" id="support-email">
+                <Mail size={15} /> {siteSettings.siteEmail}
+              </a>
+            </ContactCard>
+          </div>
+
+          {/* ── Message form ── */}
+          <div className="support-form-wrap glass">
+            <div className="support-form-header">
+              <div className="support-section-icon-wrap" style={{ background: 'var(--info-bg)', color: 'var(--primary-blue)', width: 40, height: 40 }}>
+                <Send size={18} />
+              </div>
+              <div>
+                <h3 className="support-form-title">Send a Message</h3>
+                <p className="support-form-sub">We'll reply within 2 business hours</p>
+              </div>
+            </div>
+
+            {formSent ? (
+              <div className="support-form-success">
+                <div className="support-form-success-icon">
+                  <CheckCircle size={36} />
+                </div>
+                <strong>Message sent!</strong>
+                <p>Our team will get back to you shortly.</p>
+              </div>
+            ) : (
+              <form className="support-form" onSubmit={handleFormSubmit} id="support-contact-form">
+                <div className="support-form-row">
+                  <div className="support-form-field">
+                    <label htmlFor="sf-name"><User size={13} /> Your Name</label>
+                    <input
+                      id="sf-name"
+                      type="text"
+                      placeholder="John Adeyemi"
+                      required
+                      value={formState.name}
+                      onChange={e => setFormState(p => ({ ...p, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="support-form-field">
+                    <label htmlFor="sf-email"><Mail size={13} /> Email Address</label>
+                    <input
+                      id="sf-email"
+                      type="email"
+                      placeholder="john@example.com"
+                      required
+                      value={formState.email}
+                      onChange={e => setFormState(p => ({ ...p, email: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="support-form-field">
+                  <label htmlFor="sf-subject"><FileText size={13} /> Subject</label>
+                  <input
+                    id="sf-subject"
+                    type="text"
+                    placeholder="Order #1234 — missing item"
+                    required
+                    value={formState.subject}
+                    onChange={e => setFormState(p => ({ ...p, subject: e.target.value }))}
+                  />
+                </div>
+                <div className="support-form-field">
+                  <label htmlFor="sf-message"><MessageCircle size={13} /> Message</label>
+                  <textarea
+                    id="sf-message"
+                    rows={5}
+                    placeholder="Describe your issue in detail…"
+                    required
+                    value={formState.message}
+                    onChange={e => setFormState(p => ({ ...p, message: e.target.value }))}
+                  />
+                </div>
+                <button type="submit" className="support-form-submit" id="support-form-submit-btn">
+                  <Send size={16} /> Send Message
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer love note ── */}
+      <div className="support-footer-note">
+        <Heart size={18} fill="var(--primary-blue)" color="var(--primary-blue)" />
+        <p>
+          <strong>We're here for you.</strong> {siteSettings.siteName} is community-driven and always ready to help our makers, engineers, and educators succeed.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/* ── FAQ Item Component ── */
+function FAQItem({ item, index, isOpen, onToggle }) {
+  const bodyRef = useRef(null);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    if (bodyRef.current) {
+      setHeight(isOpen ? bodyRef.current.scrollHeight : 0);
+    }
+  }, [isOpen]);
+
+  return (
+    <div
+      className={`support-faq-item ${isOpen ? 'open' : ''}`}
+      onClick={onToggle}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onToggle()}
+      id={`faq-item-${index}`}
+      aria-expanded={isOpen}
+    >
+      <div className="support-faq-question">
+        <span>{item.q}</span>
+        <div className={`support-faq-chevron ${isOpen ? 'open' : ''}`}>
+          <ChevronDown size={18} />
+        </div>
+      </div>
+      <div
+        className="support-faq-body"
+        style={{ maxHeight: height }}
+        ref={bodyRef}
+        aria-hidden={!isOpen}
+      >
+        <p className="support-faq-answer">{item.a}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Contact Card Component ── */
+function ContactCard({ icon, iconBg, iconColor, title, desc, badge, badgeColor, children }) {
+  return (
+    <div className="support-contact-card glass">
+      <div className="support-contact-card-top">
+        <div className="support-contact-icon" style={{ background: iconBg, color: iconColor }}>
+          {icon}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div className="support-contact-title-row">
+            <span className="support-contact-title">{title}</span>
+            {badge && (
+              <span className={`support-contact-badge ${badgeColor}`}>{badge}</span>
+            )}
+          </div>
+          <p className="support-contact-desc">{desc}</p>
+        </div>
+      </div>
+      <div className="support-contact-actions">
+        {children}
       </div>
     </div>
   );

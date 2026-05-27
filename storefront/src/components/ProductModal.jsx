@@ -65,6 +65,8 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
 
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState('');
 
   if (!isOpen || !product) return null;
 
@@ -142,13 +144,51 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
 
   const handleAddToWishlist = () => {
     setIsSaving(true);
-    onAddToWishlist({ 
-      ...product, 
-      price: currentPrice, 
+    onAddToWishlist({
+      ...product,
+      price: currentPrice,
       original_price: basePrice + (selectedVariant ? parseFloat(selectedVariant.price_modifier) : 0),
-      discount_percent: discount 
+      discount_percent: discount
     });
     setTimeout(() => setIsSaving(false), 1000);
+  };
+
+  const handleNotifyMe = async () => {
+    if (!user) {
+      if (openAuthModal) openAuthModal('signin');
+      return;
+    }
+
+    setIsNotifying(true);
+    setNotifyMessage('');
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/stock_notifications.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          product_id: product.id,
+          email: user.email,
+          phone: user.phone || null,
+          notification_method: 'both'
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setNotifyMessage(data.message || 'You will be notified when this product is back in stock');
+      } else {
+        setNotifyMessage(data.error || 'Failed to request notification');
+      }
+    } catch {
+      setNotifyMessage('Failed to request notification. Please try again.');
+    } finally {
+      setIsNotifying(false);
+    }
   };
 
   return (
@@ -313,55 +353,126 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
 
               {/* Side-by-Side Primary Actions */}
               <div className="modal-primary-actions" style={{ display: 'flex', gap: '12px', width: '100%', flexWrap: 'wrap' }}>
-                <button 
-                  className={`btn-primary ${isAdding ? 'animate-pulse-success' : ''}`}
-                  onClick={handleAddToCart}
-                  disabled={isAdding || isOutOfStock}
-                  style={{ 
-                    flex: 1.5, 
-                    padding: '14px 10px', 
-                    borderRadius: '14px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: '8px',
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    boxShadow: isAdding ? '0 4px 20px rgba(16, 185, 129, 0.4)' : (isOutOfStock ? 'none' : '0 4px 12px rgba(59, 130, 246, 0.2)'),
-                    background: isAdding ? 'var(--success)' : (isOutOfStock ? 'var(--text-muted)' : 'var(--primary-blue)'),
-                    whiteSpace: 'nowrap',
-                    cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                  }}
-                >
-                  <ShoppingCart size={18} className={isAdding ? 'animate-scale-in' : ''} />
-                  {isAdding ? 'Added!' : (isOutOfStock ? 'Sold Out' : 'Add to Cart')}
-                </button>
-                <button 
-                  className={`btn-outline ${inWishlist ? 'active' : ''} ${isSaving ? 'animate-scale-in' : ''}`}
-                  onClick={handleAddToWishlist}
-                  style={{
-                    flex: 1,
-                    padding: '14px 10px',
-                    borderRadius: '14px',
-                    background: inWishlist ? 'var(--danger-bg)' : 'var(--bg-surface)',
-                    color: inWishlist ? 'var(--danger)' : 'var(--primary-blue)',
-                    borderColor: inWishlist ? 'var(--danger)' : 'var(--border-light)',
-                    display: 'flex',
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    gap: '8px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    border: '1px solid',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <Heart size={18} fill={inWishlist ? "var(--danger)" : "none"} className={isSaving ? 'animate-scale-in' : ''} />
-                  {isSaving ? (inWishlist ? 'Saved!' : 'Removed!') : (inWishlist ? 'Favorite' : 'Save')}
-                </button>
+                {isOutOfStock ? (
+                  <>
+                    <button
+                      className="btn-primary"
+                      onClick={handleNotifyMe}
+                      disabled={isNotifying}
+                      style={{
+                        flex: 1.5,
+                        padding: '14px 10px',
+                        borderRadius: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        background: isNotifying ? 'var(--text-muted)' : 'var(--warning)',
+                        color: 'white',
+                        whiteSpace: 'nowrap',
+                        cursor: isNotifying ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                      }}
+                    >
+                      <Bell size={18} />
+                      {isNotifying ? 'Requesting...' : 'Notify Me When in Stock'}
+                    </button>
+                    <button
+                      className={`btn-outline ${inWishlist ? 'active' : ''} ${isSaving ? 'animate-scale-in' : ''}`}
+                      onClick={handleAddToWishlist}
+                      style={{
+                        flex: 1,
+                        padding: '14px 10px',
+                        borderRadius: '14px',
+                        background: inWishlist ? 'var(--danger-bg)' : 'var(--bg-surface)',
+                        color: inWishlist ? 'var(--danger)' : 'var(--primary-blue)',
+                        borderColor: inWishlist ? 'var(--danger)' : 'var(--border-light)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        border: '1px solid',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <Heart size={18} fill={inWishlist ? "var(--danger)" : "none"} className={isSaving ? 'animate-scale-in' : ''} />
+                      {isSaving ? (inWishlist ? 'Saved!' : 'Removed!') : (inWishlist ? 'Favorite' : 'Save')}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className={`btn-primary ${isAdding ? 'animate-pulse-success' : ''}`}
+                      onClick={handleAddToCart}
+                      disabled={isAdding}
+                      style={{
+                        flex: 1.5,
+                        padding: '14px 10px',
+                        borderRadius: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        boxShadow: isAdding ? '0 4px 20px rgba(16, 185, 129, 0.4)' : '0 4px 12px rgba(59, 130, 246, 0.2)',
+                        background: isAdding ? 'var(--success)' : 'var(--primary-blue)',
+                        whiteSpace: 'nowrap',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                      }}
+                    >
+                      <ShoppingCart size={18} className={isAdding ? 'animate-scale-in' : ''} />
+                      {isAdding ? 'Added!' : 'Add to Cart'}
+                    </button>
+                    <button
+                      className={`btn-outline ${inWishlist ? 'active' : ''} ${isSaving ? 'animate-scale-in' : ''}`}
+                      onClick={handleAddToWishlist}
+                      style={{
+                        flex: 1,
+                        padding: '14px 10px',
+                        borderRadius: '14px',
+                        background: inWishlist ? 'var(--danger-bg)' : 'var(--bg-surface)',
+                        color: inWishlist ? 'var(--danger)' : 'var(--primary-blue)',
+                        borderColor: inWishlist ? 'var(--danger)' : 'var(--border-light)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        border: '1px solid',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <Heart size={18} fill={inWishlist ? "var(--danger)" : "none"} className={isSaving ? 'animate-scale-in' : ''} />
+                      {isSaving ? (inWishlist ? 'Saved!' : 'Removed!') : (inWishlist ? 'Favorite' : 'Save')}
+                    </button>
+                  </>
+                )}
               </div>
+
+              {notifyMessage && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: notifyMessage.includes('Failed') ? 'var(--danger-bg)' : 'var(--success-bg)',
+                  color: notifyMessage.includes('Failed') ? 'var(--danger)' : 'var(--success)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  textAlign: 'center',
+                  border: `1px solid ${notifyMessage.includes('Failed') ? 'var(--danger)' : 'var(--success)'}`
+                }}>
+                  {notifyMessage}
+                </div>
+              )}
             </div>
           </div>
 
@@ -424,101 +535,118 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                     <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--warning)' }}>{(parseFloat(product.rating) || 5.0).toFixed(1)}</span>
                 </div>
             </div>
-            
+
+            {product.description && (
+              <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+                <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-muted)', margin: 0 }}>
+                  {product.description}
+                </p>
+              </div>
+            )}
+
             <div style={{ borderTop: '1px solid var(--border-light)', margin: '12px 0' }}></div>
 
 
             <div className="product-info-tabs">
-              <div className="info-tab">
-                <h3><FileText size={16} /> Documentation</h3>
-                <p>Full usage guide and safety documentation available for download.</p>
-                <a href="#" className="docs-link">Download PDF</a>
-              </div>
-              
-              <div className="info-tab">
-                <h3><List size={16} /> Included Items</h3>
-                <ul>
-                  {product.included?.map((item, i) => <li key={i}>{item}</li>) || (
-                    <>
-                      <li>Main Unit</li>
-                      <li>Charging Cable</li>
-                      <li>User Manual</li>
-                    </>
-                  )}
-                </ul>
-              </div>
-
-              <div className="info-tab">
-                <h3><Settings size={16} /> Technical Specs & User Guide</h3>
-                {product.product_code && (
-                  <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>
-                      Component Code: <span style={{ color: 'var(--primary-blue)', fontFamily: 'monospace' }}>{product.product_code}</span>
-                    </span>
-                    <a
-                      href={datasheetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-outline"
-                      style={{ fontSize: '12px', padding: '6px 10px', textDecoration: 'none' }}
-                    >
-                      Find Datasheet
-                    </a>
-                  </div>
-                )}
-                
-                {/* Specifications Grid */}
-                <div className="specs-grid" style={{ marginBottom: '20px' }}>
-                  {Object.entries(product.specs || {
-                    Model: 'PR-2024-X',
-                    Weight: '1.2kg',
-                    Battery: 'Up to 12h',
-                    Warranty: '2 Years'
-                  }).map(([key, value]) => (
-                    <div key={key} className="spec-item">
-                      <span className="spec-key">{key}</span>
-                      <span className="spec-value">{value}</span>
-                    </div>
-                  ))}
+              {(product.datasheet_url || product.directions) && (
+                <div className="info-tab">
+                  <h3><FileText size={16} /> Documentation</h3>
+                  <p>Full usage guide and safety documentation available for download.</p>
+                  {product.datasheet_url ? (
+                    <a href={product.datasheet_url} target="_blank" rel="noopener noreferrer" className="docs-link">Download PDF</a>
+                  ) : product.directions && (product.directions.startsWith('http') || product.directions.endsWith('.pdf')) ? (
+                    <a href={product.directions} target="_blank" rel="noopener noreferrer" className="docs-link">Download PDF</a>
+                  ) : null}
                 </div>
+              )}
 
-                {/* Directions / PDF Section */}
-                <div style={{ padding: '16px', background: 'var(--bg-surface-secondary)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
-                  <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Info size={14} /> Usage Directions
-                  </h4>
-                  {product.directions && (product.directions.startsWith('http') || product.directions.endsWith('.pdf')) ? (
-                    <div>
-                      <p style={{ marginBottom: '12px', fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                        A detailed PDF user guide is available with full technical instructions.
-                      </p>
-                      <a 
-                        href={product.directions} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="btn-primary" 
-                        style={{ 
-                          display: 'inline-flex', 
-                          alignItems: 'center', 
-                          gap: '8px', 
-                          padding: '10px 16px', 
-                          fontSize: '13px',
-                          textDecoration: 'none',
-                          width: '100%',
-                          justifyContent: 'center'
-                        }}
+              {product.included && product.included.length > 0 && (
+                <div className="info-tab">
+                  <h3><List size={16} /> Included Items</h3>
+                  <ul>
+                    {product.included.map((item, i) => <li key={i}>{item}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {(product.product_code || product.specs || product.directions) && (
+                <div className="info-tab">
+                  <h3><Settings size={16} /> Technical Specs & User Guide</h3>
+                  {product.product_code && (
+                    <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                        Component Code: <span style={{ color: 'var(--primary-blue)', fontFamily: 'monospace' }}>{product.product_code}</span>
+                      </span>
+                      <a
+                        href={datasheetUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-outline"
+                        style={{ fontSize: '12px', padding: '6px 10px', textDecoration: 'none' }}
                       >
-                        <FileText size={16} />
-                        Download User Guide (PDF)
+                        Find Datasheet
                       </a>
                     </div>
-                  ) : (
-                    <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.5 }}>
-                      {product.directions || 'Connect the device to a power source and follow the initial setup wizard on first launch.'}
-                    </p>
+                  )}
+
+                  {/* Specifications */}
+                  {product.specs && Object.keys(product.specs).length > 0 && (
+                    <div style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {Object.entries(product.specs).map(([key, value]) => (
+                        <span key={key} style={{
+                          fontSize: '13px',
+                          color: 'var(--text-muted)',
+                          background: 'var(--bg-surface-secondary)',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-light)'
+                        }}>
+                          <strong style={{ color: 'var(--text-main)' }}>{key}:</strong> {value}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Directions / PDF Section */}
+                  {product.directions && (
+                    <div style={{ padding: '16px', background: 'var(--bg-surface-secondary)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Info size={14} /> Usage Directions
+                      </h4>
+                      {product.directions.startsWith('http') || product.directions.endsWith('.pdf') ? (
+                        <div>
+                          <p style={{ marginBottom: '12px', fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                            A detailed PDF user guide is available with full technical instructions.
+                          </p>
+                          <a
+                            href={product.directions}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-primary"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '10px 16px',
+                              fontSize: '13px',
+                              textDecoration: 'none',
+                              width: '100%',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <FileText size={16} />
+                            Download User Guide (PDF)
+                          </a>
+                        </div>
+                      ) : (
+                        <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.5 }}>
+                          {product.directions}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
+              )}
 
               {/* Customer Reviews Section */}
               <div className="info-tab">

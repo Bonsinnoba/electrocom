@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Star, Heart, ShoppingCart, GitCompareArrows } from 'lucide-react';
+import { X, Star, Heart, ShoppingCart, GitCompareArrows, Bell } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useUser } from '../context/UserContext';
@@ -8,8 +8,10 @@ import { useNotifications } from '../context/NotificationContext';
 import { useComparison } from '../context/ComparisonContext';
 
 
-export default function ProductCard({ id, name, price, image, rating, discount_percent, sale_ends_at, stock_quantity, status = 'active', onClick, onRemove }) {
+export default function ProductCard({ id, name, price, image, rating, discount_percent, sale_ends_at, stock_quantity, status = 'active', onClick, onRemove, description }) {
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
   const { formatPrice } = useSettings();
   const safeRating = parseFloat(rating) || 0;
   
@@ -50,8 +52,52 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
     addToast(`${name} added to cart`, 'success');
   };
 
+  const handleNotifyMe = async (e) => {
+    e.stopPropagation();
+    if (!user) {
+      openAuthModal('signin');
+      return;
+    }
+
+    setIsNotifying(true);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/stock_notifications.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          product_id: id,
+          email: user.email,
+          phone: user.phone || null,
+          notification_method: 'both'
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        addToast(data.message || 'You will be notified when this product is back in stock', 'success');
+      } else {
+        addToast(data.error || 'Failed to request notification', 'error');
+      }
+    } catch {
+      addToast('Failed to request notification. Please try again.', 'error');
+    } finally {
+      setIsNotifying(false);
+    }
+  };
+
   return (
-    <div className="product-card animate-scale-in" onClick={onClick} style={{ position: 'relative' }}>
+    <div
+      className="product-card animate-scale-in"
+      onClick={onClick}
+      style={{ position: 'relative' }}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
 
       {/* Heart Toggle Button - Shown on all cards if onRemove is NOT present (Shop view) */}
       {!onRemove && (
@@ -69,21 +115,33 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
         </button>
       )}
 
-      {/* Add to Cart Button - Shown on all cards if onRemove is NOT present (Shop view) */}
+      {/* Add to Cart / Notify Me Button - Shown on all cards if onRemove is NOT present (Shop view) */}
       {!onRemove && (
-        <button 
-          onClick={handleAddToCart}
-          className={`add-to-cart-btn ${isOutOfStock ? 'disabled' : ''}`}
-          title={isOutOfStock ? "Sold Out" : "Add to cart"}
-          aria-label={isOutOfStock ? "Sold Out" : "Add to cart"}
-          disabled={isOutOfStock}
-          style={{
-            opacity: isOutOfStock ? 0.5 : 1,
-            cursor: isOutOfStock ? 'not-allowed' : 'pointer'
-          }}
-        >
-          <ShoppingCart size={18} />
-        </button>
+        isOutOfStock ? (
+          <button
+            onClick={handleNotifyMe}
+            className="add-to-cart-btn"
+            title="Notify me when in stock"
+            aria-label="Notify me when in stock"
+            disabled={isNotifying}
+            style={{
+              background: 'var(--warning)',
+              cursor: isNotifying ? 'not-allowed' : 'pointer',
+              opacity: isNotifying ? 0.7 : 1
+            }}
+          >
+            <Bell size={18} />
+          </button>
+        ) : (
+          <button
+            onClick={handleAddToCart}
+            className="add-to-cart-btn"
+            title="Add to cart"
+            aria-label="Add to cart"
+          >
+            <ShoppingCart size={18} />
+          </button>
+        )
       )}
 
       {/* Compare Toggle Button */}
@@ -230,6 +288,35 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
           )
         )}
       </div>
+
+      {/* Description Tooltip */}
+      {showTooltip && description && (
+        <div style={{
+          position: 'absolute',
+          bottom: '8px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '90%',
+          maxHeight: '40%',
+          background: 'rgba(0, 0, 0, 0.08)',
+          color: 'var(--text-main)',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          fontSize: '11px',
+          lineHeight: '1.3',
+          zIndex: 10,
+          whiteSpace: 'normal',
+          wordWrap: 'break-word',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          backdropFilter: 'blur(2px)',
+          overflow: 'auto'
+        }}>
+          {description}
+        </div>
+      )}
     </div>
   );
 }

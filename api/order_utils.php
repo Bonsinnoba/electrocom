@@ -16,10 +16,14 @@ function completeOrder($orderId, $pdo) {
             throw new Exception("Order #{$orderId} not found.");
         }
 
-        // ATOMIC GATE: Begin transaction immediately and lock the row.
+        // ATOMIC GATE: Begin transaction if not already active (e.g., when called from webhook handlers)
         // SELECT FOR UPDATE ensures only one concurrent call proceeds;
         // the second caller will block until the first commits/rolls back.
-        $pdo->beginTransaction();
+        $transactionStarted = false;
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $transactionStarted = true;
+        }
 
         $lockStmt = $pdo->prepare("SELECT status FROM orders WHERE id = ? FOR UPDATE");
         $lockStmt->execute([$orderId]);
@@ -27,7 +31,9 @@ function completeOrder($orderId, $pdo) {
 
         // If already processing/shipped/delivered/cancelled, another call got here first.
         if (in_array($lockedStatus, ['processing', 'shipped', 'delivered', 'cancelled'])) {
-            $pdo->rollBack();
+            if ($transactionStarted) {
+                $pdo->rollBack();
+            }
             return false;
         }
         $itemStmt = $pdo->prepare("
@@ -85,7 +91,10 @@ function completeOrder($orderId, $pdo) {
                 ->execute([$pointsEarned, $order['user_id']]);
         }
 
-        $pdo->commit();
+        // Only commit if we started the transaction
+        if ($transactionStarted) {
+            $pdo->commit();
+        }
 
         // 8. Communications (Email/SMS)
         try {
@@ -127,7 +136,10 @@ function completeOrder($orderId, $pdo) {
 
         return true;
     } catch (Exception $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
+        // Only rollback if we started the transaction
+        if ($transactionStarted && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log("Order completion error: " . $e->getMessage());
         return false;
     }

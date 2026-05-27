@@ -202,6 +202,12 @@ function saveBase64File(string $base64String, array $allowedTypes = ['image/jpeg
     $data = base64_decode($parts[1]);
     if (!$data) return $base64String;
 
+    // Enforce max decoded size (10 MB)
+    if (strlen($data) > 10 * 1024 * 1024) {
+        error_log('saveBase64File: rejected oversized upload (' . strlen($data) . ' bytes)');
+        return $base64String;
+    }
+
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     $mimeType = $finfo->buffer($data);
 
@@ -424,14 +430,24 @@ if ($method === 'POST') {
             $stmt->execute([$name, $category, $price, $discount_percent, $sale_ends_at, $datasheet_url, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location, $aisle, $rack, $bin, $newStatus, $id]);
 
             if ($oldProduct) {
-                if ($image_url !== $oldProduct['image_url'] && $oldProduct['image_url'] && file_exists($oldProduct['image_url']) && is_file($oldProduct['image_url'])) unlink($oldProduct['image_url']);
-                if ($directions_url !== $oldProduct['directions'] && $oldProduct['directions'] && file_exists($oldProduct['directions']) && is_file($oldProduct['directions'])) unlink($oldProduct['directions']);
+                $uploadsDir = realpath(__DIR__ . '/uploads');
+
+                $safeUnlink = function(?string $path) use ($uploadsDir): void {
+                    if (!$path) return;
+                    $real = realpath($path);
+                    if ($real && $uploadsDir && str_starts_with($real, $uploadsDir) && is_file($real)) {
+                        unlink($real);
+                    }
+                };
+
+                if ($image_url !== $oldProduct['image_url']) $safeUnlink($oldProduct['image_url']);
+                if ($directions_url !== $oldProduct['directions']) $safeUnlink($oldProduct['directions']);
                 
                 $oldGallery = json_decode($oldProduct['gallery'] ?? '[]', true);
                 $newGallery = json_decode($gallery_json, true);
                 if (is_array($oldGallery) && is_array($newGallery)) {
                     foreach ($oldGallery as $oldImg) {
-                        if ($oldImg && !in_array($oldImg, $newGallery) && file_exists($oldImg) && is_file($oldImg)) unlink($oldImg);
+                        if ($oldImg && !in_array($oldImg, $newGallery)) $safeUnlink($oldImg);
                     }
                 }
             }
@@ -492,11 +508,18 @@ if ($method === 'POST') {
             if ($orderCount === 0) {
                 // SCENARIO A: No orders -> Full Hard Delete + Server Wipe
                 if ($product) {
+                    $uploadsDir = realpath(__DIR__ . '/uploads');
+                    $safeUnlink = function(?string $path) use ($uploadsDir): void {
+                        if (!$path) return;
+                        $real = realpath($path);
+                        if ($real && $uploadsDir && str_starts_with($real, $uploadsDir) && is_file($real)) unlink($real);
+                    };
+
                     $filesToDelete = [$product['image_url'], $product['directions']];
                     $gallery = json_decode($product['gallery'] ?? '[]', true);
                     if (is_array($gallery)) $filesToDelete = array_merge($filesToDelete, $gallery);
                     foreach ($filesToDelete as $file) {
-                        if ($file && file_exists($file) && is_file($file)) unlink($file);
+                        $safeUnlink($file);
                     }
                 }
                 $pdo->prepare("DELETE FROM products WHERE id = ?")->execute([$id]);
@@ -506,12 +529,18 @@ if ($method === 'POST') {
 
             } else {
                 // SCENARIO B: Has orders -> Soft Delete (Archive) + Media Pruning
+                $uploadsDir = realpath(__DIR__ . '/uploads');
+                $safeUnlink = function(?string $path) use ($uploadsDir): void {
+                    if (!$path) return;
+                    $real = realpath($path);
+                    if ($real && $uploadsDir && str_starts_with($real, $uploadsDir) && is_file($real)) unlink($real);
+                };
                 if ($product) {
                     $filesToPrune = [$product['directions']];
                     $gallery = json_decode($product['gallery'] ?? '[]', true);
                     if (is_array($gallery)) $filesToPrune = array_merge($filesToPrune, $gallery);
                     foreach ($filesToPrune as $file) {
-                        if ($file && file_exists($file) && is_file($file)) unlink($file);
+                        $safeUnlink($file);
                     }
                 }
                 // Keep image_url for history, clear gallery/directions to save DB space

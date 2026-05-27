@@ -12,10 +12,34 @@ $branchId = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
-        // --- Pseudo-Cron for Weekly Staff Reports ---
-        require_once __DIR__ . '/cron_generate_weekly_report.php';
-        generateWeeklyReport($pdo);
-        // ------------------------------------------
+        // NOTE: Weekly report generation moved to cron job (cron_generate_weekly_report.php)
+        // to prevent request timeouts and memory issues on dashboard load.
+        // Run via crontab: 0 1 * * 1 php /path/to/api/cron_generate_weekly_report.php
+
+        // Analytics caching: Cache results for 10 minutes to reduce database load
+        $cacheFile = __DIR__ . '/data/analytics_cache.json';
+        $cacheDir = dirname($cacheFile);
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0755, true);
+        }
+
+        $useCache = false;
+        if (file_exists($cacheFile)) {
+            $cacheTime = filemtime($cacheFile);
+            $cacheAge = time() - $cacheTime;
+            // Cache is valid for 10 minutes (600 seconds)
+            if ($cacheAge < 600) {
+                $useCache = true;
+            }
+        }
+
+        if ($useCache) {
+            $cachedData = file_get_contents($cacheFile);
+            if ($cachedData) {
+                echo $cachedData;
+                exit;
+            }
+        }
 
         $settingsFile = __DIR__ . '/data/super_settings.json';
         $storedSettings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
@@ -271,7 +295,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $recentRefundsStmt->execute();
         $data['recent_refunds'] = $recentRefundsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        echo json_encode(['success' => true, 'data' => $data]);
+        $response = json_encode(['success' => true, 'data' => $data]);
+        
+        // Save to cache
+        file_put_contents($cacheFile, $response, LOCK_EX);
+        
+        echo $response;
     } catch (Exception $e) {
         error_log("Analytics fetch error: " . $e->getMessage());
         http_response_code(500);

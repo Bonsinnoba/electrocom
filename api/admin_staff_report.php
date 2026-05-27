@@ -9,57 +9,72 @@ require 'cors_middleware.php';
 require 'db.php';
 require 'security.php';
 
-// Since this is downloaded via an anchor tag, the token will be in the query string
+// Since this is downloaded via an anchor tag, we use a secure short-lived single-use download token
+$dlToken = $_GET['dl_token'] ?? '';
 $token = $_GET['token'] ?? '';
-if (empty($token)) {
-    http_response_code(401);
-    die("Unauthorized: Missing token.");
+
+$isValid = false;
+$userId = null;
+$userRole = null;
+
+if (!empty($dlToken)) {
+    $tokenFile = __DIR__ . '/data/report_tokens.json';
+    if (file_exists($tokenFile)) {
+        $tokens = json_decode(file_get_contents($tokenFile), true) ?: [];
+        $now = time();
+        $activeTokens = [];
+        foreach ($tokens as $t => $meta) {
+            if (isset($meta['expires_at']) && $meta['expires_at'] > $now) {
+                $activeTokens[$t] = $meta;
+            }
+        }
+        if (isset($activeTokens[$dlToken])) {
+            $isValid = true;
+            $userId = $activeTokens[$dlToken]['user_id'];
+            $userRole = $activeTokens[$dlToken]['role'];
+            unset($activeTokens[$dlToken]); // Consume one-time token
+        }
+        file_put_contents($tokenFile, json_encode($activeTokens, JSON_PRETTY_PRINT));
+    }
+} elseif (!empty($token)) {
+    // Legacy support for backward compatibility
+    try {
+        $parts = explode('.', $token);
+        if (count($parts) === 3) {
+            $config = $GLOBALS['config'] ?? require 'config.php';
+            $secret = $config['JWT_SECRET'] ?? '';
+            $headerAndPayload = $parts[0] . '.' . $parts[1];
+            
+            $expectedSig = hash_hmac('sha256', $headerAndPayload, $secret, true);
+            $encodedSig = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($expectedSig));
+
+            if (hash_equals($encodedSig, $parts[2])) {
+                $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+                if (isset($payload['exp']) && $payload['exp'] >= time()) {
+                    $userId = $payload['user_id'] ?? null;
+                    if ($userId) {
+                        $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+                        $stmt->execute([$userId]);
+                        $userRole = $stmt->fetchColumn();
+                        if ($userRole) {
+                            $isValid = true;
+                        }
+                    }
+                }
+            }
+        }
+    } catch (Exception $e) {}
 }
 
-// Manually verify JWT token since we aren't using the Authorization header
-try {
-    $parts = explode('.', $token);
-    if (count($parts) !== 3) {
-        http_response_code(401);
-        die("Unauthorized: Invalid token format.");
-    }
-    
-    $config = $GLOBALS['config'] ?? require 'config.php';
-    $secret = $config['JWT_SECRET'] ?? '';
-    $headerAndPayload = $parts[0] . '.' . $parts[1];
-    
-    $expectedSig = hash_hmac('sha256', $headerAndPayload, $secret, true);
-    $encodedSig = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($expectedSig));
+if (!$isValid) {
+    http_response_code(401);
+    die("Unauthorized: Missing or invalid token.");
+}
 
-    if (!hash_equals($encodedSig, $parts[2])) {
-        http_response_code(401);
-        die("Unauthorized: Invalid token signature.");
-    }
-
-    $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
-    if (isset($payload['exp']) && $payload['exp'] < time()) {
-        http_response_code(401);
-        die("Unauthorized: Token expired.");
-    }
-
-    $userId = $payload['user_id'] ?? null;
-    if (!$userId) {
-        http_response_code(401);
-        die("Unauthorized: Invalid payload.");
-    }
-
-    $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-    $userRole = $stmt->fetchColumn();
-
-    $allowedRoles = ['super', 'store_manager', 'accountant'];
-    if (!$userRole || !in_array($userRole, $allowedRoles)) {
-        http_response_code(403);
-        die("Forbidden: Insufficient permissions.");
-    }
-} catch (Exception $e) {
-    http_response_code(500);
-    die("Server Error: " . $e->getMessage());
+$allowedRoles = ['super', 'store_manager', 'accountant'];
+if (!in_array($userRole, $allowedRoles, true)) {
+    http_response_code(403);
+    die("Forbidden: Insufficient permissions.");
 }
 
 // If downloading an archived file
@@ -110,8 +125,8 @@ for ($i = 0; $i < $daysToFetch; $i++) {
             // Clean non-UTF8 characters
             $line = mb_convert_encoding($line, 'UTF-8', 'UTF-8');
 
-            // Match log format: YYYY-MM-DD HH:MM:SS [LEVEL] [SOURCE] [UID:X] message
-            if (preg_match('/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+\[(\w+)\]\s+\[([^\]]+)\]\s+\[UID:(\d+)\]\s+(.+)$/', $line, $m)) {
+            // Match log format: YYYY-MM-DD HH:MM:SS [LEVEL] [SOURCE] [METHOD URI] [IP] [UID:X] message
+            if (preg_match('/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+\[(\w+)\]\s+\[([^\]]+)\]\s+.*\[UID:(\d+)\]\s+(.+)$/', $line, $m)) {
                 $ts = $m[1];
                 $level = strtoupper($m[2]);
                 $source = $m[3];

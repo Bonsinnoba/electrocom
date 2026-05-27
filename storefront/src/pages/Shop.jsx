@@ -22,6 +22,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
     minPrice: 0,
     maxPrice: 2000, // Initial high default
     minRating: 0,
+    minDiscount: 0,
     inStockOnly: false
   });
 
@@ -86,11 +87,17 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
       const name = String(p.name || '').toLowerCase();
       const category = String(p.category || 'Uncategorized').toLowerCase();
       const code = String(p.product_code || '').toLowerCase();
-      const exactMatch = !query || name.includes(query) || category.includes(query) || code.includes(query);
+
+      // Convert specs object to searchable string
+      const specsObj = p.specs || {};
+      const specsString = Object.values(specsObj).join(' ').toLowerCase();
+
+      const exactMatch = !query || name.includes(query) || category.includes(query) || code.includes(query) || specsString.includes(query);
       const fuzzyMatch = !exactMatch && (
         isFuzzyPartMatch(normalizedQuery, name) ||
         isFuzzyPartMatch(normalizedQuery, code) ||
-        isFuzzyPartMatch(normalizedQuery, category)
+        isFuzzyPartMatch(normalizedQuery, category) ||
+        isFuzzyPartMatch(normalizedQuery, specsString)
       );
       const matchSearch = exactMatch || fuzzyMatch;
       
@@ -106,8 +113,11 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
 
       const getStock = (item) => Number(item.stock_quantity || 0);
       const matchStock = !filters.inStockOnly || getStock(p) > 0;
-      
-      return matchSearch && matchCategory && matchPrice && matchRating && matchStock;
+
+      const itemDiscount = parseInt(p.discount_percent) || 0;
+      const matchDiscount = itemDiscount >= filters.minDiscount;
+
+      return matchSearch && matchCategory && matchPrice && matchRating && matchDiscount && matchStock;
     });
     return filtered;
   }, [filters, effectiveSearch, products]);
@@ -160,6 +170,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
       minPrice: 0,
       maxPrice: maxPriceInRange,
       minRating: 0,
+      minDiscount: 0,
       inStockOnly: false
     });
     setLocalPrice(maxPriceInRange);
@@ -322,6 +333,7 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
                         discount_percent={p.discount_percent}
                         sale_ends_at={p.sale_ends_at}
                         stock_quantity={p.stock_quantity}
+                        description={p.description}
                         onClick={() => onProductClick(p)}
                       />
                     ))}
@@ -340,16 +352,17 @@ export default function Shop({ products, onProductClick, searchQuery, loading })
                     animationFillMode: 'both'
                   }}
                 >
-                  <ProductCard 
+                  <ProductCard
                     key={p.id}
                     id={p.id}
-                    name={p.name} 
-                    price={p.price} 
-                    image={p.image} 
+                    name={p.name}
+                    price={p.price}
+                    image={p.image}
                     rating={p.rating}
                     discount_percent={p.discount_percent}
                     sale_ends_at={p.sale_ends_at}
                     stock_quantity={p.stock_quantity}
+                    description={p.description}
                     onClick={() => onProductClick(p)}
                   />
                 </div>

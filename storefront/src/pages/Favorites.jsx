@@ -100,15 +100,16 @@ export default function Favorites({ onProductClick, searchQuery }) {
                 animationFillMode: 'both'
               }}
             >
-              <ProductCard 
+              <ProductCard
                 id={p.id}
-                name={p.name} 
-                price={p.price} 
-                image={p.image} 
+                name={p.name}
+                price={p.price}
+                image={p.image}
                 rating={p.rating}
                 discount_percent={p.discount_percent}
                 sale_ends_at={p.sale_ends_at}
                 stock_quantity={p.stock_quantity}
+                description={p.description}
                 onClick={() => onProductClick(p)}
                 onRemove={() => toggleWishlist(p)}
               />

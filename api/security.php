@@ -51,14 +51,147 @@ if (!function_exists('verifyPassword')) {
 /**
  * Sanitize input to prevent XSS
  */
-if (!function_exists('sanitizeInput')) {
-    function sanitizeInput(mixed $data)
+if (!function_exists('sanitizeXSS')) {
+    function sanitizeXSS(mixed $data)
     {
         if ($data === null) return null;
         if (is_array($data)) {
-            return array_map('sanitizeInput', $data);
+            return array_map('sanitizeXSS', $data);
         }
         return htmlspecialchars(trim((string)$data), ENT_QUOTES, 'UTF-8');
+    }
+}
+
+/**
+ * Legacy alias for sanitizeXSS for backward compatibility
+ */
+if (!function_exists('sanitizeInput')) {
+    function sanitizeInput(mixed $data)
+    {
+        return sanitizeXSS($data);
+    }
+}
+
+/**
+ * Validate integer input with range check
+ */
+if (!function_exists('validateInt')) {
+    function validateInt(mixed $value, int $min = PHP_INT_MIN, int $max = PHP_INT_MAX): ?int
+    {
+        if ($value === null || $value === '') return null;
+        $intVal = filter_var($value, FILTER_VALIDATE_INT);
+        if ($intVal === false) return null;
+        if ($intVal < $min || $intVal > $max) return null;
+        return $intVal;
+    }
+}
+
+/**
+ * Validate float input with range check
+ */
+if (!function_exists('validateFloat')) {
+    function validateFloat(mixed $value, float $min = -INF, float $max = INF): ?float
+    {
+        if ($value === null || $value === '') return null;
+        $floatVal = filter_var($value, FILTER_VALIDATE_FLOAT);
+        if ($floatVal === false) return null;
+        if ($floatVal < $min || $floatVal > $max) return null;
+        return $floatVal;
+    }
+}
+
+/**
+ * Validate email format
+ */
+if (!function_exists('validateEmail')) {
+    function validateEmail(mixed $value): ?string
+    {
+        if ($value === null || $value === '') return null;
+        $email = filter_var($value, FILTER_VALIDATE_EMAIL);
+        if ($email === false) return null;
+        return $email;
+    }
+}
+
+/**
+ * Validate string with length limits
+ */
+if (!function_exists('validateString')) {
+    function validateString(mixed $value, int $minLength = 0, int $maxLength = 255): ?string
+    {
+        if ($value === null || $value === '') return null;
+        $str = trim((string)$value);
+        $len = mb_strlen($str, 'UTF-8');
+        if ($len < $minLength || $len > $maxLength) return null;
+        return $str;
+    }
+}
+
+/**
+ * Validate enum value against allowed values
+ */
+if (!function_exists('validateEnum')) {
+    function validateEnum(mixed $value, array $allowedValues): ?string
+    {
+        if ($value === null || $value === '') return null;
+        $str = (string)$value;
+        if (!in_array($str, $allowedValues, true)) return null;
+        return $str;
+    }
+}
+
+/**
+ * Validate URL format
+ */
+if (!function_exists('validateUrl')) {
+    function validateUrl(mixed $value): ?string
+    {
+        if ($value === null || $value === '') return null;
+        $url = filter_var($value, FILTER_VALIDATE_URL);
+        if ($url === false) return null;
+        return $url;
+    }
+}
+
+/**
+ * Validate and sanitize file upload
+ */
+if (!function_exists('validateFileUpload')) {
+    function validateFileUpload(array $file, array $allowedMimeTypes = [], int $maxSize = 5242880): ?array
+    {
+        if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+            return null;
+        }
+
+        // Check file size
+        $fileSize = filesize($file['tmp_name']);
+        if ($fileSize === false || $fileSize > $maxSize) {
+            return null;
+        }
+
+        // Check MIME type
+        if (!empty($allowedMimeTypes)) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            if (!in_array($mimeType, $allowedMimeTypes, true)) {
+                return null;
+            }
+        }
+
+        // Check for common file upload attacks
+        $fileName = basename($file['name']);
+        if (preg_match('/\.(php|phtml|php3|php4|php5|php7|phps|js|jsp|asp|aspx|exe|sh|bat|cmd|cgi|pl)$/i', $fileName)) {
+            return null;
+        }
+
+        return [
+            'tmp_name' => $file['tmp_name'],
+            'name' => $fileName,
+            'size' => $fileSize,
+            'type' => $mimeType ?? $file['type'] ?? 'application/octet-stream'
+        ];
     }
 }
 
@@ -236,6 +369,28 @@ if (!function_exists('authenticate')) {
                 exit;
             }
             return null;
+        }
+
+        // Check if token has been revoked (blacklist check)
+        if ($pdo) {
+            try {
+                $tokenSignature = $parts[2];
+                $revokeCheck = $pdo->prepare("SELECT id FROM revoked_tokens WHERE token_signature = ? AND expires_at > NOW() LIMIT 1");
+                $revokeCheck->execute([$tokenSignature]);
+                if ($revokeCheck->fetch()) {
+                    if (function_exists('logApp')) logApp('error', 'AUTH', "AUTH FAIL: Token has been revoked (blacklisted).");
+                    if ($dieOnError) {
+                        header('Content-Type: application/json');
+                        http_response_code(401);
+                        echo json_encode(['success' => false, 'message' => 'Unauthorized: Token has been revoked. Please log in again.']);
+                        exit;
+                    }
+                    return null;
+                }
+            } catch (Exception $e) {
+                // Log error but continue - don't block auth if blacklist check fails
+                error_log("Token blacklist check error: " . $e->getMessage());
+            }
         }
 
         $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
@@ -568,21 +723,84 @@ if (!function_exists('logger')) {
 if (!function_exists('checkRateLimit')) {
     function checkRateLimit(PDO $pdo, int $limit = 300, int $window = 60, string $action = 'default')
     {
-        // Self-heal table if needed
+        // 1. Dynamic Table Self-Healing / Migration from legacy ip_address column to rate_key
         try {
-            $pdo->exec("CREATE TABLE IF NOT EXISTS api_rate_limits (
-                ip_address VARCHAR(45),
-                action VARCHAR(50) DEFAULT 'default',
-                request_count INT DEFAULT 1,
-                last_request TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (ip_address, action)
-            )");
+            // Check if legacy table exists with ip_address column
+            $colCheck = $pdo->query("SHOW COLUMNS FROM api_rate_limits LIKE 'ip_address'")->fetch();
+            if ($colCheck) {
+                // Drop legacy table to transition to rate_key schema cleanly
+                $pdo->exec("DROP TABLE api_rate_limits");
+            }
         } catch (Exception $e) {}
 
-        $ip = getClientIP();
+        // Create new session-compatible rate limits table
         try {
-            $stmt = $pdo->prepare("SELECT request_count, last_request FROM api_rate_limits WHERE ip_address = ? AND action = ?");
-            $stmt->execute([$ip, $action]);
+            $pdo->exec("CREATE TABLE IF NOT EXISTS api_rate_limits (
+                rate_key VARCHAR(100) NOT NULL,
+                action VARCHAR(50) DEFAULT 'default',
+                request_count INT DEFAULT 1,
+                last_request TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (rate_key, action)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+        } catch (Exception $e) {}
+
+        // 2. Identify the rate limiting key: User Session or Guest IP
+        $ip = getClientIP();
+        $rateKey = $ip; // Default fallback
+
+        try {
+            $token = null;
+            $headers = function_exists('getallheaders') ? getallheaders() : [];
+            $appId = $headers['X-App-ID'] ?? $headers['x-app-id'] ?? null;
+
+            // Extract Token from Authorization Header, custom Header, or Cookies
+            $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+            if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+                $token = $matches[1];
+            }
+
+            if (!$token) {
+                $token = $headers['X-Session-Token'] ?? $headers['x-session-token'] ?? null;
+            }
+
+            if (!$token) {
+                if ($appId === 'admin') {
+                    $token = $_COOKIE['ehub_admin_session'] ?? null;
+                } elseif ($appId === 'storefront') {
+                    $token = $_COOKIE['ehub_store_session'] ?? null;
+                }
+                if (!$token) {
+                    $token = $_COOKIE['ehub_session'] ?? null;
+                }
+            }
+
+            // Cryptographically verify token signature before using it for rate limiting
+            if ($token) {
+                $parts = explode('.', $token);
+                if (count($parts) === 3) {
+                    $config = $GLOBALS['config'] ?? require 'config.php';
+                    $secret = $config['JWT_SECRET'] ?? '';
+                    $headerAndPayload = $parts[0] . '.' . $parts[1];
+                    
+                    $expectedSig = hash_hmac('sha256', $headerAndPayload, $secret, true);
+                    $encodedSig = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($expectedSig));
+                    
+                    if (hash_equals($encodedSig, $parts[2])) {
+                        $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+                        $userId = $payload['user_id'] ?? null;
+                        if ($userId && (!isset($payload['exp']) || $payload['exp'] > time())) {
+                            $rateKey = "user_id:" . $userId;
+                        }
+                    }
+                }
+            }
+        } catch (Exception $tokenErr) {
+            // Ignore token parsing exceptions, default back to IP rate key
+        }
+
+        try {
+            $stmt = $pdo->prepare("SELECT request_count, last_request FROM api_rate_limits WHERE rate_key = ? AND action = ?");
+            $stmt->execute([$rateKey, $action]);
             $row = $stmt->fetch();
             
             if ($row) {
@@ -590,14 +808,14 @@ if (!function_exists('checkRateLimit')) {
                 // Check if we are still within the same window since the last request
                 if (time() - $lastTime < $window) {
                     if ($row['request_count'] >= $limit) {
-                        // Real-time Brute Force Alert
+                        // Real-time Brute Force Alert for login failures
                         if ($action === 'login' && $row['request_count'] == $limit) {
                             try {
                                 $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) 
                                                        SELECT id, ?, ?, 'error' FROM users WHERE role IN ('admin', 'super')");
                                 $stmt->execute([
                                     "Security Alert: Brute Force Attempt", 
-                                    "System has blocked IP {$ip} after too many login attempts. Action: {$action}."
+                                    "System has blocked key/IP {$rateKey} after too many login attempts. Action: {$action}."
                                 ]);
 
                                 // Real-time SMS Alert
@@ -606,13 +824,13 @@ if (!function_exists('checkRateLimit')) {
                                     $notifier = new NotificationService();
                                     $adminPhones = $pdo->query("SELECT phone FROM users WHERE role = 'super' AND phone IS NOT NULL AND phone != ''")->fetchAll(PDO::FETCH_COLUMN);
                                     foreach ($adminPhones as $phone) {
-                                        $notifier->queueNotification('sms', $phone, "SECURITY ALERT: Brute force attempt blocked from IP {$ip} on ElectrCom.");
+                                        $notifier->queueNotification('sms', $phone, "SECURITY ALERT: Brute force attempt blocked from key {$rateKey} on ElectrCom.");
                                     }
                                 } catch (Exception $smsErr) {
                                     logger('error', 'SECURITY', "Failed to queue SMS alert: " . $smsErr->getMessage());
                                 }
 
-                                logger('warn', 'SECURITY', "Admin alerted for brute force attempt from IP: {$ip}");
+                                logger('warn', 'SECURITY', "Admin alerted for brute force attempt from key: {$rateKey}");
                             } catch (Exception $e) {
                                 logger('error', 'SECURITY', "Failed to log security notification: " . $e->getMessage());
                             }
@@ -630,13 +848,13 @@ if (!function_exists('checkRateLimit')) {
                         ]);
                         exit;
                     }
-                    $pdo->prepare("UPDATE api_rate_limits SET request_count = request_count + 1, last_request = CURRENT_TIMESTAMP WHERE ip_address = ? AND action = ?")->execute([$ip, $action]);
+                    $pdo->prepare("UPDATE api_rate_limits SET request_count = request_count + 1, last_request = CURRENT_TIMESTAMP WHERE rate_key = ? AND action = ?")->execute([$rateKey, $action]);
                 } else {
                     // Reset if the window has passed since the last attempt
-                    $pdo->prepare("UPDATE api_rate_limits SET request_count = 1, last_request = CURRENT_TIMESTAMP WHERE ip_address = ? AND action = ?")->execute([$ip, $action]);
+                    $pdo->prepare("UPDATE api_rate_limits SET request_count = 1, last_request = CURRENT_TIMESTAMP WHERE rate_key = ? AND action = ?")->execute([$rateKey, $action]);
                 }
             } else {
-                $pdo->prepare("INSERT INTO api_rate_limits (ip_address, action, request_count, last_request) VALUES (?, ?, 1, CURRENT_TIMESTAMP)")->execute([$ip, $action]);
+                $pdo->prepare("INSERT INTO api_rate_limits (rate_key, action, request_count, last_request) VALUES (?, ?, 1, CURRENT_TIMESTAMP)")->execute([$rateKey, $action]);
             }
         } catch (Exception $e) {
             if (function_exists('logger')) logger('error', 'SECURITY', "Rate limit error: " . $e->getMessage());

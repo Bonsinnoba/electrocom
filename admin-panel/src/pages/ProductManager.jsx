@@ -755,12 +755,12 @@ export default function ProductManager() {
           padding: '12px',
           overflowY: 'auto'
         }}>
-          <div className="card glass" style={{ 
-            width: '100%', 
-            maxWidth: '500px', 
+          <div className="card glass" style={{
+            width: '100%',
+            maxWidth: '900px',
             maxHeight: '90vh',
             overflowY: 'auto',
-            position: 'relative', 
+            position: 'relative',
             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
             margin: 'auto'
           }}>

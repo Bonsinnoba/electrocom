@@ -490,3 +490,16 @@ export const requestReturn = async (orderId, items, reason) => {
         return { success: false, error: 'Network error' };
     }
 };
+
+export const socialAuthExchange = async (code) => {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/social_auth_exchange.php`, getFetchOptions({
+            method: 'POST',
+            body: JSON.stringify({ code }),
+        }));
+        return await response.json();
+    } catch (error) {
+        console.error('Error during social auth exchange:', error);
+        return { success: false, message: 'Network error during social exchange.' };
+    }
+};

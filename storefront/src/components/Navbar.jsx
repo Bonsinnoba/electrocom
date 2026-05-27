@@ -14,11 +14,11 @@ import {
 } from '../utils/searchUtils';
 
 
-export default function Navbar({ 
-  onLoginClick, 
-  onMapClick, 
-  onMenuClick, 
-  onThemeToggle, 
+export default function Navbar({
+  onLoginClick,
+  onMapClick,
+  onMenuClick,
+  onThemeToggle,
   onProductClick,
   onNotificationsClick,
   isDarkMode,

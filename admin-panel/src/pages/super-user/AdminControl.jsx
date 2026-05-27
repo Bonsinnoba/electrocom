@@ -10,6 +10,7 @@ import {
   setUserRole as updateRole, 
   toggleUserStatus as toggleStatus, 
   deleteCustomer as deleteUser,
+  generateReportToken,
   API_BASE_URL
 } from '../../services/api';
 
@@ -188,12 +189,17 @@ export default function AdminControl() {
           <option value="customer">Customers</option>
         </select>
         <button 
-          onClick={() => {
-            const token = localStorage.getItem('ehub_token');
-            if (token) {
-              window.open(`${API_BASE_URL}/admin_staff_report.php?token=${encodeURIComponent(token)}`, '_blank');
-            } else {
-              alert("You must be logged in.");
+          onClick={async () => {
+            try {
+              const res = await generateReportToken();
+              if (res && res.success && res.dl_token) {
+                window.open(`${API_BASE_URL}/admin_staff_report.php?dl_token=${encodeURIComponent(res.dl_token)}`, '_blank');
+              } else {
+                alert(res?.message || "Failed to generate temporary download token.");
+              }
+            } catch (e) {
+              console.error(e);
+              alert("An error occurred while generating download token.");
             }
           }}
           style={{ padding: '11px 18px', borderRadius: '10px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', color: 'var(--text-main)', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}
@@ -323,9 +329,18 @@ export default function AdminControl() {
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Generated: {new Date(arch.created_at).toLocaleString()} • Size: {(arch.size / 1024).toFixed(2)} KB</div>
                   </div>
                   <button 
-                    onClick={() => {
-                      const token = localStorage.getItem('ehub_token');
-                      window.open(`${API_BASE_URL}/admin_staff_report.php?file=${encodeURIComponent(arch.filename)}&token=${encodeURIComponent(token)}`, '_blank');
+                    onClick={async () => {
+                      try {
+                        const res = await generateReportToken();
+                        if (res && res.success && res.dl_token) {
+                          window.open(`${API_BASE_URL}/admin_staff_report.php?file=${encodeURIComponent(arch.filename)}&dl_token=${encodeURIComponent(res.dl_token)}`, '_blank');
+                        } else {
+                          alert(res?.message || "Failed to generate temporary download token.");
+                        }
+                      } catch (e) {
+                        console.error(e);
+                        alert("An error occurred while generating download token.");
+                      }
                     }}
                     style={{ padding: '8px 14px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#3b82f6', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
