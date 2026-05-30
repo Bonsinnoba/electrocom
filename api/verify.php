@@ -50,11 +50,12 @@ try {
     $token = generateToken($userId);
 
     // Set HttpOnly Cookie for security
+    $isProd = ($config['APP_ENV'] ?? 'production') === 'production';
     setcookie('ehub_session', $token, [
         'expires' => time() + (60 * 60 * 24),
         'path' => '/',
         'domain' => '',
-        'secure' => false,
+        'secure' => $isProd ? true : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'),
         'httponly' => true,
         'samesite' => 'Strict'
     ]);

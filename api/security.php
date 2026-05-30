@@ -293,10 +293,13 @@ if (!function_exists('authenticate')) {
     function authenticate(?PDO $pdo = null, bool $dieOnError = true)
     {
         // EMERGENCY DEBUG LOG - Log raw request data to catch hidden session drops
-        if (!is_dir(__DIR__ . '/logs')) mkdir(__DIR__ . '/logs', 0755, true);
-        $debugHeaders = function_exists('getallheaders') ? getallheaders() : [];
-        $debugLog = date('Y-m-d H:i:s') . " | AUTH_REQ | " . $_SERVER['REQUEST_METHOD'] . " " . $_SERVER['REQUEST_URI'] . " | IP: " . getClientIP() . " | AuthHeader: " . ($debugHeaders['Authorization'] ?? $debugHeaders['authorization'] ?? 'NONE') . " | Cookie: " . ($_COOKIE['ehub_session'] ?? 'NONE') . "\n";
-        file_put_contents(__DIR__ . '/logs/debug_auth.log', $debugLog, FILE_APPEND);
+        // Only enabled in development mode to prevent exposing sensitive tokens in production
+        if (function_exists('isDebugEnabled') && isDebugEnabled()) {
+            if (!is_dir(__DIR__ . '/logs')) mkdir(__DIR__ . '/logs', 0755, true);
+            $debugHeaders = function_exists('getallheaders') ? getallheaders() : [];
+            $debugLog = date('Y-m-d H:i:s') . " | AUTH_REQ | " . $_SERVER['REQUEST_METHOD'] . " " . $_SERVER['REQUEST_URI'] . " | IP: " . getClientIP() . " | AuthHeader: " . ($debugHeaders['Authorization'] ?? $debugHeaders['authorization'] ?? 'NONE') . " | Cookie: " . ($_COOKIE['ehub_session'] ?? 'NONE') . "\n";
+            file_put_contents(__DIR__ . '/logs/debug_auth.log', $debugLog, FILE_APPEND);
+        }
 
         $token = null;
         $headers = function_exists('getallheaders') ? getallheaders() : [];
@@ -312,6 +315,14 @@ if (!function_exists('authenticate')) {
 
         if (!$token) {
             $token = $headers['X-Session-Token'] ?? $headers['x-session-token'] ?? null;
+        }
+
+        // 1.5. Query Parameter Fallback (Useful for direct file downloads / print links)
+        if (!$token && !empty($_GET['token'])) {
+            $token = $_GET['token'];
+            if (!$appId) {
+                $appId = 'storefront';
+            }
         }
 
         // 2. Isolated Cookie Check
@@ -498,11 +509,12 @@ if (!function_exists('authenticate')) {
  */
 if (!function_exists('clearSession')) {
     function clearSession() {
+        $isProd = ($GLOBALS['config']['APP_ENV'] ?? 'production') === 'production';
         $cookieParams = [
             'expires' => time() - 3600,
             'path' => '/',
             'domain' => '',
-            'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+            'secure' => $isProd ? true : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'),
             'httponly' => true,
             'samesite' => 'Strict'
         ];
@@ -874,7 +886,7 @@ if (!function_exists('checkMaintenanceMode')) {
             if (isset($settings['maintenanceMode']) && $settings['maintenanceMode'] === true) {
                 if (isSuperAdmin($pdo)) return;
                 $script = basename($_SERVER['SCRIPT_NAME']);
-                if (in_array($script, ['super_settings.php', 'login.php'])) return;
+                if (in_array($script, ['super_settings.php', 'login.php', 'get_site_settings.php'])) return;
                 header('Content-Type: application/json');
                 http_response_code(503);
                 echo json_encode(['success' => false, 'maintenance' => true, 'message' => 'Under maintenance.']);
@@ -890,10 +902,28 @@ if (!function_exists('checkMaintenanceMode')) {
 if (!function_exists('isDebugEnabled')) {
     function isDebugEnabled()
     {
+        // 1. Try to check global $pdo first (real-time DB state)
+        global $pdo;
+        if (isset($pdo) && $pdo instanceof PDO) {
+            try {
+                $stmt = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = 'debugMode' LIMIT 1");
+                $stmt->execute();
+                $val = $stmt->fetchColumn();
+                if ($val !== false) {
+                    return filter_var($val, FILTER_VALIDATE_BOOLEAN);
+                }
+            } catch (Exception $e) {
+                // DB query failed (e.g. table not migrated yet), proceed to JSON fallback
+            }
+        }
+
+        // 2. Fallback to JSON file
         $settingsFile = __DIR__ . '/data/super_settings.json';
         if (file_exists($settingsFile)) {
             $settings = json_decode(file_get_contents($settingsFile), true);
-            return isset($settings['debugMode']) && $settings['debugMode'] === true;
+            if (isset($settings['debugMode'])) {
+                return filter_var($settings['debugMode'], FILTER_VALIDATE_BOOLEAN);
+            }
         }
         return false;
     }

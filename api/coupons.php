@@ -1,17 +1,18 @@
 <?php
 require_once 'db.php';
+require_once 'security.php';
 
 header('Content-Type: application/json');
 
 $method = $_SERVER['REQUEST_METHOD'];
 
 // 1. Storefront Validation Endpoint (Public/User)
-$action = $_GET['action'] ?? '';
+$action = validateString($_GET['action'] ?? '');
 
 if ($method === 'POST' && $action === 'validate') {
     $data = json_decode(file_get_contents('php://input'), true);
-    $code = strtoupper(trim($data['code'] ?? ''));
-    $cartTotal = (float)($data['cartTotal'] ?? 0);
+    $code = validateString($data['code'] ?? '');
+    $cartTotal = validateFloat($data['cartTotal'] ?? 0, 0, 1000000);
 
     if (!$code) {
         sendResponse(false, 'Coupon code is required', null, 400);

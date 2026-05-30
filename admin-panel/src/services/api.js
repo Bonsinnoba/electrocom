@@ -110,9 +110,25 @@ export const loginUser = async (credentials) => {
 };
 
 
+export const fetchBatch = async (resources) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/batch.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resources })
+        });
+        const result = await response.json();
+        return result.success ? result.data : {};
+    } catch (error) {
+        console.error('Batch fetch error:', error);
+        return {};
+    }
+};
+
 export const fetchProducts = async () => {
     try {
-        const result = await authFetch(`/get_products.php?_t=${Date.now()}`);
+        const response = await fetch(`${API_BASE_URL}/get_products.php?_t=${Date.now()}`);
+        const result = await response.json();
         const data = result.success ? result.data : [];
         return data.map(product => ({
             ...product,
@@ -594,8 +610,9 @@ export const deleteLogDay = async (dateStr) => {
 
 export const fetchSuperSettings = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/super_settings.php`, {
-            headers: getAuthHeaders()
+        const response = await fetch(`${API_BASE_URL}/super_settings.php?_t=${Date.now()}`, {
+            headers: getAuthHeaders(),
+            cache: 'no-store',
         });
         return await response.json();
     } catch (error) {
@@ -611,7 +628,14 @@ export const saveSuperSettings = async (payload) => {
             headers: getAuthHeaders(),
             body: JSON.stringify(payload),
         });
-        return await response.json();
+        const text = await response.text();
+        console.log('saveSuperSettings response:', text);
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error('Invalid JSON response from server:', text);
+            return { success: false, message: 'Server returned an invalid response.', raw: text };
+        }
     } catch (error) {
         console.error('Error saving super settings:', error);
         throw error;

@@ -55,7 +55,7 @@ export default function Cart() {
   const selectedItems = cartItems.filter(item => selectedKeys.has(itemKey(item)));
 
   // ── Totals (selected items only) ─────────────────────────────────────────
-  const vatRate              = parseFloat(siteSettings?.vatRate || 10);
+  const vatRate              = siteSettings?.vatRate !== undefined && siteSettings?.vatRate !== null ? parseFloat(siteSettings.vatRate) : 0;
   const selectedSubtotal     = selectedItems.reduce((a, i) => a + parseFloat(i.price) * i.quantity, 0);
   const couponDiscount       = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const intThreshold         = Number(siteSettings?.integrityDiscountThreshold || 0);

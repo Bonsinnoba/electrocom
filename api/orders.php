@@ -5,6 +5,7 @@ require_once 'security.php';
 require_once 'order_utils.php';
 require_once 'inventory_utils.php';
 require_once __DIR__ . '/email/EmailEngine.php';
+require_once __DIR__ . '/brand_settings.php';
 
 // Lazy-cancel stale reservations at the start of every order operation
 lazyCancelOrders($pdo);
@@ -346,12 +347,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     if ($deliveryMethod === 'door_to_door') {
-        $settingsFile = __DIR__ . '/data/super_settings.json';
-        $allowDoorToDoor = false;
-        if (file_exists($settingsFile)) {
-            $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
-            $allowDoorToDoor = !empty($settings['allowDoorToDoorDelivery']);
-        }
+        $settings = eh_merged_super_settings();
+        $allowDoorToDoor = !empty($settings['allowDoorToDoorDelivery']);
         if (!$allowDoorToDoor) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Door to door delivery is currently unavailable. Please choose pickup.']);
@@ -411,8 +408,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $requestedDiscount = (float)($decoded['discount_amount'] ?? 0);
     $requestedLoyaltyDiscount = $requestedDiscount - $calculatedDiscount;
-    $settingsFile = __DIR__ . '/data/super_settings.json';
-    $settings = file_exists($settingsFile) ? json_decode(file_get_contents($settingsFile), true) : [];
+    $settings = eh_merged_super_settings();
 
     if ($requestedLoyaltyDiscount > 0) {
         $uStmt = $pdo->prepare("SELECT loyalty_points FROM users WHERE id = ?");
@@ -434,7 +430,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $taxableAmount = max(0, $calculatedSubtotal - $calculatedDiscount);
-    $vatRate = (float)($settings['vatRate'] ?? 5);
+    $vatRate = (float)($settings['vatRate'] ?? 0);
     $tax = round($taxableAmount * ($vatRate / 100), 2);
 
     $calculatedTotal = round($taxableAmount + $tax, 2);

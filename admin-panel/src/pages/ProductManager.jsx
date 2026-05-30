@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, Filter, X, Upload, Save, CheckCircle, Image as ImageIcon, Loader, Star, Download, UploadCloud, ShieldAlert, FileText } from 'lucide-react';
 import Papa from 'papaparse';
-import { fetchProducts, createProduct, updateProduct, deleteProduct, formatImageUrl } from '../services/api';
+import { fetchProducts, createProduct, updateProduct, deleteProduct, formatImageUrl, fetchBatch } from '../services/api';
 import { useNotifications } from '../context/NotificationContext';
 import { useConfirm } from '../context/ConfirmContext';
 import { formatPrice } from '../utils/formatPrice';
@@ -96,20 +96,39 @@ export default function ProductManager() {
 
   useEffect(() => {
     if (!isAccountant) {
-      loadProducts();
-      loadCategories();
+      loadProductsAndCategories();
     }
   }, []);
 
-  const loadCategories = async () => {
+  const loadProductsAndCategories = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/get_categories.php`);
-      const result = await res.json();
-      if (result.success) {
-        setCategories(result.data || []);
-      }
+      const data = await fetchBatch(['products', 'categories']);
+      
+      // Process products
+      const productsData = data.products || [];
+      const mapped = productsData.map(p => {
+        const available = parseInt(p.stock_quantity || 0);
+        const physical = parseInt(p.physical_stock || available);
+        const reserved = physical - available;
+        
+        return {
+            ...p,
+            stock: available,
+            physical_stock: physical,
+            reserved: reserved,
+            image: formatImageUrl(p.image_url || p.image),
+            status: available <= 0 ? 'Out of Stock' : (available < 10 ? 'Low Stock' : 'In Stock')
+        };
+      });
+      setProducts(mapped);
+      
+      // Set categories
+      setCategories(data.categories || []);
     } catch (err) {
-      console.error('Failed to load categories:', err);
+      console.error('Failed to load products and categories:', err);
+    } finally {
+      setLoading(false);
     }
   };
 

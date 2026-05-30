@@ -2,6 +2,7 @@
 // backend/get_products.php
 require_once 'db.php';
 require_once 'inventory_utils.php';
+require_once 'security.php';
 
 // Lazy Cleanup: Clear expired reservations before listing products
 lazyCancelOrders($pdo);
@@ -9,7 +10,7 @@ lazyCancelOrders($pdo);
 header('Content-Type: application/json');
 
 try {
-    $category = $_GET['category'] ?? null;
+    $category = validateString($_GET['category'] ?? null);
 
     if ($category) {
         $stmt = $pdo->prepare("

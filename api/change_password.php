@@ -6,7 +6,7 @@ require_once 'db.php';
 require_once 'security.php';
 
 header('Content-Type: application/json');
-checkRateLimit($pdo);
+checkRateLimit($pdo, 10, 3600, 'change_password');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -18,8 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $userId = authenticate($pdo);
 
 $data = json_decode(file_get_contents('php://input'), true);
-$currentPassword = $data['current_password'] ?? '';
-$newPassword     = $data['new_password'] ?? '';
+$currentPassword = validateString($data['current_password'] ?? '');
+$newPassword     = validateString($data['new_password'] ?? '');
 
 if (empty($currentPassword) || empty($newPassword)) {
     http_response_code(400);

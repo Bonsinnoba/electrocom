@@ -2,6 +2,7 @@
 // backend/admin_analytics.php
 require_once 'db.php';
 require_once 'security.php';
+require_once __DIR__ . '/brand_settings.php';
 
 header('Content-Type: application/json');
 
@@ -41,8 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             }
         }
 
-        $settingsFile = __DIR__ . '/data/super_settings.json';
-        $storedSettings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+        $storedSettings = eh_merged_super_settings();
         $insightDefaults = [
             'insightsShipWarnHours' => 24,
             'insightsShipCriticalHours' => 48,

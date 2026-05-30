@@ -10,7 +10,8 @@ import {
   fetchSuperSettings as getSettings, 
   saveSuperSettings as saveSettings, 
   uploadBrandingAsset, 
-  formatImageUrl 
+  formatImageUrl,
+  fetchBatch
 } from '../../services/api';
 import { useAdminSettings } from '../../context/AdminSettingsContext';
 import { useConfirm } from '../../context/ConfirmContext';
@@ -127,6 +128,12 @@ const DEFAULTS = {
   accentColor:       '#f59e0b',
   headerBg:          '#0f172a',
   fontFamily:        'Inter',
+  // Hover colors
+  buttonPrimaryHover:   '#2563eb',
+  buttonSecondaryHover: '#475569',
+  buttonAccentHover:    '#d97706',
+  linkHover:            '#60a5fa',
+  cardHover:            '#1e293b',
   heroBannerTagline: '',
   heroBannerSubtext: '',
   heroCTAText:       'Shop Now',
@@ -170,7 +177,7 @@ const DEFAULTS = {
   orderReceiptFooterNote:   '',
   homepageSectionTitle:     'Product Catalog',
   homepageFeaturedCategory: '',
-  vatRate:                  10,
+  vatRate:                  0,
   // Loyalty
   integrityDiscountThreshold: 500,
   integrityDiscountPct:       10,
@@ -306,17 +313,14 @@ export default function GlobalSettings() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await getSettings();
-        if (res.success && res.data) {
-          setSettings({ ...DEFAULTS, ...res.data });
+        const data = await fetchBatch(['settings']);
+        if (data.settings) {
+          setSettings({ ...DEFAULTS, ...data.settings });
           setLastSynced(new Date());
-          localStorage.setItem('ehub_super_settings', JSON.stringify(res.data));
         }
       } catch (e) {
-        try {
-          const cached = JSON.parse(localStorage.getItem('ehub_super_settings') || '{}');
-          setSettings({ ...DEFAULTS, ...cached });
-        } catch {}
+        console.error('Failed to load settings:', e);
+        setSettings(DEFAULTS);
       } finally {
         setLoading(false);
       }
@@ -330,9 +334,8 @@ export default function GlobalSettings() {
     setSettings(updated);
     try {
       await saveSettings(updated);
-      localStorage.setItem('ehub_super_settings', JSON.stringify(updated));
       setLastSynced(new Date());
-      refreshSettings(); // Sync global UI state (colors, name, etc.)
+      await refreshSettings(); // Sync global UI state (colors, name, etc.)
     } catch (e) {
       console.error('Auto-save failed:', e);
     }
@@ -340,16 +343,25 @@ export default function GlobalSettings() {
 
   const setVal = (key) => (e) => setSettings(prev => ({ ...prev, [key]: e.target.value }));
   const setNum = (key) => (e) => setSettings(prev => ({ ...prev, [key]: Number(e.target.value) }));
-  const setColor = (key) => (val) => setSettings(prev => ({ ...prev, [key]: val }));
+  const setColor = (key) => async (val) => {
+    const updated = { ...settings, [key]: val };
+    setSettings(updated);
+    try {
+      await saveSettings(updated);
+      setLastSynced(new Date());
+      await refreshSettings(); // Sync global UI state (colors, name, etc.)
+    } catch (e) {
+      console.error('Color save failed:', e);
+    }
+  };
 
   const save = async () => {
     setSaving(true);
     try {
       await saveSettings(settings);
-      localStorage.setItem('ehub_super_settings', JSON.stringify(settings));
       setLastSynced(new Date());
       setSaved(true);
-      refreshSettings(); // Sync global UI state
+      await refreshSettings(); // Sync global UI state
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
       console.error('Save error:', e);
@@ -558,6 +570,38 @@ export default function GlobalSettings() {
               description="Background colour of the storefront navigation bar."
               value={settings.headerBg}
               onChange={setColor('headerBg')}
+            />
+
+            <SectionHeader title="Hover Colours (Storefront)" />
+            <ColorField
+              label="Primary Button Hover"
+              description="Colour when hovering over primary action buttons."
+              value={settings.buttonPrimaryHover}
+              onChange={setColor('buttonPrimaryHover')}
+            />
+            <ColorField
+              label="Secondary Button Hover"
+              description="Colour when hovering over secondary buttons."
+              value={settings.buttonSecondaryHover}
+              onChange={setColor('buttonSecondaryHover')}
+            />
+            <ColorField
+              label="Accent Button Hover"
+              description="Colour when hovering over accent/gold buttons."
+              value={settings.buttonAccentHover}
+              onChange={setColor('buttonAccentHover')}
+            />
+            <ColorField
+              label="Link Hover"
+              description="Colour when hovering over links."
+              value={settings.linkHover}
+              onChange={setColor('linkHover')}
+            />
+            <ColorField
+              label="Card Hover"
+              description="Background colour when hovering over product cards."
+              value={settings.cardHover}
+              onChange={setColor('cardHover')}
             />
 
             <SectionHeader title="Typography" />

@@ -7,6 +7,13 @@
     --accent-blue: #2563eb;
     --light-blue: #eff6ff;
 
+    /* Hover Colors */
+    --button-primary-hover: #2563eb;
+    --button-secondary-hover: #475569;
+    --button-accent-hover: #d97706;
+    --link-hover: #60a5fa;
+    --card-hover: #1e293b;
+
     /* Semantic Status Colors */
     --success: #10b981;
     --warning: #f59e0b;
@@ -987,7 +994,7 @@ label {
 
 .dropdown-item:hover,
 .dropdown-item.active {
-    background: var(--primary-blue);
+    background: var(--button-primary-hover);
     color: white;
     padding-left: 18px;
 }
@@ -1241,9 +1248,9 @@ label {
 }
 
 .quantity-selector button:hover {
-    background: var(--primary-blue);
+    background: var(--button-primary-hover);
     color: white;
-    border-color: var(--primary-blue);
+    border-color: var(--button-primary-hover);
 }
 
 .quantity-selector span {
@@ -1469,7 +1476,7 @@ label {
 }
 
 .btn-add-cart:hover {
-    background: var(--primary-blue);
+    background: var(--button-primary-hover);
     transform: translateY(-2px);
 }
 
@@ -1741,7 +1748,7 @@ button.btn-login:hover {
 }
 
 .btn-primary:hover {
-    background: var(--accent-blue);
+    background: var(--button-primary-hover);
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(var(--primary-blue-rgb), 0.2);
 }
@@ -1777,7 +1784,7 @@ button.btn-login:hover {
 }
 
 .btn-secondary:hover {
-    background: var(--bg-surface);
+    background: var(--button-secondary-hover);
     border-color: var(--text-muted);
     transform: translateY(-2px);
 }
@@ -1814,7 +1821,7 @@ button.btn-login:hover {
 }
 
 .btn-outline:hover {
-    background: var(--primary-blue);
+    background: var(--button-primary-hover);
     color: white;
     transform: translateY(-2px);
 }
@@ -2000,7 +2007,7 @@ button.btn-login:hover {
 
 .product-card:hover {
     transform: translateY(-6px);
-    background: var(--bg-surface);
+    background: var(--card-hover);
     border-color: var(--primary-blue);
     box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
 }
@@ -2265,7 +2272,7 @@ button.btn-login:hover {
 
 .auth-modal .social-container a:hover {
     background: var(--bg-surface-secondary);
-    border-color: var(--primary-blue);
+    border-color: var(--button-primary-hover);
 }
 
 .form-container {
@@ -2734,7 +2741,7 @@ button.btn-login:hover {
 }
 
 .btn-login-submit:hover {
-    background: var(--primary-blue);
+    background: var(--button-primary-hover);
     transform: translateY(-2px);
     box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3);
 }
@@ -3477,7 +3484,7 @@ button.btn-login:hover {
 }
 
 .social-link:hover {
-    background: var(--accent-blue);
+    background: var(--button-accent-hover);
     color: white;
     transform: translateY(-2px);
 }
@@ -3511,7 +3518,7 @@ button.btn-login:hover {
 }
 
 .footer-links a:hover {
-    color: var(--accent-blue);
+    color: var(--link-hover);
 }
 
 .footer-contact {
@@ -3569,7 +3576,7 @@ button.btn-login:hover {
 }
 
 .footer-bottom-links a:hover {
-    color: var(--accent-blue);
+    color: var(--link-hover);
 }
 
 .footer-bottom-links span {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { fetchBackend, formatImageUrl } from '../services/api';
+import { fetchBackend, formatImageUrl, fetchBatch } from '../services/api';
 import { Send, MapPin, Search, Megaphone, Users, ChevronDown, Paperclip, X, Settings } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
 import { useConfirm } from '../context/ConfirmContext';
@@ -42,9 +42,9 @@ export default function StaffChat() {
 
   const fetchUsers = async () => {
     try {
-      const data = await fetchBackend('/admin_chat.php?action=users');
-      if (data.success) {
-        setUsers(data.users || []);
+      const data = await fetchBatch(['staff_users']);
+      if (data.staff_users) {
+        setUsers(data.staff_users || []);
       }
     } catch (err) {
       addToast('Error fetching staff list', 'error');

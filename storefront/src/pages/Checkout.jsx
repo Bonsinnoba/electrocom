@@ -96,7 +96,7 @@ export default function Checkout() {
     fetchShipping();
   }, [fetchShipping]);
 
-  const vatRate = parseFloat(siteSettings?.vatRate || 10);
+  const vatRate = siteSettings?.vatRate !== undefined && siteSettings?.vatRate !== null ? parseFloat(siteSettings.vatRate) : 0;
   const selectedPickup = pickupLocations.find((loc) => String(loc.id) === String(selectedPickupId));
   const shippingFee = formData.deliveryMethod === 'door_to_door'
     ? Number(shippingData.fee || 0)

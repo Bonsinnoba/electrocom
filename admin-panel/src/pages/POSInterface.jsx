@@ -8,7 +8,7 @@ import {
 import { useNotifications } from '../context/NotificationContext';
 import POSReceipt from '../components/POSReceipt';
 
-import { API_BASE_URL, formatImageUrl, fetchPosReturnOrder, processPosReturn, issueRefund } from '../services/api';
+import { API_BASE_URL, formatImageUrl, fetchPosReturnOrder, processPosReturn, issueRefund, fetchBatch } from '../services/api';
 
 export default function POSInterface() {
   const { addToast } = useNotifications();
@@ -281,9 +281,8 @@ export default function POSInterface() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/get_products.php`);
-      const data = await res.json();
-      if (data.success) setProducts(data.data);
+      const data = await fetchBatch(['products']);
+      if (data.products) setProducts(data.products);
     } catch (error) {
       addToast('Inventory sync failed', 'error');
     } finally {

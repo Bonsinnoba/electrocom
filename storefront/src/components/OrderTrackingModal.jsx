@@ -1,248 +1,433 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, Clock, Truck, Package, Calendar, MapPin, ExternalLink } from 'lucide-react';
-import { fetchOrderDetails, formatImageUrl } from '../services/api';
+import { X, CheckCircle, Clock, Truck, Package, Calendar, MapPin, FileText, XCircle, ArrowRight } from 'lucide-react';
+import { fetchOrderDetails, formatImageUrl, getInvoiceUrl } from '../services/api';
 import { formatRelativeTime, formatDate } from '../utils/dateFormatter';
+import { useSettings } from '../context/SettingsContext';
 
+const steps = [
+  { id: 'pending',    label: 'Order Placed', icon: Clock,        desc: 'Your order has been received'  },
+  { id: 'processing', label: 'Processing',   icon: Package,      desc: 'We are preparing your items'   },
+  { id: 'shipped',    label: 'Shipped',      icon: Truck,        desc: 'Your order is on the way'      },
+  { id: 'delivered',  label: 'Delivered',    icon: CheckCircle,  desc: 'Order has been delivered'      },
+];
+
+const getStatusIndex = (status) => {
+  const s = (status || 'pending').toLowerCase();
+  if (s === 'delivered' || s === 'completed') return 3;
+  if (s === 'shipped') return 2;
+  if (['processing', 'received', 'picking', 'picked'].includes(s)) return 1;
+  return 0;
+};
+
+const getLogStyle = (statusKey = '') => {
+  const s = statusKey.toLowerCase();
+  if (s.includes('deliver') || s.includes('complet')) return { bg: 'var(--success-bg)',            color: 'var(--success)'      };
+  if (s.includes('ship')    || s.includes('dispatch')) return { bg: 'rgba(59,130,246,0.12)',         color: 'var(--primary-blue)' };
+  if (s.includes('pick')    || s.includes('process') || s.includes('receiv'))
+    return { bg: 'rgba(249,115,22,0.12)', color: '#f97316' };
+  if (s.includes('cancel'))                            return { bg: 'var(--danger-bg)',              color: 'var(--danger)'       };
+  return                                                      { bg: 'var(--bg-surface-secondary)',   color: 'var(--text-muted)'   };
+};
 
 export default function OrderTrackingModal({ orderId, isOpen, onClose }) {
-  const [order, setOrder] = useState(null);
+  const [order, setOrder]     = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError]     = useState(null);
+  const { formatPrice }       = useSettings();
 
   useEffect(() => {
-    if (isOpen && orderId) {
-      const loadDetails = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          const data = await fetchOrderDetails(orderId);
-          setOrder(data);
-        } catch (err) {
-          setError('Failed to load tracking information');
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadDetails();
-    }
+    if (!isOpen) { setOrder(null); setLoading(true); return; }
+    if (!orderId) return;
+    let cancelled = false;
+    setLoading(true); setError(null);
+    fetchOrderDetails(orderId)
+      .then(data  => { if (!cancelled) setOrder(data); })
+      .catch(()   => { if (!cancelled) setError('Failed to load tracking information.'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [isOpen, orderId]);
 
   if (!isOpen) return null;
 
-  const steps = [
-    { id: 'pending', label: 'Order Placed', icon: Clock, desc: 'Your order has been received' },
-    { id: 'processing', label: 'Processing', icon: Package, desc: 'We are preparing your items' },
-    { id: 'shipped', label: 'Shipped', icon: Truck, desc: 'Your order is on the way' },
-    { id: 'delivered', label: 'Delivered', icon: CheckCircle, desc: 'Order has been delivered' }
-  ];
-
-  const getStatusIndex = (status) => {
-    const s = (status || 'pending').toLowerCase();
-    if (s === 'delivered') return 3;
-    if (s === 'shipped' || s === 'completed') return 2;
-    if (['processing', 'received', 'picking', 'picked'].includes(s)) return 1;
-    return 0;
-  };
-
+  const isCancelled  = order?.status?.toLowerCase() === 'cancelled';
   const currentIndex = getStatusIndex(order?.status);
 
   return (
-    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 sm:p-6" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div 
-        className="glass animate-scale-in w-full max-w-2xl overflow-hidden rounded-3xl" 
-        style={{ background: 'var(--bg-surface)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid var(--border-light)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[var(--border-light)]">
-          <div>
-            <h2 className="text-xl font-extrabold text-[var(--text-main)]">Track Order</h2>
-            <span className="text-sm font-bold text-[var(--primary-blue)]">{orderId}</span>
+    <>
+      {/* ── Backdrop ── */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 2999,
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+        }}
+      />
+
+      {/* ── Drawer ── */}
+      <div data-otm-drawer="" style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 3000,
+        width: '100%', maxWidth: '480px',
+        display: 'flex', flexDirection: 'column',
+        background: 'var(--bg-surface)',
+        borderLeft: '1px solid var(--border-light)',
+        boxShadow: '-24px 0 60px rgba(0,0,0,0.28)',
+        animation: 'otmSlideIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards',
+      }}>
+
+        {/* ─── Header ─── */}
+        <div style={{
+          padding: '18px 20px', flexShrink: 0,
+          borderBottom: '1px solid var(--border-light)',
+          background: 'linear-gradient(135deg,rgba(59,130,246,0.06) 0%,transparent 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
+              background: 'linear-gradient(135deg,var(--primary-blue),#3b82f6)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(59,130,246,0.4)',
+            }}>
+              <Truck size={20} color="white" />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800 }}>Track Order</h2>
+              <span style={{
+                fontSize: '11px', fontWeight: 700, color: 'var(--primary-blue)',
+                background: 'rgba(59,130,246,0.12)', padding: '2px 10px', borderRadius: '20px',
+              }}>{orderId}</span>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-[var(--bg-main)] transition-colors text-[var(--text-muted)]">
-            <X size={24} />
-          </button>
+          <button
+            onClick={onClose}
+            style={{
+              width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0,
+              border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-muted)',
+            }}
+          ><X size={17} /></button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[80vh]">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-4">
-               <div className="w-12 h-12 border-4 border-[var(--primary-blue)] border-t-transparent rounded-full animate-spin"></div>
-               <span className="text-[var(--text-muted)] font-medium">Checking status...</span>
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-               <div className="text-red-500 mb-2">⚠️</div>
-               <p className="text-[var(--text-muted)]">{error}</p>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {/* Progress Stepper */}
-              <div className="relative pt-4 pb-8">
-                {/* Connector Line */}
-                <div className="absolute top-[48px] left-[40px] right-[40px] h-1 bg-[var(--bg-main)] -z-10">
-                   <div 
-                    className="h-full bg-[var(--primary-blue)] transition-all duration-1000 ease-out"
-                    style={{ width: `${(currentIndex / (steps.length - 1)) * 100}%` }}
-                   ></div>
-                </div>
+        {/* ─── Scrollable Body ─── */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-                <div className="flex justify-between items-start">
-                  {steps.map((step, idx) => {
-                    const isCompleted = idx <= currentIndex;
-                    const isActive = idx === currentIndex;
-                    const Icon = step.icon;
-                    
-                    return (
-                      <div key={step.id} className="flex flex-col items-center text-center gap-3 w-1/4">
-                        <div 
-                          className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg ${
-                            isCompleted ? 'bg-[var(--primary-blue)] text-white' : 'bg-[var(--bg-main)] text-[var(--text-muted)]'
-                          } ${isActive ? 'scale-110 ring-4 ring-blue-500/20' : ''}`}
-                        >
-                          <Icon size={24} />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className={`text-xs font-bold leading-tight ${isCompleted ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}`}>
-                            {step.label}
-                          </span>
-                          {isActive && (
-                            <span className="text-[10px] text-[var(--primary-blue)] font-bold animate-pulse mt-1">
+          {loading && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '280px', gap: '14px' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '50%',
+                border: '4px solid rgba(59,130,246,0.2)', borderTopColor: 'var(--primary-blue)',
+                animation: 'otmSpin 0.75s linear infinite',
+              }} />
+              <span style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '14px' }}>Fetching tracking info…</span>
+            </div>
+          )}
+
+          {error && !loading && (
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div style={{ fontSize: '36px', marginBottom: '10px' }}>⚠️</div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && order && (<>
+
+            {/* ── CANCELLED STATE ── */}
+            {isCancelled ? (
+              <div style={{
+                padding: '28px 20px', borderRadius: '20px', textAlign: 'center',
+                background: 'var(--danger-bg)', border: '2px solid var(--danger)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px',
+              }}>
+                <div style={{
+                  width: '68px', height: '68px', borderRadius: '50%',
+                  background: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 8px 28px rgba(239,68,68,0.45)',
+                }}>
+                  <XCircle size={34} color="white" />
+                </div>
+                <div>
+                  <h3 style={{ margin: '0 0 6px', fontSize: '20px', fontWeight: 800, color: 'var(--danger)' }}>Order Cancelled</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                    This order has been cancelled. If you were charged, a refund will be processed within 3–5 business days.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              /* ── STATUS STEPPER ── */
+              <div style={{
+                borderRadius: '20px', padding: '22px 14px 18px',
+                background: 'linear-gradient(135deg,rgba(59,130,246,0.04) 0%,transparent 100%)',
+                border: '1px solid rgba(59,130,246,0.1)',
+              }}>
+                <div style={{ position: 'relative' }}>
+                  {/* Track */}
+                  <div style={{
+                    position: 'absolute', top: '23px',
+                    left: 'calc(12.5% + 10px)', right: 'calc(12.5% + 10px)',
+                    height: '4px', borderRadius: '3px', background: 'var(--bg-surface-secondary)', zIndex: 0,
+                  }}>
+                    <div style={{
+                      height: '100%', borderRadius: '3px',
+                      width: `${(currentIndex / (steps.length - 1)) * 100}%`,
+                      background: 'linear-gradient(90deg,var(--primary-blue),#60a5fa)',
+                      boxShadow: '0 0 10px rgba(59,130,246,0.5)',
+                      transition: 'width 1.2s cubic-bezier(0.4,0,0.2,1)',
+                    }} />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
+                    {steps.map((step, idx) => {
+                      const done   = idx <= currentIndex;
+                      const active = idx === currentIndex;
+                      const Icon   = step.icon;
+                      return (
+                        <div key={step.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '25%' }}>
+                          <div
+                            className={active ? 'otm-step-active' : ''}
+                            style={{
+                              width: '46px', height: '46px', borderRadius: '50%',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              background: done ? 'linear-gradient(135deg,var(--primary-blue),#3b82f6)' : 'var(--bg-surface-secondary)',
+                              color: done ? 'white' : 'var(--text-muted)',
+                              boxShadow: done ? '0 6px 18px rgba(59,130,246,0.4)' : '0 2px 6px rgba(0,0,0,0.07)',
+                              transition: 'all 0.5s cubic-bezier(0.4,0,0.2,1)',
+                              transform: active ? 'scale(1.12)' : 'scale(1)',
+                            }}
+                          ><Icon size={20} /></div>
+                          <span style={{
+                            fontSize: '10px', fontWeight: active ? 800 : 600, textAlign: 'center',
+                            color: active ? 'var(--primary-blue)' : done ? 'var(--text-main)' : 'var(--text-muted)',
+                            lineHeight: 1.3,
+                          }}>{step.label}</span>
+                          {active && (
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.5px', animation: 'otmPulse 2s infinite' }}>
                               Current
                             </span>
                           )}
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Status Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-light)] flex items-start gap-4">
-                    <div className="p-2 bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] rounded-xl">
-                      <Calendar size={20} />
+            {/* ── INFO CARDS ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {[
+                {
+                  icon: <Calendar size={15} />,
+                  iconBg: 'rgba(59,130,246,0.15)', iconColor: 'var(--primary-blue)',
+                  cardBg: 'linear-gradient(135deg,rgba(59,130,246,0.06),rgba(59,130,246,0.02))',
+                  cardBorder: 'rgba(59,130,246,0.15)',
+                  label: 'Est. Delivery',
+                  value: (order.status === 'delivered' || order.status === 'completed')
+                    ? '✓ Delivered'
+                    : isCancelled ? 'N/A' : '3–5 working days',
+                },
+                {
+                  icon: <MapPin size={15} />,
+                  iconBg: 'rgba(249,115,22,0.15)', iconColor: '#f97316',
+                  cardBg: 'linear-gradient(135deg,rgba(249,115,22,0.06),rgba(249,115,22,0.02))',
+                  cardBorder: 'rgba(249,115,22,0.15)',
+                  label: 'Ship To',
+                  value: order.shipping_address || '—',
+                },
+              ].map((card, i) => (
+                <div key={i} style={{
+                  padding: '14px', borderRadius: '16px',
+                  background: card.cardBg, border: `1px solid ${card.cardBorder}`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
+                    <div style={{ padding: '5px', borderRadius: '8px', background: card.iconBg, color: card.iconColor }}>
+                      {card.icon}
                     </div>
-                    <div>
-                      <div className="text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">Estimated Delivery</div>
-                      <div className="text-sm font-bold text-[var(--text-main)]">
-                         {order?.status === 'delivered' ? 'Delivered successfully' : 'Arriving in 3-5 working days'}
-                      </div>
-                    </div>
-                 </div>
-                 
-                 <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-light)] flex items-start gap-4">
-                    <div className="p-2 bg-orange-500/10 text-orange-500 rounded-xl">
-                      <MapPin size={20} />
-                    </div>
-                    <div>
-                      <div className="text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">Shipping Address</div>
-                      <div className="text-sm font-bold text-[var(--text-main)] line-clamp-1">
-                        {order?.shipping_address}
-                      </div>
-                    </div>
-                 </div>
-              </div>
+                    <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{card.label}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.4 }}>{card.value}</div>
+                </div>
+              ))}
+            </div>
 
-              {/* Activity Timeline */}
-              <div className="space-y-4">
-                 <h3 className="text-sm font-extrabold text-[var(--text-muted)] uppercase tracking-widest pl-1">Order Activity</h3>
-                 <div className="bg-[var(--bg-main)] rounded-2xl p-5 border border-[var(--border-light)] space-y-6">
-                    {order?.logs && order.logs.length > 0 ? (
-                      [...order.logs].reverse().map((log, index) => (
-                        <div key={index} className="flex gap-4 relative">
-                          <div className={`w-2 h-2 rounded-full mt-1.5 z-10 ${index === 0 ? 'bg-[var(--primary-blue)] ring-4 ring-blue-500/20' : 'bg-[var(--border-light)]'}`}></div>
-                          {index !== order.logs.length - 1 && (
-                            <div className="absolute left-[3.5px] top-4 bottom-[-24px] w-0.5 bg-[var(--border-light)]"></div>
+            {/* ── ORDER ACTIVITY TIMELINE ── */}
+            <div>
+              <h3 style={{ margin: '0 0 12px', fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.9px' }}>
+                Order Activity
+              </h3>
+              <div style={{
+                borderRadius: '16px', padding: '18px',
+                background: 'linear-gradient(135deg,rgba(59,130,246,0.03),rgba(59,130,246,0.01))',
+                border: '1px solid rgba(59,130,246,0.1)',
+              }}>
+                {order.logs && order.logs.length > 0 ? (
+                  [...order.logs].reverse().map((log, idx, arr) => {
+                    const isFirst = idx === 0;
+                    const isLast  = idx === arr.length - 1;
+                    const ls      = getLogStyle(log.status_key);
+                    return (
+                      <div key={idx} style={{ display: 'flex', gap: '14px', paddingBottom: isLast ? 0 : '18px', opacity: Math.max(0.45, 1 - idx * 0.1) }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                          <div style={{
+                            width: '11px', height: '11px', borderRadius: '50%', marginTop: '3px',
+                            background: isFirst ? 'var(--primary-blue)' : 'var(--border-light)',
+                            boxShadow: isFirst ? '0 0 0 4px rgba(59,130,246,0.18)' : 'none',
+                          }} />
+                          {!isLast && (
+                            <div style={{ width: '2px', flex: 1, minHeight: '18px', marginTop: '4px', background: 'linear-gradient(180deg,var(--border-light) 0%,transparent 100%)' }} />
                           )}
-                          <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                              <div className={`text-sm font-bold ${index === 0 ? 'text-[var(--text-main)]' : 'text-[var(--text-muted)]'}`}>
-                                {log.status_key.charAt(0).toUpperCase() + log.status_key.slice(1)}: {log.message}
-                              </div>
-                              <div className="text-[10px] text-[var(--text-muted)] font-bold">{formatRelativeTime(log.created_at)}</div>
-                            </div>
-                            <div className="text-[10px] text-[var(--text-muted)] mt-1">{formatDate(log.created_at)}</div>
-                          </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="flex gap-4 relative">
-                        <div className="w-2 h-2 rounded-full bg-[var(--primary-blue)] mt-1.5 z-10 ring-4 ring-blue-500/20"></div>
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                             <div className="text-sm font-bold text-[var(--text-main)]">Order Placed Successfully</div>
-                             <div className="text-[10px] text-[var(--text-muted)] font-bold">{formatDate(order?.created_at)}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '5px', flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px',
+                              padding: '2px 10px', borderRadius: '20px', background: ls.bg, color: ls.color,
+                            }}>{log.status_key}</span>
+                            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-surface-secondary)', padding: '2px 8px', borderRadius: '8px', whiteSpace: 'nowrap' }}>
+                              {formatRelativeTime(log.created_at)}
+                            </span>
                           </div>
-                          <p className="text-xs text-[var(--text-muted)] mt-1">Your order # {orderId} was confirmed and is awaiting pickup.</p>
+                          <p style={{ margin: '0 0 3px', fontSize: '13px', fontWeight: isFirst ? 700 : 500, color: isFirst ? 'var(--text-main)' : 'var(--text-muted)', lineHeight: 1.4 }}>
+                            {log.message}
+                          </p>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', opacity: 0.7 }}>{formatDate(log.created_at)}</span>
                         </div>
                       </div>
-                    )}
-                 </div>
-              </div>
-
-              {/* Items Summary */}
-              <div className="pb-2">
-                 <h3 className="text-sm font-extrabold text-[var(--text-muted)] uppercase tracking-widest pl-1 mb-4">Package Contents</h3>
-                 <div className="space-y-3">
-                    {order?.items?.map((item, i) => (
-                      <div key={i} className="flex justify-between items-center p-3 rounded-xl hover:bg-[var(--bg-main)] transition-colors">
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-lg bg-[var(--bg-main)] border border-[var(--border-light)] flex items-center justify-center overflow-hidden">
-                              {item.image_url ? (
-                                <img 
-                                  src={formatImageUrl(item.image_url)} 
-                                  alt={item.name} 
-                                  style={{ 
-                                    width: '100%', 
-                                    height: '100%', 
-                                    objectFit: 'contain', 
-                                    borderRadius: '8px' 
-                                  }} 
-                                />
-                              ) : (
-                                <Package size={16} className="text-[var(--text-muted)]" />
-                              )}
-                           </div>
-                           <div className="flex flex-col">
-                             <span className="text-sm font-bold text-[var(--text-main)]">{item.name}</span>
-                             <span className="text-[10px] text-[var(--text-muted)] font-bold">Qty: {item.qty}</span>
-                           </div>
-                        </div>
-                        <span className="text-sm font-extrabold text-[var(--text-main)]">GH¢ {parseFloat(item.price * item.qty).toFixed(2)}</span>
+                    );
+                  })
+                ) : (
+                  <div style={{ display: 'flex', gap: '14px' }}>
+                    <div style={{ width: '11px', height: '11px', borderRadius: '50%', background: 'var(--primary-blue)', boxShadow: '0 0 0 4px rgba(59,130,246,0.18)', marginTop: '3px', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>Order Placed Successfully</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'var(--bg-surface-secondary)', padding: '2px 8px', borderRadius: '8px', whiteSpace: 'nowrap' }}>
+                          {formatDate(order.created_at)}
+                        </span>
                       </div>
-                    ))}
-                 </div>
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Order #{orderId} confirmed and awaiting pickup.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+
+            {/* ── PACKAGE CONTENTS ── */}
+            <div>
+              <h3 style={{ margin: '0 0 12px', fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.9px' }}>
+                Package Contents
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {order.items?.map((item, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '12px 14px', borderRadius: '14px',
+                    background: 'var(--bg-surface-secondary)', border: '1px solid var(--border-light)',
+                  }}>
+                    <div style={{
+                      width: '50px', height: '50px', borderRadius: '10px', flexShrink: 0,
+                      background: 'white', border: '1px solid var(--border-light)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                    }}>
+                      {item.image_url
+                        ? <img src={formatImageUrl(item.image_url)} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        : <Package size={20} color="var(--text-muted)" />
+                      }
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--primary-blue)', background: 'rgba(59,130,246,0.1)', padding: '2px 8px', borderRadius: '20px', display: 'inline-block', marginTop: '4px' }}>
+                        Qty: {item.qty}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--primary-blue)', flexShrink: 0 }}>
+                      {formatPrice(item.price * item.qty)}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Total */}
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '14px 16px', borderRadius: '14px', marginTop: '2px',
+                  background: 'linear-gradient(135deg,rgba(59,130,246,0.08),rgba(59,130,246,0.04))',
+                  border: '1px solid rgba(59,130,246,0.2)',
+                }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>Order Total</span>
+                  <span style={{ fontSize: '18px', fontWeight: 900, color: 'var(--primary-blue)' }}>
+                    {formatPrice(parseFloat(order.total_amount || 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </>)}
         </div>
 
-        {/* Footer Action */}
-        <div className="p-6 bg-[var(--bg-main)] border-t border-[var(--border-light)] flex justify-between items-center">
-           <div className="flex flex-col">
-              <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest">Total Amount</span>
-              <span className="text-xl font-black text-[var(--primary-blue)]">GH¢ {parseFloat(order?.total_amount || 0).toFixed(2)}</span>
-           </div>
-           <button 
-            className="px-6 py-3 bg-[var(--primary-blue)] text-white rounded-xl font-extrabold text-sm shadow-lg shadow-blue-500/20 hover:scale-105 transition-transform flex items-center gap-2"
+        {/* ─── Footer ─── */}
+        <div style={{
+          padding: '14px 20px', flexShrink: 0,
+          borderTop: '1px solid var(--border-light)',
+          background: 'linear-gradient(135deg,rgba(59,130,246,0.04) 0%,transparent 100%)',
+          display: 'flex', alignItems: 'center', gap: '10px',
+        }}>
+          <a
+            href={getInvoiceUrl(orderId)}
+            target="_blank" rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', textDecoration: 'none',
+              padding: '10px 16px', borderRadius: '10px',
+              border: '1px solid var(--border-light)', background: 'var(--bg-surface-secondary)',
+            }}
+          ><FileText size={14} />Receipt</a>
+          <button
             onClick={onClose}
-          >
-            Done Tracking
-          </button>
+            style={{
+              flex: 1, padding: '11px 20px', borderRadius: '12px', border: 'none',
+              background: 'linear-gradient(135deg,var(--primary-blue),#3b82f6)',
+              color: 'white', fontWeight: 800, fontSize: '14px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              boxShadow: '0 6px 18px rgba(59,130,246,0.35)',
+            }}
+          >Done <ArrowRight size={15} /></button>
         </div>
       </div>
-      
+
       <style>{`
-        @keyframes scale-in {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
+        @keyframes otmSlideIn {
+          from { transform: translateX(100%); }
+          to   { transform: translateX(0); }
         }
-        .animate-scale-in {
-          animation: scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        @keyframes otmSpin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes otmPulse {
+          0%,100% { opacity:1; }
+          50%      { opacity:0.45; }
+        }
+        .otm-step-active {
+          position: relative;
+        }
+        .otm-step-active::after {
+          content: '';
+          position: absolute;
+          inset: -5px;
+          border-radius: 50%;
+          border: 2px solid rgba(59,130,246,0.45);
+          animation: otmRipple 1.8s infinite cubic-bezier(0.4,0,0.6,1);
+          pointer-events: none;
+        }
+        @keyframes otmRipple {
+          0%   { transform:scale(0.9); opacity:0.8; }
+          70%  { transform:scale(1.2); opacity:0; }
+          100% { transform:scale(0.9); opacity:0; }
+        }
+        @media (max-width: 520px) {
+          /* Full-width on mobile */
+          [data-otm-drawer] { max-width: 100% !important; }
         }
       `}</style>
-    </div>
+    </>
   );
 }

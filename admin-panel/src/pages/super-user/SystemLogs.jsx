@@ -4,7 +4,7 @@ import {
   AlertTriangle, Info, CheckCircle, XCircle, Search,
   ChevronDown, Clock, Database, FileText, Plus, User
 } from 'lucide-react';
-import { fetchLogs, clearLogs, deleteLogDay, fetchBackups, createBackup, deleteBackup, API_BASE_URL } from '../../services/api';
+import { fetchLogs, clearLogs, deleteLogDay, fetchBackups, createBackup, deleteBackup, API_BASE_URL, fetchBatch } from '../../services/api';
 import { useConfirm } from '../../context/ConfirmContext';
 
 
@@ -33,8 +33,8 @@ export default function SystemLogs() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetchLogs();
-      setLogs(res.data || []);
+      const data = await fetchBatch(['logs']);
+      setLogs(data.logs || []);
     } catch (e) {
       console.error(e);
       setLogs([]);
@@ -45,8 +45,8 @@ export default function SystemLogs() {
 
   const loadBackups = async () => {
     try {
-        const res = await fetchBackups();
-        if (res.success) setBackups(res.backups);
+        const data = await fetchBatch(['backups']);
+        if (data.backups) setBackups(data.backups);
     } catch (e) {
         console.error("Failed to load backups", e);
     }

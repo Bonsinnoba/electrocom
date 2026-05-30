@@ -71,7 +71,7 @@ try {
         }
         // -----------------------------
 
-        checkRateLimit($pdo, 1500, 60, 'global');
+        checkRateLimit($pdo, 300, 60, 'global');
         checkMaintenanceMode($pdo);
 
         // Include traffic monitor now that $pdo is ready

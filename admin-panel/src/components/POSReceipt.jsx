@@ -2,7 +2,10 @@ import React from 'react';
 import { useAdminSettings } from '../context/AdminSettingsContext';
 
 export default function POSReceipt({ orderId, cart, total, paymentMethod }) {
-  const { siteName, businessHours, storeAddress } = useAdminSettings();
+  const { settings, siteName } = useAdminSettings();
+  const businessHours = settings?.businessHours;
+  const storeAddress = settings?.storeAddress;
+  const vatRate = settings?.vatRate !== undefined && settings?.vatRate !== null ? parseFloat(settings.vatRate) : 0;
 
   return (
     <div className="pos-receipt-print">
@@ -57,7 +60,7 @@ export default function POSReceipt({ orderId, cart, total, paymentMethod }) {
           <span>GH₵ {total.toLocaleString()}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span>Tax (10%)</span>
+          <span>Tax ({vatRate}%)</span>
           <span>Included</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px', marginTop: '8px', borderTop: '2px solid #000', paddingTop: '8px' }}>

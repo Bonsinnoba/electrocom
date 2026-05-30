@@ -212,8 +212,8 @@ function AppContent() {
 
   // Apply dynamic site branding
   useEffect(() => {
-    const { primaryColor, accentColor, headerBg, fontFamily, siteName, siteTagline, metaDescription, faviconUrl } = siteSettings;
-    
+    const { primaryColor, accentColor, headerBg, fontFamily, siteName, siteTagline, metaDescription, faviconUrl, buttonPrimaryHover, buttonSecondaryHover, buttonAccentHover, linkHover, cardHover } = siteSettings;
+
     if (primaryColor) {
       document.documentElement.style.setProperty('--primary-blue', primaryColor);
       document.documentElement.style.setProperty('--primary-blue-hover', `${primaryColor}CC`);
@@ -221,7 +221,7 @@ function AppContent() {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '59, 130, 246';
       };
-      document.documentElement.style.setProperty('--primary-rgb', hexToRgb(primaryColor));
+      document.documentElement.style.setProperty('--primary-blue-rgb', hexToRgb(primaryColor));
     }
 
     if (accentColor) {
@@ -231,7 +231,24 @@ function AppContent() {
     if (headerBg) {
       document.documentElement.style.setProperty('--top-nav-bg', headerBg);
     }
-    
+
+    // Apply hover colors
+    if (buttonPrimaryHover) {
+      document.documentElement.style.setProperty('--button-primary-hover', buttonPrimaryHover);
+    }
+    if (buttonSecondaryHover) {
+      document.documentElement.style.setProperty('--button-secondary-hover', buttonSecondaryHover);
+    }
+    if (buttonAccentHover) {
+      document.documentElement.style.setProperty('--button-accent-hover', buttonAccentHover);
+    }
+    if (linkHover) {
+      document.documentElement.style.setProperty('--link-hover', linkHover);
+    }
+    if (cardHover) {
+      document.documentElement.style.setProperty('--card-hover', cardHover);
+    }
+
     if (fontFamily) {
       document.documentElement.style.setProperty('--font-main', fontFamily);
       document.body.style.fontFamily = `'${fontFamily}', sans-serif`;

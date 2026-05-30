@@ -335,7 +335,9 @@ export const submitReview = async (productId, rating, comment) => {
 
 // --- Invoice ---
 export const getInvoiceUrl = (orderId) => {
-    return `${API_BASE_URL}/invoice.php?order_id=${orderId}`;
+    const token = secureStorage.getItem('token', 'shared');
+    const base = `${API_BASE_URL}/invoice.php?order_id=${orderId}`;
+    return token ? `${base}&token=${encodeURIComponent(token)}` : base;
 };
 
 // --- Coupons ---

@@ -16,39 +16,45 @@ export const SettingsProvider = ({ children }) => {
   const { user, updateUser } = useUser();
   const [siteSettings, setSiteSettings] = useState({
     // Identity (overridden by get_site_settings.php)
-    siteName:     'My Store',
-    siteEmail:    'hello@example.com',
-    siteTagline:  'Shop online',
-    metaDescription: '',
-    phone1:       '',
-    phone2:       '',
-    whatsapp:     '',
+    siteName:     'ElectroCom',
+    siteEmail:    'support@electrocom.gh',
+    siteTagline:  'Shop quality electronics online',
+    metaDescription: 'Shop quality products online with secure checkout and support.',
+    phone1:       '0536683393',
+    phone2:       '0506408074',
+    whatsapp:     '+233536683393',
     maintenanceMode: false,
     // Assets
     siteLogoUrl:  '',
     faviconUrl:   '',
     // Location
-    storeAddress: '',
-    businessHours:'Mon–Fri, 8am–6pm',
+    storeAddress: 'Accra, Ghana',
+    businessHours:'Mon–Fri, 8:30am–6pm',
     // Social
-    socialInstagram: '',
+    socialInstagram: 'https://www.instagram.com/',
     socialTwitter:   '',
-    socialFacebook:  '',
-    socialTikTok:    '',
-    socialYoutube:   '',
+    socialFacebook:  'https://web.facebook.com/profile.php?id=100089794533062',
+    socialTikTok:    'https://www.tiktok.com/en/',
+    socialYoutube:   'https://www.youtube.com/incrediblemotors.o',
     // Branding
-    primaryColor:      '#3b82f6',
+    primaryColor:      '#3B82F6',
     accentColor:       '#f59e0b',
     headerBg:          '#0f172a',
     fontFamily:        'Inter',
+    // Hover colors
+    buttonPrimaryHover:   '#2563eb',
+    buttonSecondaryHover: '#475569',
+    buttonAccentHover:    '#d97706',
+    linkHover:            '#60a5fa',
+    cardHover:            '#1e293b',
     heroBannerTagline: '',
     heroBannerSubtext: '',
-    heroCTAText:       'Shop Now',
+    heroCTAText:       'Explore Now',
     heroCTAUrl:        '/products',
     // Storefront behaviour
     defaultItemsPerPage:      12,
     homepageSectionTitle:     'New Arrivals',
-    homepageFeaturedCategory: '',
+    homepageFeaturedCategory: 'Featured Products',
     vatRate:                  0,
     allowDoorToDoorDelivery:  false,
   });
@@ -70,15 +76,29 @@ export const SettingsProvider = ({ children }) => {
   useEffect(() => {
     const loadSiteSettings = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/get_site_settings.php`);
-        const result = await response.json();
-        if (result.success) {
-          const data = result.data || {};
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const response = await fetch(`${base}/get_site_settings.php?_t=${Date.now()}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        let result;
+        try { result = JSON.parse(text); } catch { throw new Error('Invalid JSON from settings endpoint'); }
+        if (result.success && result.data) {
+          const data = result.data;
+
+          // Clean empty/null/undefined values to allow fallback to local defaults
+          const cleanedData = {};
+          Object.keys(data).forEach(key => {
+            const val = data[key];
+            if (val !== null && val !== undefined && String(val).trim() !== '') {
+              cleanedData[key] = val;
+            }
+          });
+
           // Ensure branding URLs are absolute
-          if (data.siteLogoUrl) data.siteLogoUrl = formatImageUrl(data.siteLogoUrl);
-          if (data.faviconUrl) data.faviconUrl = formatImageUrl(data.faviconUrl);
-          
-          setSiteSettings(prev => ({ ...prev, ...data }));
+          if (cleanedData.siteLogoUrl) cleanedData.siteLogoUrl = formatImageUrl(cleanedData.siteLogoUrl);
+          if (cleanedData.faviconUrl)  cleanedData.faviconUrl  = formatImageUrl(cleanedData.faviconUrl);
+
+          setSiteSettings(prev => ({ ...prev, ...cleanedData }));
         }
       } catch (error) {
         console.error('Error loading site settings:', error);

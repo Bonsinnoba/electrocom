@@ -59,8 +59,7 @@ try {
     }
 
     // Load security settings
-    $settingsFile = __DIR__ . '/data/super_settings.json';
-    $settings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+    $settings = eh_merged_super_settings();
     
     $maxAttempts = (int)($settings['maxLoginAttempts'] ?? 5);
     $lockoutMins = (int)($settings['lockoutDuration'] ?? 60);
@@ -242,11 +241,12 @@ try {
     $cookieName = ($appId === 'admin') ? 'ehub_admin_session' : 'ehub_store_session';
 
     // Set HttpOnly Cookie for security
+    $isProd = ($config['APP_ENV'] ?? 'production') === 'production';
     setcookie($cookieName, $token, [
         'expires' => time() + (60 * 60 * 24), // 24 hours
         'path' => '/',
         'domain' => '',
-        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+        'secure' => $isProd ? true : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'),
         'httponly' => true,
         'samesite' => 'Strict'
     ]);

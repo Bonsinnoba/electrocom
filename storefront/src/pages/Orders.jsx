@@ -185,7 +185,7 @@ export default function Orders() {
       } else {
         alert(res.error || res.message || 'Failed to submit return request.');
       }
-    } catch (error) {
+    } catch {
       alert('An error occurred while submitting your return request.');
     } finally {
       setIsSubmittingReturn(false);
@@ -201,8 +201,8 @@ export default function Orders() {
       try {
         const data = await fetchOrders(user.id);
         setOrders(data);
-      } catch (error) {
-        console.error("Failed to load orders", error);
+      } catch {
+        console.error("Failed to load orders");
       } finally {
         setLoading(false);
       }
@@ -254,8 +254,21 @@ export default function Orders() {
               <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '14px' }}>Total Amount:</span> {formatPrice(parseFloat(order.total_amount || 0))}
             </div>
             {order.status !== 'completed' && order.status !== 'delivered' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--primary-blue)', fontSize: '13px', fontWeight: 600 }}>
-                <MapPin size={14} /> Tracking Available
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                padding: '6px 12px',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05))',
+                color: 'var(--primary-blue)', 
+                fontSize: '12px', 
+                fontWeight: 700,
+                borderRadius: '20px',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                <Truck size={14} className="animate-pulse" /> Live Tracking
               </div>
             )}
           </div>
@@ -265,31 +278,32 @@ export default function Orders() {
       {/* Active Stepper Timeline */}
       {order.status !== 'completed' && order.status !== 'delivered' && (
          <div className="card-timeline" style={{
-           padding: '16px 8px 8px 8px',
+           padding: '20px 12px 12px 12px',
            borderTop: '1px solid var(--border-light)',
            width: '100%',
            boxSizing: 'border-box',
-           marginTop: '4px'
+           marginTop: '8px',
+           background: 'linear-gradient(180deg, rgba(59, 130, 246, 0.02) 0%, transparent 100%)'
          }}>
-           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', marginBottom: '8px' }}>
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', marginBottom: '12px' }}>
               {/* Connector track */}
               <div style={{
                 position: 'absolute',
-                top: '18px',
-                left: '20px',
-                right: '20px',
-                height: '3px',
+                top: '20px',
+                left: '24px',
+                right: '24px',
+                height: '4px',
                 background: 'var(--bg-surface-secondary)',
                 zIndex: 1,
-                borderRadius: '2px'
+                borderRadius: '3px'
               }}>
                 <div style={{
                   height: '100%',
-                  background: 'var(--primary-blue)',
+                  background: 'linear-gradient(90deg, var(--primary-blue), #60a5fa)',
                   width: `${(getStatusIndex(order.status) / (steps.length - 1)) * 100}%`,
-                  borderRadius: '2px',
-                  transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 0 8px rgba(59, 130, 246, 0.5)'
+                  borderRadius: '3px',
+                  transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 0 12px rgba(59, 130, 246, 0.6), inset 0 1px 2px rgba(255,255,255,0.3)'
                 }}></div>
               </div>
 
@@ -306,25 +320,30 @@ export default function Orders() {
                      alignItems: 'center',
                      position: 'relative',
                      zIndex: 2,
-                     width: '60px'
+                     width: '70px'
                    }}>
                      <div 
                        className={`timeline-icon-container ${isActive ? 'active-pulse' : ''}`}
                        style={{
-                         width: '36px',
-                         height: '36px',
-                         borderRadius: '10px',
+                         width: '40px',
+                         height: '40px',
+                         borderRadius: '12px',
                          display: 'flex',
                          alignItems: 'center',
                          justifyContent: 'center',
-                         background: isCompleted ? 'var(--primary-blue)' : 'var(--bg-surface-secondary)',
+                         background: isCompleted 
+                           ? 'linear-gradient(135deg, var(--primary-blue), #3b82f6)' 
+                           : 'var(--bg-surface-secondary)',
                          color: isCompleted ? '#ffffff' : 'var(--text-muted)',
-                         transition: 'all 0.5s ease',
-                         boxShadow: isCompleted ? '0 4px 10px rgba(59, 130, 246, 0.3)' : 'none',
-                         border: isActive ? '2px solid #ffffff' : 'none'
+                         transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                         boxShadow: isCompleted 
+                           ? '0 6px 16px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(0,0,0,0.1)' 
+                           : '0 2px 4px rgba(0,0,0,0.05)',
+                         border: isActive ? '3px solid rgba(59, 130, 246, 0.3)' : 'none',
+                         transform: isActive ? 'scale(1.1)' : 'scale(1)'
                        }}
                      >
-                       <Icon size={16} />
+                       <Icon size={18} />
                      </div>
                      <span 
                        className="timeline-label"
@@ -332,14 +351,28 @@ export default function Orders() {
                          fontSize: '11px',
                          fontWeight: isActive ? '800' : '600',
                          color: isActive ? 'var(--primary-blue)' : (isCompleted ? 'var(--text-main)' : 'var(--text-muted)'),
-                         marginTop: '6px',
+                         marginTop: '8px',
                          textAlign: 'center',
                          whiteSpace: 'nowrap',
-                         transition: 'all 0.3s ease'
+                         transition: 'all 0.3s ease',
+                         letterSpacing: '0.3px'
                        }}
                      >
                        {step.label}
                      </span>
+                     {isActive && (
+                       <span style={{
+                         fontSize: '9px',
+                         fontWeight: 700,
+                         color: 'var(--primary-blue)',
+                         marginTop: '2px',
+                         textTransform: 'uppercase',
+                         letterSpacing: '0.5px',
+                         animation: 'pulse-text 2s infinite'
+                       }}>
+                         Current
+                       </span>
+                     )}
                    </div>
                  );
               })}
@@ -719,6 +752,14 @@ export default function Orders() {
             transform: scale(0.95);
             opacity: 0;
             box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+          }
+        }
+        @keyframes pulse-text {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
           }
         }
         

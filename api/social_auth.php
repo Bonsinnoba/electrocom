@@ -209,11 +209,12 @@ try {
     logSuccessfulAuthLogin($pdo, (int) $user['id'], $provider);
 
     // Set HttpOnly Cookie for session persistence (matches login.php)
+    $isProd = ($config['APP_ENV'] ?? 'production') === 'production';
     setcookie('ehub_session', $token, [
         'expires' => time() + (60 * 60 * 24), // 24 hours
         'path' => '/',
         'domain' => '', // Current domain
-        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+        'secure' => $isProd ? true : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'),
         'httponly' => true,
         'samesite' => 'Strict'
     ]);

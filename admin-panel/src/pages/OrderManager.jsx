@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, Truck, CheckCircle, Clock, X, MapPin, User, Package, Calendar, Mail, ShieldCheck, RotateCcw, AlertTriangle, Download, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { fetchOrders, updateOrderStatus, updatePickerOrderStage, resendReceipt, verifyDelivery, reportPickerMissingItems, API_BASE_URL } from '../services/api';
+import { fetchOrders, updateOrderStatus, updatePickerOrderStage, resendReceipt, verifyDelivery, reportPickerMissingItems, API_BASE_URL, fetchBatch } from '../services/api';
 import { useConfirm } from '../context/ConfirmContext';
 import { formatPrice } from '../utils/formatPrice';
 
@@ -93,16 +93,17 @@ export default function OrderManager() {
     const fetchAndProcess = async (isInitial = false) => {
       try {
         if (isInitial) setLoading(true);
-        const data = await fetchOrders();
+        const data = await fetchBatch(['orders']);
         if (!isMounted) return;
-        setOrders(data);
+        setOrders(data.orders || []);
 
         // Compute live stat card values
         const today = new Date().toDateString();
+        const orders = data.orders || [];
         setLiveStats({
-          review: data.filter(o => o.status === 'Pending' || o.status === 'pending').length,
-          shipped: data.filter(o => o.status === 'Shipped' || o.status === 'shipped').length,
-          deliveredToday: data.filter(o =>
+          review: orders.filter(o => o.status === 'Pending' || o.status === 'pending').length,
+          shipped: orders.filter(o => o.status === 'Shipped' || o.status === 'shipped').length,
+          deliveredToday: orders.filter(o =>
             (o.status === 'Delivered' || o.status === 'delivered') &&
             new Date(o.date).toDateString() === today
           ).length
@@ -520,7 +521,10 @@ export default function OrderManager() {
               {!isPicker && (
                 <>
                   <button 
-                    onClick={() => window.open(`${API_BASE_URL}/invoice.php?order_id=${selectedOrder.id.replace('ORD-', '')}`, '_blank')}
+                    onClick={() => {
+                      const token = localStorage.getItem('ehub_token');
+                      window.open(`${API_BASE_URL}/invoice.php?order_id=${selectedOrder.id.replace('ORD-', '')}${token ? `&token=${encodeURIComponent(token)}` : ''}`, '_blank');
+                    }}
                     className="btn" 
                     style={{ padding: '6px 12px', fontSize: '11px', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
                   >

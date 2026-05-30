@@ -96,11 +96,12 @@ try {
     $token = generateToken($user['id']);
     $cookieName = 'ehub_store_session';
 
+    $isProd = ($config['APP_ENV'] ?? 'production') === 'production';
     setcookie($cookieName, $token, [
         'expires' => time() + (60 * 60 * 24),
         'path' => '/',
         'domain' => '',
-        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+        'secure' => $isProd ? true : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'),
         'httponly' => true,
         'samesite' => 'Strict'
     ]);

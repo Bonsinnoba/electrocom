@@ -48,9 +48,9 @@ export const AdminSettingsProvider = ({ children }) => {
       loading, 
       error, 
       refreshSettings,
-      siteName: settings?.siteName || 'My Store',
-      siteEmail: settings?.siteEmail || 'hello@example.com',
-      primaryColor: settings?.primaryColor || '#3b82f6',
+      siteName: settings?.siteName || 'ElectroCom',
+      siteEmail: settings?.siteEmail || 'support@electrocom.gh',
+      primaryColor: settings?.primaryColor || '#3B82F6',
       fontFamily: settings?.fontFamily || 'Inter',
       logoUrl: settings?.siteLogoUrl ? formatImageUrl(settings.siteLogoUrl) : '/logo.png'
     }}>
