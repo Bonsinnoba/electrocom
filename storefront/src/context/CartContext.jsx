@@ -144,7 +144,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const subtotal = cartItems.reduce((acc, item) => acc + (parseFloat(item.price) * item.quantity), 0);
-  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const cartCount = cartItems.length;
 
   return (
     <CartContext.Provider value={{ 

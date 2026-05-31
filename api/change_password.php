@@ -17,6 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Must be authenticated
 $userId = authenticate($pdo);
 
+// Validate CSRF token
+$csrfToken = getCSRFTokenFromRequest();
+if (!validateCSRFToken($csrfToken)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Invalid or expired CSRF token. Please refresh the page and try again.']);
+    exit;
+}
+
 $data = json_decode(file_get_contents('php://input'), true);
 $currentPassword = validateString($data['current_password'] ?? '');
 $newPassword     = validateString($data['new_password'] ?? '');

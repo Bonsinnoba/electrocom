@@ -195,7 +195,7 @@ class NotificationService
 
         try {
             $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) 
-                                   SELECT id, ?, ?, ? FROM users WHERE role IN ('admin', 'super')");
+                                   SELECT id, ?, ?, ? FROM users WHERE role IN ('store_manager', 'super')");
             return $stmt->execute([$title, $message, $type]);
         } catch (Exception $e) {
             logger('error', 'SYSTEM', "Failed to log admin notification: " . $e->getMessage());

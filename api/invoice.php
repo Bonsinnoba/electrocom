@@ -18,7 +18,7 @@ try {
     $roleStmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
     $roleStmt->execute([$userId]);
     $userRole = $roleStmt->fetchColumn();
-    $isAdmin = in_array($userRole, ['admin', 'super']);
+    $isAdmin = in_array($userRole, ['store_manager', 'super']);
 
     if ($isAdmin) {
         $stmt = $pdo->prepare("

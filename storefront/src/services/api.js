@@ -50,15 +50,58 @@ const getAuthHeaders = () => {
     };
 };
 
+/**
+ * Fetch CSRF token from backend
+ */
+export const fetchCSRFToken = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/csrf_token.php`, {
+            credentials: 'include'
+        });
+        const result = await response.json();
+        if (result.success && result.data?.csrf_token) {
+            return result.data.csrf_token;
+        }
+        return null;
+    } catch (error) {
+        console.error('Failed to fetch CSRF token:', error);
+        return null;
+    }
+};
+
+/**
+ * Get CSRF token from localStorage or fetch new one
+ */
+const GET_CSRF_TOKEN = async () => {
+    let token = sessionStorage.getItem('csrf_token');
+    if (!token) {
+        token = await fetchCSRFToken();
+        if (token) {
+            sessionStorage.setItem('csrf_token', token);
+        }
+    }
+    return token;
+};
+
 // Global fetch options to ensure cookies are included
 const getFetchOptions = (options = {}) => {
+    const headers = {
+        ...getAuthHeaders(),
+        ...(options.headers || {})
+    };
+
+    // Add CSRF token for state-changing requests (POST, PUT, DELETE, PATCH)
+    if (options.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method.toUpperCase())) {
+        const csrfToken = sessionStorage.getItem('csrf_token');
+        if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken;
+        }
+    }
+
     return {
         credentials: 'include',
         ...options,
-        headers: {
-            ...getAuthHeaders(),
-            ...(options.headers || {})
-        }
+        headers
     };
 };
 
@@ -394,7 +437,7 @@ export const syncCart = async (cartItems) => {
             body: JSON.stringify({ cart: cartItems })
         }));
         return await response.json();
-    } catch (error) {
+    } catch {
         // Silently fail for background cart syncs
         return { success: false };
     }

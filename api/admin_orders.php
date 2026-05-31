@@ -197,7 +197,7 @@ if ($method === 'GET') {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     } elseif ($action === 'picker_update') {
-        if ($role !== 'picker' && $role !== 'super' && $role !== 'admin' && $role !== 'store_manager') {
+        if ($role !== 'picker' && $role !== 'super' && $role !== 'store_manager') {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Forbidden']);
             exit;
@@ -274,7 +274,7 @@ if ($method === 'GET') {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     } elseif ($action === 'picker_report_missing') {
-        if (!in_array($role, ['picker', 'super', 'admin', 'store_manager'], true)) {
+        if (!in_array($role, ['picker', 'super', 'store_manager'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Forbidden']);
             exit;

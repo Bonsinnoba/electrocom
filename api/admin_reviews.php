@@ -63,7 +63,12 @@ if ($method === 'GET') {
             $stmt->execute([$id]);
 
             if ($productId) {
-                // Update the product's average rating
+                // Update the product's average rating with row locking to prevent race conditions
+                $pdo->beginTransaction();
+                
+                $lockStmt = $pdo->prepare("SELECT rating FROM products WHERE id = ? FOR UPDATE");
+                $lockStmt->execute([$productId]);
+                
                 $avgStmt = $pdo->prepare("SELECT AVG(rating) as avg_rating FROM product_reviews WHERE product_id = ?");
                 $avgStmt->execute([$productId]);
                 $avgRes = $avgStmt->fetch(PDO::FETCH_ASSOC);
@@ -71,11 +76,16 @@ if ($method === 'GET') {
 
                 $updateProduct = $pdo->prepare("UPDATE products SET rating = ? WHERE id = ?");
                 $updateProduct->execute([$newAvg, $productId]);
+                
+                $pdo->commit();
             }
 
             logger('warning', 'REVIEWS', "Review #{$id} deleted by admin {$userName}");
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }

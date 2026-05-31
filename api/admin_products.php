@@ -272,16 +272,28 @@ if ($method === 'POST') {
             exit;
         }
         try {
+            $pdo->beginTransaction();
+            
+            // Lock all product rows to prevent race conditions with concurrent updates
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $lockStmt = $pdo->prepare("SELECT id FROM products WHERE id IN ($placeholders) FOR UPDATE");
+            $lockStmt->execute($ids);
+            
             $stmt = $pdo->prepare("UPDATE products SET aisle = ?, rack = ?, bin = ?, location = ? WHERE id IN ($placeholders)");
             $stmt->execute(array_merge([$aisle, $rack, $bin, $location], $ids));
             $updated = $stmt->rowCount();
+            
+            $pdo->commit();
+            
             logger('info', 'PRODUCTS', "Bulk shelving update for " . count($ids) . " products by {$userName}");
             logAdminAudit($pdo, $userId, 'product.bulk_shelving', 'product', implode(',', $ids), [
                 'aisle' => $aisle, 'rack' => $rack, 'bin' => $bin, 'location' => $location,
             ]);
             echo json_encode(['success' => true, 'updated' => $updated]);
         } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Bulk update failed']);
         }
@@ -419,15 +431,28 @@ if ($method === 'POST') {
         }
 
         try {
-            $stmt = $pdo->prepare("SELECT image_url, gallery, directions FROM products WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT image_url, gallery, directions, version FROM products WHERE id = ?");
             $stmt->execute([$id]);
             $oldProduct = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$oldProduct) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Product not found']);
+                exit;
+            }
 
             $pdo->beginTransaction();
             // Manual status sync during update
             $newStatus = ($stock > 0) ? 'active' : 'out_of_stock';
-            $stmt = $pdo->prepare("UPDATE products SET name = ?, category = ?, price = ?, discount_percent = ?, sale_ends_at = ?, datasheet_url = ?, stock_quantity = ?, rating = ?, description = ?, image_url = ?, gallery = ?, colors = ?, specs = ?, included = ?, directions = ?, product_code = ?, location = ?, aisle = ?, rack = ?, bin = ?, status = ? WHERE id = ?");
-            $stmt->execute([$name, $category, $price, $discount_percent, $sale_ends_at, $datasheet_url, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location, $aisle, $rack, $bin, $newStatus, $id]);
+            $stmt = $pdo->prepare("UPDATE products SET name = ?, category = ?, price = ?, discount_percent = ?, sale_ends_at = ?, datasheet_url = ?, stock_quantity = ?, rating = ?, description = ?, image_url = ?, gallery = ?, colors = ?, specs = ?, included = ?, directions = ?, product_code = ?, location = ?, aisle = ?, rack = ?, bin = ?, status = ?, version = version + 1 WHERE id = ? AND version = ?");
+            $stmt->execute([$name, $category, $price, $discount_percent, $sale_ends_at, $datasheet_url, $stock, $rating, $description, $image_url, $gallery_json, $colors, $specs, $included, $directions_url, $product_code, $location, $aisle, $rack, $bin, $newStatus, $id, $oldProduct['version']]);
+            
+            if ($stmt->rowCount() === 0) {
+                $pdo->rollBack();
+                http_response_code(409);
+                echo json_encode(['success' => false, 'error' => 'Product was modified by another user. Please refresh and try again.']);
+                exit;
+            }
 
             if ($oldProduct) {
                 $uploadsDir = realpath(__DIR__ . '/uploads');

@@ -7,13 +7,13 @@ import { Package, Layers, Tag } from 'lucide-react';
 
 export default function InventoryHub() {
   const { user } = useAuth();
-  const role = user?.role || 'admin';
+  const role = user?.role || 'store_manager';
   const isMarketing = role === 'marketing';
   const isAccountant = role === 'accountant';
   const isPicker = role === 'picker';
 
   const availableTabs = [];
-  const isManager = role === 'store_manager' || role === 'super' || role === 'admin';
+  const isManager = role === 'store_manager' || role === 'super';
 
   if (!isAccountant && !isPicker) {
     availableTabs.push({

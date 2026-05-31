@@ -8,7 +8,7 @@ import { ShoppingCart, RotateCcw, ShoppingBag, AlertTriangle } from 'lucide-reac
 
 export default function SalesHub() {
   const { user } = useAuth();
-  const role = user?.role || 'admin';
+  const role = user?.role || 'store_manager';
   const isMarketing = role === 'marketing';
   const isAccountant = role === 'accountant';
   const isPicker = role === 'picker';

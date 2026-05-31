@@ -120,15 +120,34 @@ if ($method === 'GET') {
         }
 
         try {
+            $pdo->beginTransaction();
+            
+            // Lock user row to prevent race conditions with concurrent admin actions
+            $lockStmt = $pdo->prepare("SELECT status FROM users WHERE id = ? FOR UPDATE");
+            $lockStmt->execute([$id]);
+            $lockedStatus = $lockStmt->fetchColumn();
+            
+            if (!$lockedStatus) {
+                $pdo->rollBack();
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'User not found']);
+                exit;
+            }
+            
             $newStatus = ($currentStatus === 'Suspended') ? 'Active' : 'Suspended';
             $stmt = $pdo->prepare("UPDATE users SET status = ? WHERE id = ?");
             $stmt->execute([$newStatus, $id]);
 
             logger('info', 'STAFF', "User ID: {$id} status updated to {$newStatus} by {$userName}");
             logAdminAudit($pdo, $userId, 'user.status.update', 'user', (string)$id, ['status' => $newStatus]);
+            
+            $pdo->commit();
 
             echo json_encode(['success' => true, 'status' => $newStatus]);
         } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -143,12 +162,15 @@ if ($method === 'GET') {
         }
 
         try {
-            // First, find the target user's current role
-            $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
-            $stmt->execute([$id]);
-            $targetUser = $stmt->fetch();
+            $pdo->beginTransaction();
+            
+            // Lock user row to prevent race conditions with concurrent admin actions
+            $lockStmt = $pdo->prepare("SELECT role FROM users WHERE id = ? FOR UPDATE");
+            $lockStmt->execute([$id]);
+            $targetUser = $lockStmt->fetch();
 
             if (!$targetUser) {
+                $pdo->rollBack();
                 http_response_code(404);
                 echo json_encode(['success' => false, 'message' => 'User not found']);
                 exit;
@@ -159,6 +181,7 @@ if ($method === 'GET') {
             // Security Check: Only a super admin can alter a super admin, 
             // or assign the super admin role to someone else.
             if (($currentRole === 'super' || $newRole === 'super') && $role !== 'super') {
+                $pdo->rollBack();
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Permission denied: Super admin privileges required.']);
                 exit;
@@ -169,9 +192,14 @@ if ($method === 'GET') {
 
             logger('info', 'STAFF', "User ID: {$id} role updated to " . strtoupper($newRole) . " by {$userName}");
             logAdminAudit($pdo, $userId, 'user.role.update', 'user', (string)$id, ['role' => $newRole]);
+            
+            $pdo->commit();
 
             echo json_encode(['success' => true, 'role' => $newRole]);
         } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }

@@ -824,7 +824,7 @@ if (!function_exists('checkRateLimit')) {
                         if ($action === 'login' && $row['request_count'] == $limit) {
                             try {
                                 $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) 
-                                                       SELECT id, ?, ?, 'error' FROM users WHERE role IN ('admin', 'super')");
+                                                       SELECT id, ?, ?, 'error' FROM users WHERE role IN ('store_manager', 'super')");
                                 $stmt->execute([
                                     "Security Alert: Brute Force Attempt", 
                                     "System has blocked key/IP {$rateKey} after too many login attempts. Action: {$action}."
@@ -893,6 +893,72 @@ if (!function_exists('checkMaintenanceMode')) {
                 exit;
             }
         }
+    }
+}
+
+/**
+ * Generate CSRF Token
+ */
+if (!function_exists('generateCSRFToken')) {
+    function generateCSRFToken(): string
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        $token = bin2hex(random_bytes(32));
+        $_SESSION['csrf_token'] = $token;
+        $_SESSION['csrf_token_time'] = time();
+        
+        return $token;
+    }
+}
+
+/**
+ * Validate CSRF Token
+ */
+if (!function_exists('validateCSRFToken')) {
+    function validateCSRFToken(?string $token = null): bool
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        $sessionToken = $_SESSION['csrf_token'] ?? null;
+        $tokenTime = $_SESSION['csrf_token_time'] ?? 0;
+        
+        // Token expires after 1 hour
+        if (time() - $tokenTime > 3600) {
+            unset($_SESSION['csrf_token']);
+            unset($_SESSION['csrf_token_time']);
+            return false;
+        }
+        
+        if (!$token || !$sessionToken) {
+            return false;
+        }
+        
+        return hash_equals($sessionToken, $token);
+    }
+}
+
+/**
+ * Get CSRF Token from Request
+ */
+if (!function_exists('getCSRFTokenFromRequest')) {
+    function getCSRFTokenFromRequest(): ?string
+    {
+        // Check header first
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        $token = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? null;
+        
+        if ($token) {
+            return $token;
+        }
+        
+        // Check POST body
+        $data = json_decode(file_get_contents('php://input'), true);
+        return $data['csrf_token'] ?? $_POST['csrf_token'] ?? null;
     }
 }
 

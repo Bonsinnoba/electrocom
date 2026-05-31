@@ -9,7 +9,7 @@ import { Megaphone, LayoutDashboard, Tag, Star, Zap, BarChart3 } from 'lucide-re
 
 export default function MarketingHub() {
   const { user } = useAuth();
-  const role = user?.role || 'admin';
+  const role = user?.role || 'store_manager';
   const isMarketing = role === 'marketing';
   const isAccountant = role === 'accountant';
   const isPicker = role === 'picker';

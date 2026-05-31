@@ -52,16 +52,21 @@ function completeOrder($orderId, $pdo) {
 
         // 4. Update Global Stock (for storefront availability)
         $updateStockStmt = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?");
-        $adminNotifyStmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) SELECT id, ?, ?, 'info' FROM users WHERE role = 'admin' OR role = 'super'");
+        $adminNotifyStmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) SELECT id, ?, ?, 'info' FROM users WHERE role = 'store_manager' OR role = 'super'");
 
         foreach ($items as $item) {
+            // Lock product row to prevent race conditions with concurrent orders
+            $lockStmt = $pdo->prepare("SELECT stock_quantity FROM products WHERE id = ? FOR UPDATE");
+            $lockStmt->execute([$item['product_id']]);
+            $currentStock = $lockStmt->fetchColumn();
+            
             $updateStockStmt->execute([$item['quantity'], $item['product_id'], $item['quantity']]);
             if ($updateStockStmt->rowCount() === 0) {
-                throw new Exception("Insufficient stock for '{$item['product_name']}'. Requested: {$item['quantity']}, Available: {$item['stock_quantity']}.");
+                throw new Exception("Insufficient stock for '{$item['product_name']}'. Requested: {$item['quantity']}, Available: {$currentStock}.");
             }
 
             // Low Stock Check
-            $newStock = $item['stock_quantity'] - $item['quantity'];
+            $newStock = $currentStock - $item['quantity'];
             if ($newStock <= 10) {
                 $adminNotifyStmt->execute(["Low Stock Alert", "Product '{$item['product_name']}' is running low on stock. Only {$newStock} remaining."]);
             }
@@ -81,12 +86,16 @@ function completeOrder($orderId, $pdo) {
         $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'order')")
             ->execute([$order['user_id'], "Order Placed Successfully", "Your order {$paymentRef} has been received and is being processed."]);
 
-        $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) SELECT id, ?, ?, 'order' FROM users WHERE role IN ('admin', 'super')")
+        $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) SELECT id, ?, ?, 'order' FROM users WHERE role IN ('store_manager', 'super')")
             ->execute(["New Order Received", "Order {$paymentRef} has been placed by {$order['user_name']} for GH\xc2\xa2 {$order['total_amount']}."]);
 
         // 7b. Award new Loyalty Points (1 point per GHS 10 spent)
         $pointsEarned = (int)floor($order['total_amount'] / 10);
         if ($pointsEarned > 0) {
+            // Lock user row to prevent race conditions with concurrent point updates
+            $lockStmt = $pdo->prepare("SELECT loyalty_points FROM users WHERE id = ? FOR UPDATE");
+            $lockStmt->execute([$order['user_id']]);
+            
             $pdo->prepare("UPDATE users SET loyalty_points = loyalty_points + ? WHERE id = ?")
                 ->execute([$pointsEarned, $order['user_id']]);
         }

@@ -36,7 +36,7 @@ try {
     $userRow = $pdo->query("
         SELECT
             COUNT(*) AS total_users,
-            SUM(CASE WHEN role='admin' THEN 1 ELSE 0 END) AS total_admins
+            SUM(CASE WHEN role='store_manager' THEN 1 ELSE 0 END) AS total_admins
         FROM users
     ")->fetch();
 

@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import PartnersMarquee from './components/PartnersMarquee'
 import RecentlyViewedProducts from './components/RecentlyViewedProducts'
+import CookieConsent from './components/CookieConsent'
 import { X } from 'lucide-react'
 import BackToTop from './components/BackToTop'
 import { secureStorage } from './utils/secureStorage';
@@ -29,7 +30,7 @@ const Cart = lazy(() => import('./pages/Cart'));
 const Favorites = lazy(() => import('./pages/Favorites'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Checkout = lazy(() => import('./pages/Checkout'));
-import { fetchOrders, fetchProducts, socialAuthExchange } from './services/api';
+import { fetchOrders, fetchProducts, socialAuthExchange, fetchCSRFToken } from './services/api';
 import { useUser } from './context/UserContext';
 import { formatRelativeTime, formatDate } from './utils/dateFormatter';
 import MaintenancePage from './pages/MaintenancePage';
@@ -209,6 +210,15 @@ function AppContent() {
     document.documentElement.classList.toggle('dark-mode', isDarkMode);
     document.body.classList.toggle('dark-mode', isDarkMode);
   }, [isDarkMode]);
+
+  // Fetch CSRF token on app initialization
+  useEffect(() => {
+    fetchCSRFToken().then(token => {
+      if (token) {
+        sessionStorage.setItem('csrf_token', token);
+      }
+    });
+  }, []);
 
   // Apply dynamic site branding
   useEffect(() => {
@@ -634,6 +644,7 @@ function AppContent() {
       <CompareBar />
       <CompareModal />
       <BackToTop />
+      <CookieConsent />
     </div>
   );
 }

@@ -86,12 +86,12 @@ function JumpLink({ to, children }) {
 
 export default function HelpCenter() {
   const { user } = useAuth();
-  const role = user?.role || 'admin';
+  const role = user?.role || 'store_manager';
   const isSuper = role === 'super';
   const isAccountant = role === 'accountant';
   const isPicker = role === 'picker';
   const isMarketing = role === 'marketing';
-  const isManager = role === 'store_manager' || role === 'super' || role === 'admin';
+  const isManager = role === 'store_manager' || role === 'super';
 
   const toc = [
     { id: 'start', label: 'First steps' },
@@ -99,7 +99,7 @@ export default function HelpCenter() {
     ...(!isAccountant && !isPicker ? [{ id: 'inventory', label: 'Inventory' }] : []),
     ...(!isMarketing ? [{ id: 'sales', label: 'Sales & fulfillment' }] : []),
     ...(!isMarketing && !isAccountant && !isPicker ? [{ id: 'pos', label: 'POS & returns' }] : []),
-    ...(!isPicker && (!isAccountant || !isMarketing) ? [{ id: 'marketing', label: 'Marketing' }] : []),
+    ...(isMarketing ? [{ id: 'marketing', label: 'Marketing' }] : []),
     ...(!isMarketing && !isPicker ? [{ id: 'customers', label: 'Customers' }] : []),
     ...(!isAccountant ? [{ id: 'staffhub', label: 'Staff Hub' }] : []),
     ...(isManager ? [{ id: 'cms', label: 'Content Management' }] : []),

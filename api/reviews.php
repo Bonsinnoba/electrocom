@@ -114,19 +114,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$userId, $productId, $rating, $comment]);
         }
 
-        // Update the product's average rating
+        // Update the product's average rating with row locking to prevent race conditions
+        $pdo->beginTransaction();
+        
+        $lockStmt = $pdo->prepare("SELECT rating FROM products WHERE id = ? FOR UPDATE");
+        $lockStmt->execute([$productId]);
+        
         $avgStmt = $pdo->prepare("SELECT AVG(rating) as avg_rating FROM product_reviews WHERE product_id = ?");
         $avgStmt->execute([$productId]);
         $newAvg = round((float)$avgStmt->fetch(PDO::FETCH_ASSOC)['avg_rating'], 1);
 
         $updateProduct = $pdo->prepare("UPDATE products SET rating = ? WHERE id = ?");
         $updateProduct->execute([$newAvg, $productId]);
+        
+        $pdo->commit();
 
         $userName = getUserName($userId, $pdo);
         logger('ok', 'REVIEWS', "User {$userName} reviewed product #{$productId} with {$rating} stars");
 
         echo json_encode(['success' => true, 'message' => 'Review submitted successfully', 'new_average' => $newAvg]);
     } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log("Review submission error: " . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'error' => 'Failed to submit review']);

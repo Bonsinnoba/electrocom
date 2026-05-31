@@ -118,6 +118,10 @@ try {
     if ($customerId) {
         $points = floor($totalAmount / 10);
         if ($points > 0) {
+            // Lock user row to prevent race conditions with concurrent point updates
+            $lockStmt = $pdo->prepare("SELECT loyalty_points FROM users WHERE id = ? FOR UPDATE");
+            $lockStmt->execute([$customerId]);
+            
             $pdo->prepare("UPDATE users SET loyalty_points = loyalty_points + ? WHERE id = ?")->execute([$points, $customerId]);
         }
     }

@@ -4,5 +4,5 @@
 -- 1. Migrate any existing branch_admin users to store_manager
 UPDATE users SET role = 'store_manager' WHERE role = 'branch_admin';
 
--- 2. Modify the role column in users table to drop 'branch_admin' from the ENUM definition
-ALTER TABLE users MODIFY COLUMN role ENUM('customer', 'admin', 'marketing', 'accountant', 'store_manager', 'pos_cashier', 'picker', 'super') DEFAULT 'customer';
+-- 2. Modify the role column in users table to drop 'branch_admin' and 'admin' from the ENUM definition
+ALTER TABLE users MODIFY COLUMN role ENUM('customer', 'store_manager', 'marketing', 'accountant', 'pos_cashier', 'picker', 'super') DEFAULT 'customer';

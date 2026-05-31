@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(20),
     address TEXT,
     region VARCHAR(100),
-    role ENUM('customer', 'admin', 'marketing', 'accountant', 'store_manager', 'pos_cashier', 'picker', 'super') DEFAULT 'customer',
+    role ENUM('customer', 'store_manager', 'marketing', 'accountant', 'pos_cashier', 'picker', 'super') DEFAULT 'customer',
     status ENUM('Active', 'Suspended') DEFAULT 'Active',
     is_verified BOOLEAN DEFAULT FALSE,
     verification_method ENUM('email', 'sms') DEFAULT 'email',
@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS products (
     aisle VARCHAR(50),
     rack VARCHAR(50),
     bin VARCHAR(50),
+    version INT DEFAULT 0, -- Optimistic locking version
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

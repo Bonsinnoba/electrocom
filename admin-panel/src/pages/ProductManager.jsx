@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, X, Upload, Save, CheckCircle, Image as ImageIcon, Loader, Star, Download, UploadCloud, ShieldAlert, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, X, Upload, Save, CheckCircle, Image as ImageIcon, Loader, Star, Download, UploadCloud, ShieldAlert, FileText, CheckSquare, Square, MoreVertical } from 'lucide-react';
 import Papa from 'papaparse';
 import { fetchProducts, createProduct, updateProduct, deleteProduct, formatImageUrl, fetchBatch } from '../services/api';
 import { useNotifications } from '../context/NotificationContext';
@@ -82,6 +82,11 @@ export default function ProductManager() {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = React.useRef(null);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
+
+  // Bulk actions state
+  const [selectedProducts, setSelectedProducts] = useState(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [bulkAction, setBulkAction] = useState(null);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -347,6 +352,108 @@ export default function ProductManager() {
     }
   };
 
+  // Bulk action handlers
+  const handleSelectProduct = (id) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedProducts.size === filteredProducts.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProducts.size === 0) return;
+
+    const confirmed = await confirm(`Are you sure you want to delete ${selectedProducts.size} products?`);
+    if (!confirmed) return;
+
+    try {
+      const token = localStorage.getItem('ehub_token');
+      const promises = Array.from(selectedProducts).map(id =>
+        fetch(`${API_BASE}/admin_products.php`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-App-ID': 'admin'
+          },
+          body: JSON.stringify({ id })
+        })
+      );
+
+      await Promise.all(promises);
+      addToast(`${selectedProducts.size} products deleted successfully`, 'success');
+      setSelectedProducts(new Set());
+      loadProducts();
+    } catch (error) {
+      addToast('Failed to delete products', 'error');
+    }
+  };
+
+  const handleBulkStatusUpdate = async (newStatus) => {
+    if (selectedProducts.size === 0) return;
+
+    try {
+      const token = localStorage.getItem('ehub_token');
+      const promises = Array.from(selectedProducts).map(id =>
+        fetch(`${API_BASE}/admin_products.php`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-App-ID': 'admin'
+          },
+          body: JSON.stringify({ id, status: newStatus })
+        })
+      );
+
+      await Promise.all(promises);
+      addToast(`${selectedProducts.size} products updated to ${newStatus}`, 'success');
+      setSelectedProducts(new Set());
+      setBulkAction(null);
+      loadProducts();
+    } catch (error) {
+      addToast('Failed to update products', 'error');
+    }
+  };
+
+  const handleBulkCategoryUpdate = async (newCategory) => {
+    if (selectedProducts.size === 0) return;
+
+    try {
+      const token = localStorage.getItem('ehub_token');
+      const promises = Array.from(selectedProducts).map(id =>
+        fetch(`${API_BASE}/admin_products.php`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-App-ID': 'admin'
+          },
+          body: JSON.stringify({ id, category: newCategory })
+        })
+      );
+
+      await Promise.all(promises);
+      addToast(`${selectedProducts.size} products moved to ${newCategory}`, 'success');
+      setSelectedProducts(new Set());
+      setBulkAction(null);
+      loadProducts();
+    } catch (error) {
+      addToast('Failed to update products', 'error');
+    }
+  };
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = (product.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (product.category || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -503,7 +610,7 @@ export default function ProductManager() {
       </header>
 
       <div className="card glass" style={{ padding: '0', overflow: 'hidden' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'center' }}>
           <div style={{ flex: 1, position: 'relative' }}>
             <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
@@ -539,7 +646,126 @@ export default function ProductManager() {
               </button>
             )}
           </div>
-          <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {selectedProducts.size > 0 && (
+              <>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  {selectedProducts.size} selected
+                </span>
+                <div style={{ position: 'relative' }}>
+                  <button 
+                    onClick={() => setShowBulkActions(!showBulkActions)}
+                    className="btn"
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      background: 'var(--primary-blue)',
+                      color: 'white'
+                    }}
+                  >
+                    <MoreVertical size={18} /> Bulk Actions
+                  </button>
+                  {showBulkActions && (
+                    <>
+                      <div 
+                        onClick={() => setShowBulkActions(false)}
+                        style={{
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          zIndex: 99
+                        }}
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '8px',
+                        background: 'var(--bg-surface)',
+                        border: '1px solid var(--border-light)',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        minWidth: '200px',
+                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
+                        zIndex: 100
+                      }}>
+                      <button
+                        onClick={handleBulkDelete}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          textAlign: 'left',
+                          background: 'transparent',
+                          color: 'var(--danger)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontWeight: 500,
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-surface-secondary)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <Trash2 size={16} /> Delete Selected
+                      </button>
+                      <div style={{ height: '1px', background: 'var(--border-light)', margin: '4px 0' }} />
+                      <button
+                        onClick={() => handleBulkStatusUpdate('In Stock')}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          textAlign: 'left',
+                          background: 'transparent',
+                          color: 'var(--text-main)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontWeight: 500,
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-surface-secondary)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <CheckCircle size={16} /> Set In Stock
+                      </button>
+                      <button
+                        onClick={() => handleBulkStatusUpdate('Out of Stock')}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          textAlign: 'left',
+                          background: 'transparent',
+                          color: 'var(--text-main)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontWeight: 500,
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-surface-secondary)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <ShieldAlert size={16} /> Set Out of Stock
+                      </button>
+                    </div>
+                  </>
+                )}
+                </div>
+              </>
+            )}
+            <div style={{ position: 'relative' }}>
             <button 
               onClick={() => setShowFilterMenu(!showFilterMenu)}
               className="btn" 
@@ -617,12 +843,25 @@ export default function ProductManager() {
               </>
             )}
           </div>
+          </div>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <th style={{ padding: '16px 24px', width: '40px' }}>
+                  <button
+                    onClick={handleSelectAll}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    {selectedProducts.size === filteredProducts.length && filteredProducts.length > 0 ? (
+                      <CheckSquare size={18} style={{ color: 'var(--primary-blue)' }} />
+                    ) : (
+                      <Square size={18} style={{ color: 'var(--text-muted)' }} />
+                    )}
+                  </button>
+                </th>
                 <th style={{ padding: '16px 24px' }}>Product</th>
                 <th style={{ padding: '16px 24px' }}>Category</th>
                 <th style={{ padding: '16px 24px' }}>Price</th>
@@ -641,9 +880,22 @@ export default function ProductManager() {
                     borderBottom: '1px solid var(--border-light)', 
                     fontSize: '14px',
                     animationDelay: `${idx * 0.05}s`,
-                    animationFillMode: 'both'
+                    animationFillMode: 'both',
+                    background: selectedProducts.has(p.id) ? 'var(--bg-surface-secondary)' : 'transparent'
                   }}
                 >
+                  <td style={{ padding: '16px 24px' }}>
+                    <button
+                      onClick={() => handleSelectProduct(p.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      {selectedProducts.has(p.id) ? (
+                        <CheckSquare size={18} style={{ color: 'var(--primary-blue)' }} />
+                      ) : (
+                        <Square size={18} style={{ color: 'var(--text-muted)' }} />
+                      )}
+                    </button>
+                  </td>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'var(--bg-surface-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>

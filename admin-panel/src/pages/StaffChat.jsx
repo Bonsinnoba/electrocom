@@ -33,7 +33,7 @@ export default function StaffChat() {
   const chatContainerRef = useRef(null);
   
   const currentUser = JSON.parse(localStorage.getItem('ehub_user') || '{}');
-  const isAdminOrManager = ['super', 'admin', 'manager'].includes(currentUser.role);
+  const isAdminOrManager = ['super', 'store_manager'].includes(currentUser.role);
   const isSuper = currentUser.role === 'super';
 
   const [showMaintenance, setShowMaintenance] = useState(false);

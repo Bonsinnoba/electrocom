@@ -324,6 +324,10 @@ try {
         $userId = $userStmt->fetchColumn();
         
         if ($userId) {
+            // Lock user row to prevent race conditions with concurrent point updates
+            $lockStmt = $pdo->prepare("SELECT loyalty_points FROM users WHERE id = ? FOR UPDATE");
+            $lockStmt->execute([$userId]);
+            
             // Award loyalty points
             $pdo->prepare('UPDATE users SET loyalty_points = loyalty_points + ? WHERE id = ?')
                 ->execute([$pointsToAward, $userId]);

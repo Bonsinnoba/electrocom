@@ -129,7 +129,7 @@ try {
                 // Real-time Admin Alert
                 try {
                     $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) 
-                                           SELECT id, ?, ?, 'error' FROM users WHERE role IN ('admin', 'super')");
+                                           SELECT id, ?, ?, 'error' FROM users WHERE role IN ('store_manager', 'super')");
                     $stmt->execute([
                         "Security Alert: Account Locked", 
                         "User account {$user['email']} has been locked for {$lockoutMins} minutes due to excessive failed attempts."

@@ -10,7 +10,7 @@ header('Content-Type: application/json');
 // authenticate and require admin or super
 $userId = authenticate();
 $role = getUserRole($userId, $pdo);
-if (!in_array($role, ['super', 'admin'])) {
+if (!in_array($role, ['super', 'store_manager'])) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Forbidden: admin access required.']);
     exit;

@@ -94,7 +94,7 @@ const StatCard = ({ icon, label, value, trend, trendLabel, color = 'var(--primar
 export default function Dashboard() {
   const { siteName } = useAdminSettings();
   const { user } = useAuth();
-  const role = user?.role || 'admin';
+  const role = user?.role || 'store_manager';
   const isMarketing = role === 'marketing';
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -531,7 +531,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-           {(role === 'super' || role === 'admin' || role === 'store_manager' || role === 'accountant') && (
+           {(role === 'super' || role === 'store_manager' || role === 'accountant') && (
               <>
                 <button 
                   onClick={exportFinancialReportWord}

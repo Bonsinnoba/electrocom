@@ -543,6 +543,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Deduct loyalty points if used
         if ($loyaltyPointsToDeduct > 0) {
+            // Lock user row to prevent race conditions with concurrent point updates
+            $lockStmt = $pdo->prepare("SELECT loyalty_points FROM users WHERE id = ? FOR UPDATE");
+            $lockStmt->execute([$userId]);
+            
             $deductStmt = $pdo->prepare("UPDATE users SET loyalty_points = loyalty_points - ? WHERE id = ?");
             $deductStmt->execute([$loyaltyPointsToDeduct, $userId]);
         }

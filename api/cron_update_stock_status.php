@@ -7,6 +7,15 @@
 require_once 'db.php';
 require_once 'security.php';
 
+// Prevent concurrent cron runs using file-based lock
+$lockFile = __DIR__ . '/.cron_stock_status.lock';
+$lockHandle = fopen($lockFile, 'w');
+
+if (!flock($lockHandle, LOCK_EX | LOCK_NB)) {
+    echo "Cron already running. Exiting.\n";
+    exit(1);
+}
+
 try {
     // 1. Find items that just went out of stock
     $stmt = $pdo->query("SELECT id, name FROM products WHERE stock_quantity <= 0 AND status = 'active'");
@@ -53,4 +62,8 @@ try {
 } catch (Exception $e) {
     error_log("Stock Sync Cron Error: " . $e->getMessage());
     echo "Sync Failed.\n";
+} finally {
+    // Release lock
+    flock($lockHandle, LOCK_UN);
+    fclose($lockHandle);
 }

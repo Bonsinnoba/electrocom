@@ -15,12 +15,12 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const { confirm } = useConfirm();
   const { siteName, logoUrl } = useAdminSettings();
-  const role = user?.role || 'admin';
+  const role = user?.role || 'store_manager';
   const isSuper = role === 'super';
   const isAccountant = role === 'accountant';
   const isPicker = role === 'picker';
   const isMarketing = role === 'marketing';
-  const isManager = role === 'store_manager' || role === 'super' || role === 'admin';
+  const isManager = role === 'store_manager' || role === 'super';
 
   // Define visibility for items based on role
   const navItems = [
@@ -29,7 +29,7 @@ export default function Sidebar() {
     { icon: <ShoppingCart size={20} />, label: isPicker ? 'Picker Workflow' : 'Sales & Fulfillment', path: '/sales', visible: !isMarketing },
     { icon: <Zap size={20} />, label: 'POS Checkout', path: '/pos', visible: !isMarketing && !isAccountant && !isPicker },
     { icon: <Users size={20} />, label: isAccountant ? 'Billing List' : 'Customers', path: '/customers', visible: !isMarketing && !isPicker },
-    { icon: <Megaphone size={20} />, label: 'Marketing & Growth', path: '/marketing', visible: !isPicker && (!isAccountant || !isMarketing) },
+    { icon: <Megaphone size={20} />, label: 'Marketing & Growth', path: '/marketing', visible: isMarketing },
     { icon: <MessageSquare size={20} />, label: 'Staff Hub', path: '/staff-chat', visible: !isAccountant },
     { icon: <Bell size={20} />, label: 'System Alerts', path: '/notifications', visible: true },
     { icon: <BookOpen size={20} />, label: 'Help & guides', path: '/help', visible: true },
