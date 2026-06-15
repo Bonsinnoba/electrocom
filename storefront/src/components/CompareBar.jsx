@@ -91,6 +91,7 @@ export default function CompareBar() {
                 <img
                   src={product.image}
                   alt={product.name}
+                  loading="lazy"
                   style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '6px', background: '#fff', flexShrink: 0 }}
                 />
                 <span style={{

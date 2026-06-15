@@ -644,8 +644,29 @@ export const saveSuperSettings = async (payload) => {
 
 export const uploadBrandingAsset = async (file, type, oldPath = '') => {
     try {
+        // Import compression utility dynamically
+        const { compressImageAuto } = await import('../utils/imageCompression');
+
+        // Compress image before upload (AVIF/WEBP format)
+        const compressedBase64 = await compressImageAuto(file, {
+            maxWidth: type === 'favicon' ? 64 : 400,
+            maxHeight: type === 'favicon' ? 64 : 400,
+            targetSize: type === 'favicon' ? 20 * 1024 : 100 * 1024, // 20KB for favicon, 100KB for logo
+        });
+
+        // Convert base64 back to File object
+        const format = compressedBase64.match(/^data:image\/([a-zA-Z]+);/)?.[1] || 'webp';
+        const byteString = atob(compressedBase64.split(',')[1]);
+        const arrayBuffer = new ArrayBuffer(byteString.length);
+        const uint8Array = new Uint8Array(arrayBuffer);
+        for (let i = 0; i < byteString.length; i++) {
+            uint8Array[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([uint8Array], { type: `image/${format}` });
+        const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, `.${format}`), { type: `image/${format}` });
+
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', compressedFile);
         formData.append('type', type);
         formData.append('oldPath', oldPath);
 

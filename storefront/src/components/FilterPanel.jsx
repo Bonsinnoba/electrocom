@@ -1,25 +1,71 @@
-import React from 'react';
-import { Filter, X, RotateCcw, Star, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Filter, X, RotateCcw, Star, Check, ChevronDown } from 'lucide-react';
 
 export default function FilterPanel({ filters, setFilters, onReset, isMobile, onClose, categories = [], maxRange = 1000, priceValue, onPriceChange }) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isDiscountDropdownOpen, setIsDiscountDropdownOpen] = useState(false);
+  const [tempCategories, setTempCategories] = useState([]);
+  const [tempDiscount, setTempDiscount] = useState(0);
+  const dropdownRef = useRef(null);
+  const discountDropdownRef = useRef(null);
 
   const handleCategoryChange = (cat) => {
-    setFilters(prev => {
-      const exists = prev.categories.includes(cat);
+    setTempCategories(prev => {
+      const exists = prev.includes(cat);
       if (exists) {
-        return { ...prev, categories: prev.categories.filter(c => c !== cat) };
+        return prev.filter(c => c !== cat);
       } else {
-        return { ...prev, categories: [...prev.categories, cat] };
+        return [...prev, cat];
       }
     });
   };
 
-  const handleRatingChange = (rating) => {
-    setFilters(prev => ({ ...prev, minRating: rating }));
+  const handleDiscountChange = (discount) => {
+    setTempDiscount(discount);
   };
 
-  const handleDiscountChange = (discount) => {
-    setFilters(prev => ({ ...prev, minDiscount: discount }));
+  const handleCategoryDropdownToggle = () => {
+    if (!isDropdownOpen) {
+      setTempCategories(filters.categories);
+    }
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  const handleDiscountDropdownToggle = () => {
+    if (!isDiscountDropdownOpen) {
+      setTempDiscount(filters.minDiscount);
+    }
+    setIsDiscountDropdownOpen(!isDiscountDropdownOpen);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        if (isDropdownOpen) {
+          setFilters(prev => ({ ...prev, categories: tempCategories }));
+        }
+        setIsDropdownOpen(false);
+      }
+      if (discountDropdownRef.current && !discountDropdownRef.current.contains(event.target)) {
+        if (isDiscountDropdownOpen) {
+          setFilters(prev => ({ ...prev, minDiscount: tempDiscount }));
+        }
+        setIsDiscountDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen || isDiscountDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen, isDiscountDropdownOpen, tempCategories, tempDiscount, setFilters]);
+
+  const handleRatingChange = (rating) => {
+    setFilters(prev => ({ ...prev, minRating: rating }));
   };
 
   return (
@@ -62,44 +108,94 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
         )}
       </div>
 
-      <div className="filter-group">
-        <label style={{ display: 'block', marginBottom: '14px', fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Category</label>
-        <div className="category-scroll-container" style={{
-          display: 'flex',
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          gap: '6px',
-          paddingBottom: '0',
-          margin: '0 -30px',
-        }}>
-          {categories.map(cat => {
-            const isActive = filters.categories.includes(cat);
-            return (
-              <button
-                key={cat}
-                onClick={() => handleCategoryChange(cat)}
-                className={`filter-pill ${isActive ? 'active' : ''}`}
-                style={{
-                  width: 'auto',
-                  padding: isMobile ? (isActive ? '10px 16px 10px 14px' : '10px 20px') : (isActive ? '6px 16px 6px 14px' : '8px 45px'),
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  fontSize: '14px',
-                  flexShrink: 0,
-                  borderRadius: '12px',
-                  transition: 'all 0.2s ease',
-                  margin: '2px'
-                }}
-              >
-                {isActive && <Check size={14} strokeWidth={3} style={{ color: 'var(--primary-blue)' }} />}
-                {cat}
-              </button>
-            );
-          })}
-        </div>
+      <div className="filter-group" ref={dropdownRef} style={{ margin: '0 -30px' }}>
+        <label style={{ display: 'block', marginBottom: '14px', fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 15px' }}>Category</label>
+        
+        <button
+          onClick={handleCategoryDropdownToggle}
+          style={{
+            width: 'calc(100% - 30px)',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            border: '1.5px solid var(--border-light)',
+            background: 'var(--bg-surface-secondary)',
+            fontSize: '14px',
+            fontWeight: 600,
+            color: 'var(--text-main)',
+            outline: 'none',
+            transition: 'border-color 0.2s',
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            margin: '0 6px'
+          }}
+        >
+          <span>
+            {isDropdownOpen && tempCategories.length > 0
+              ? `${tempCategories.length} categor${tempCategories.length === 1 ? 'y' : 'ies'} selected`
+              : (filters.categories.length > 0 
+                  ? `${filters.categories.length} categor${filters.categories.length === 1 ? 'y' : 'ies'} selected`
+                  : 'Select categories')}
+          </span>
+          <ChevronDown size={18} style={{ 
+            transition: 'transform 0.2s ease',
+            transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+          }} />
+        </button>
+
+        {isDropdownOpen && (
+          <div style={{
+            position: 'absolute',
+            zIndex: 1000,
+            width: 'calc(100% - 30px)',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            background: 'var(--bg-surface)',
+            border: '1.5px solid var(--border-light)',
+            borderRadius: '12px',
+            marginTop: '8px',
+            padding: '8px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+            margin: '8px 6px 0 6px'
+          }}>
+            {categories.map(cat => {
+              const isActive = tempCategories.includes(cat);
+              return (
+                <label
+                  key={cat}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    fontWeight: 600,
+                    color: 'var(--text-main)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-surface-secondary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={() => handleCategoryChange(cat)}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '6px',
+                      accentColor: 'var(--primary-blue)',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  {cat}
+                </label>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="filter-group" style={{ margin: '0 -30px' }}>
@@ -274,47 +370,90 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
         )}
       </div>
 
-      <div className="filter-group" style={{ margin: '0 -30px' }}>
+      <div className="filter-group" ref={discountDropdownRef}>
         <label style={{ display: 'block', marginBottom: '18px', fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 15px' }}>Min Discount</label>
-        <div style={{
-          display: 'flex',
-          gap: isMobile ? '6px' : '4px',
-          flexWrap: 'wrap',
-          margin: '0 6px'
-        }}>
-          {[0, 10, 20, 30, 50].map(discount => (
-            <button
-              key={discount}
-              onClick={() => handleDiscountChange(discount)}
-              className={`discount-btn ${filters.minDiscount >= discount ? 'active' : ''}`}
-              style={{
-                background: filters.minDiscount >= discount ? 'var(--primary-blue)' : 'var(--bg-surface-secondary)',
-                color: filters.minDiscount >= discount ? 'white' : 'var(--text-main)',
-                border: filters.minDiscount >= discount ? '1px solid var(--primary-blue)' : '1px solid var(--border-light)',
-                padding: isMobile ? '8px 12px' : '8px 16px',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                flex: '1',
-                minWidth: isMobile ? '60px' : '80px'
-              }}
-            >
-              {discount === 0 ? 'All' : `${discount}%+`}
-            </button>
-          ))}
-        </div>
-        {filters.minDiscount > 0 && (
-          <div style={{
-            marginTop: '10px',
-            textAlign: 'center',
-            fontSize: '13px',
+        
+        <button
+          onClick={handleDiscountDropdownToggle}
+          style={{
+            width: 'calc(100% - 30px)',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            border: '1.5px solid var(--border-light)',
+            background: 'var(--bg-surface-secondary)',
+            fontSize: '14px',
             fontWeight: 600,
-            color: 'var(--success)',
+            color: 'var(--text-main)',
+            outline: 'none',
+            transition: 'border-color 0.2s',
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             margin: '0 6px'
+          }}
+        >
+          <span>
+            {isDiscountDropdownOpen && tempDiscount > 0
+              ? `${tempDiscount}%+ discount`
+              : (filters.minDiscount > 0 
+                  ? `${filters.minDiscount}%+ discount`
+                  : 'All discounts')}
+          </span>
+          <ChevronDown size={18} style={{ 
+            transition: 'transform 0.2s ease',
+            transform: isDiscountDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+          }} />
+        </button>
+
+        {isDiscountDropdownOpen && (
+          <div style={{
+            position: 'absolute',
+            zIndex: 1000,
+            width: 'calc(100% - 30px)',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            background: 'var(--bg-surface)',
+            border: '1.5px solid var(--border-light)',
+            borderRadius: '12px',
+            marginTop: '8px',
+            padding: '8px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+            margin: '8px 6px 0 6px'
           }}>
-            {filters.minDiscount}% discount and above
+            {[0, 10, 20, 30, 50].map(discount => (
+              <label
+                key={discount}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                  fontWeight: 600,
+                  color: 'var(--text-main)'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-surface-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <input
+                  type="radio"
+                  name="discount"
+                  checked={tempDiscount === discount}
+                  onChange={() => handleDiscountChange(discount)}
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    accentColor: 'var(--primary-blue)',
+                    cursor: 'pointer'
+                  }}
+                />
+                {discount === 0 ? 'All' : `${discount}%+`}
+              </label>
+            ))}
           </div>
         )}
       </div>
@@ -352,20 +491,22 @@ export default function FilterPanel({ filters, setFilters, onReset, isMobile, on
         display: 'flex', 
         flexDirection: isMobile ? 'row' : 'column', 
         gap: '12px', 
-        marginTop: isMobile ? '12px' : 'auto' 
+        marginTop: isMobile ? '12px' : 'auto',
+        margin: '0 -30px'
       }}>
         <button 
           className="btn-secondary" 
           onClick={onReset}
           style={{ 
             flex: isMobile ? 1 : 'none',
-            width: isMobile ? 'auto' : '100%', 
+            width: isMobile ? 'auto' : 'calc(100% - 30px)', 
             gap: '8px', 
             padding: '12px',
             borderRadius: '16px',
             fontWeight: 700,
             border: '1.5px solid var(--border-light)',
-            fontSize: '14px'
+            fontSize: '14px',
+            margin: '0 6px'
           }}
         >
           <RotateCcw size={16} /> Reset

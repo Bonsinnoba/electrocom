@@ -78,9 +78,18 @@ function lazyCancelOrders($pdo) {
             $idsList = implode(',', array_map('intval', $affectedIds));
             $pdo->exec("UPDATE orders SET status = 'cancelled' WHERE id IN ($idsList)");
 
-            $logStmt = $pdo->prepare("INSERT INTO order_status_logs (order_id, status_key, message) VALUES (?, 'cancelled', 'Reservation released automatically (Session inactive or timed out).')");
-            foreach ($affectedIds as $orderId) {
-                $logStmt->execute([$orderId]);
+            // Batch insert order status logs to avoid N+1 query problem
+            if (!empty($affectedIds)) {
+                $values = [];
+                $params = [];
+                foreach ($affectedIds as $orderId) {
+                    $values[] = '(?, ?, ?)';
+                    $params[] = $orderId;
+                    $params[] = 'cancelled';
+                    $params[] = 'Reservation released automatically (Session inactive or timed out).';
+                }
+                $valuesStr = implode(',', $values);
+                $pdo->prepare("INSERT INTO order_status_logs (order_id, status_key, message) VALUES $valuesStr")->execute($params);
             }
 
             if (function_exists('logger')) {

@@ -5,6 +5,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { useUser } from '../context/UserContext';
 import { useSettings } from '../context/SettingsContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { formatImageUrl } from '../services/api';
 import {
   applySynonymsToQuery,
   normalizeSearchText,
@@ -106,7 +107,14 @@ export default function Navbar({
       
       <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
         {siteSettings.siteLogoUrl ? (
-          <img src={siteSettings.siteLogoUrl} className={`nav-logo ${isSearchOpen ? 'hidden-mobile' : ''}`} alt={siteSettings.siteName} style={{ maxHeight: '40px', objectFit: 'contain' }} />
+          <img
+            src={formatImageUrl(siteSettings.siteLogoUrl)}
+            className={`nav-logo ${isSearchOpen ? 'hidden-mobile' : ''}`}
+            alt={siteSettings.siteName}
+            width="120"
+            height="40"
+            style={{ maxHeight: '40px', objectFit: 'contain', aspectRatio: '3/1' }}
+          />
         ) : (
           <div className={`nav-logo-text ${isSearchOpen ? 'hidden-mobile' : ''}`} style={{ fontWeight: 900, fontSize: '20px', color: 'var(--primary-blue)' }}>
             {siteSettings.siteName}
@@ -210,7 +218,7 @@ export default function Navbar({
                       setIsSearchOpen(false);
                     }}
                   >
-                    <img src={product.image || product.image_url} alt={product.name} className="result-thumb" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '10px' }} />
+                    <img src={product.image || product.image_url} alt={product.name} className="result-thumb" loading="lazy" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '10px' }} />
                     <div className="result-info">
                       <span className="result-name">{product.name}</span>
                       <span className="result-meta">GH₵{Number(product.price || 0).toFixed(2)} • View Details</span>

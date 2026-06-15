@@ -47,7 +47,7 @@ try {
     $stmt->execute([$userId]);
     $verifiedUser = $stmt->fetch();
 
-    $token = generateToken($userId);
+    $token = generateToken($userId, $verifiedUser['role']);
 
     // Set HttpOnly Cookie for security
     $isProd = ($config['APP_ENV'] ?? 'production') === 'production';

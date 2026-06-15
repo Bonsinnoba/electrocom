@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import { Flame, Clock, ArrowRight, Percent, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 
-export default function FlashSaleBanner({ products, onProductClick }) {
+function FlashSaleBanner({ products, onProductClick }) {
   const navigate = useNavigate();
   const { formatPrice } = useSettings();
 
@@ -363,3 +363,5 @@ export default function FlashSaleBanner({ products, onProductClick }) {
     </div>
   );
 }
+
+export default memo(FlashSaleBanner);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { X, Star, Heart, ShoppingCart, GitCompareArrows, Bell } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -8,7 +8,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { useComparison } from '../context/ComparisonContext';
 
 
-export default function ProductCard({ id, name, price, image, rating, discount_percent, sale_ends_at, stock_quantity, status = 'active', onClick, onRemove, description }) {
+function ProductCard({ id, name, price, image, rating, discount_percent, sale_ends_at, stock_quantity, status = 'active', onClick, onRemove, description }) {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [isNotifying, setIsNotifying] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -62,11 +62,19 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
     setIsNotifying(true);
 
     try {
+      let token;
+      try {
+        token = localStorage.getItem('token');
+      } catch (e) {
+        if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+          console.warn('Storage quota exceeded when getting token');
+        }
+      }
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/stock_notifications.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           product_id: id,
@@ -320,3 +328,5 @@ export default function ProductCard({ id, name, price, image, rating, discount_p
     </div>
   );
 }
+
+export default memo(ProductCard);

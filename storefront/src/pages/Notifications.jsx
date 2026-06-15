@@ -25,14 +25,13 @@ export default function Notifications({ searchQuery }) {
   const [pendingConfirmations, setPendingConfirmations] = useState([]);
   const [confirmingId, setConfirmingId] = useState(null);
 
-  const loadPendingConfirmations = async () => {
-    const res = await fetchMissingItemConfirmations();
-    if (res.success) {
-      setPendingConfirmations(Array.isArray(res.data) ? res.data : []);
-    }
-  };
-
   useEffect(() => {
+    const loadPendingConfirmations = async () => {
+      const res = await fetchMissingItemConfirmations();
+      if (res.success) {
+        setPendingConfirmations(Array.isArray(res.data) ? res.data : []);
+      }
+    };
     loadPendingConfirmations();
   }, []);
 

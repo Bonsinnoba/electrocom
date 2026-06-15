@@ -52,10 +52,11 @@ export default function PartnersMarquee() {
           {marqueeItems.map((partner, index) => (
             <div key={`${partner.id}-${index}`} className="marquee-item">
               {partner.logo_url ? (
-                <img 
-                  src={formatImageUrl(partner.logo_url)} 
-                  alt={partner.name} 
+                <img
+                  src={formatImageUrl(partner.logo_url)}
+                  alt={partner.name}
                   className="partner-logo"
+                  loading="lazy"
                   onError={(e) => {
                     // Fallback to text if image fails to load
                     e.target.style.display = 'none';

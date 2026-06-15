@@ -193,11 +193,15 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
     let timer;
     if (resendCooldown > 0) {
       timer = setInterval(() => {
-        setResendCooldown(prev => prev - 1);
+        setResendCooldown(prev => {
+          const next = prev - 1;
+          if (next <= 0) return 0;
+          return next;
+        });
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [resendCooldown]);
+  }, [resendCooldown > 0]);
 
   const handleResetPasswordSubmit = async (e) => {
     e.preventDefault();

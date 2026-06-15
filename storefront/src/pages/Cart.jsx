@@ -226,7 +226,11 @@ export default function Cart() {
                     </button>
 
                     <div className="cart-item-image-wrapper">
-                      <img src={formatImageUrl(item.image || item.image_url)} alt={item.name} className="cart-item-image" />
+                      <img
+                        src={formatImageUrl(item.image || item.image_url)}
+                        alt={item.name}
+                        className="cart-item-image"
+                      />
                     </div>
 
                     <div className="cart-item-details">

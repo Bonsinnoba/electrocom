@@ -13,20 +13,24 @@ $origin = rtrim($rawOrigin, '/');
 $isLocalhost = $origin && preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/', $origin);
 
 if ($appEnv === 'development') {
-    // In development, be permissive to all origins if one is sent, 
+    // In development, be permissive to all origins if one is sent,
     // otherwise fallback to a default local origin.
     header("Access-Control-Allow-Origin: " . ($rawOrigin ?: $frontendUrl));
 } else {
-    // Production: Strict allowlist
+    // Production: Strict allowlist - only allow explicitly configured origins
     if ($origin && in_array($origin, $allowedOrigins)) {
         header("Access-Control-Allow-Origin: $rawOrigin");
     } else {
-        header("Access-Control-Allow-Origin: $frontendUrl");
+        // In production, if origin is not in allowlist, reject the request
+        http_response_code(403);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Origin not allowed']);
+        exit;
     }
 }
 
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Session-Token, X-App-ID, x-app-id, Accept, Origin");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Session-Token, X-App-ID, x-app-id, X-CSRF-Token, x-csrf-token, Accept, Origin");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Max-Age: 86400"); // Cache preflight for 24h
 header("Content-Type: application/json; charset=UTF-8");

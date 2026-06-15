@@ -20,7 +20,11 @@ export default function RecentlyViewedProducts({ products }) {
       recentViews = JSON.parse(recentStr);
     }
   } catch (e) {
-    console.warn("Failed to parse recent views:", e);
+    if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+      console.warn('Storage quota exceeded when loading recent views');
+    } else {
+      console.warn("Failed to parse recent views:", e);
+    }
   }
 
   // Get recently viewed product objects
@@ -152,6 +156,7 @@ export default function RecentlyViewedProducts({ products }) {
                 <img
                   src={product.image}
                   alt={product.name}
+                  loading="lazy"
                   style={{
                     width: '100%',
                     height: '100%',

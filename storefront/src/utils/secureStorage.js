@@ -39,7 +39,7 @@ export const secureStorage = {
             let processedValue = value;
             if (key === 'user' && value && typeof value === 'object') {
                 processedValue = { ...value };
-                if (processedValue.profileImage && processedValue.profileImage.length > 50000) {
+                if (processedValue.profileImage && processedValue.profileImage.length > 5000) {
                     console.warn(`[secureStorage] profileImage too large for ${id}, omitting from storage.`);
                     delete processedValue.profileImage;
                 }

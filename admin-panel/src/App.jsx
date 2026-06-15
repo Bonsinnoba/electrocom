@@ -31,6 +31,8 @@ const PickerDashboard = lazy(() => import('./pages/PickerDashboard'));
 const HelpCenter = lazy(() => import('./pages/HelpCenter'));
 const CMSManager = lazy(() => import('./pages/CMSManager'));
 const CategoryManager = lazy(() => import('./pages/CategoryManager'));
+const SliderManager = lazy(() => import('./pages/SliderManager'));
+const BroadcastHub = lazy(() => import('./pages/BroadcastHub'));
 
 // ─── Toast Overlay ────────────────────────────────────────────────────────────
 const AdminToasts = () => {
@@ -330,7 +332,9 @@ function AppContent() {
         <Route path="/categories" element={<ProtectedLayout><RouteLoader><CategoryManager /></RouteLoader></ProtectedLayout>} />
         <Route path="/sales" element={<ProtectedLayout><RouteLoader><SalesHub /></RouteLoader></ProtectedLayout>} />
         <Route path="/marketing" element={<ProtectedLayout><RouteLoader><MarketingHub /></RouteLoader></ProtectedLayout>} />
-        
+        <Route path="/sliders" element={<ProtectedLayout><RouteLoader><SliderManager /></RouteLoader></ProtectedLayout>} />
+        <Route path="/broadcast" element={<ProtectedLayout><RouteLoader><BroadcastHub /></RouteLoader></ProtectedLayout>} />
+
         <Route path="/pos" element={<ProtectedLayout><RouteLoader><POSInterface /></RouteLoader></ProtectedLayout>} />
         <Route path="/customers" element={<ProtectedLayout><RouteLoader><CustomerManager /></RouteLoader></ProtectedLayout>} />
         <Route path="/notifications" element={<ProtectedLayout><RouteLoader><SystemNotifications /></RouteLoader></ProtectedLayout>} />

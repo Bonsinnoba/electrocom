@@ -40,7 +40,7 @@ export default function CMSPage() {
     };
 
     fetchPageContent();
-  }, [slug]);
+  }, [slug, siteSettings]);
 
   if (loading) {
     return (

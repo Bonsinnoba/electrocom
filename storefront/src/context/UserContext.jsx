@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { logoutUser, checkUserStatus } from '../services/api';
 import { secureStorage } from '../utils/secureStorage';
 
@@ -15,13 +15,24 @@ export const useUser = () => {
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     // Try to recover the last active user session from local storage safely
-    const lastUserId = localStorage.getItem('ehub_last_user_id');
+    let lastUserId;
+    try {
+      lastUserId = localStorage.getItem('ehub_last_user_id');
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when loading last user ID');
+      }
+    }
     return lastUserId ? secureStorage.getItem('user', lastUserId) : null;
   });
 
+  // Ref to prevent duplicate checkUserStatus calls
+  const hasCheckedStatus = useRef(false);
+
   // Hydrate full user profile on initial load
   useEffect(() => {
-      if (user && secureStorage.getItem('token', 'shared')) {
+      if (!hasCheckedStatus.current && user && secureStorage.getItem('token', 'shared')) {
+          hasCheckedStatus.current = true;
           checkUserStatus().then(res => {
               if (res && res.success && res.data && res.data.user) {
                   // Use the login helper to ensure storage is synced to the confirmed ID
@@ -38,7 +49,13 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     if (user && user.id) {
         secureStorage.setItem('user', user, user.id);
-        localStorage.setItem('ehub_last_user_id', user.id);
+        try {
+          localStorage.setItem('ehub_last_user_id', user.id);
+        } catch (e) {
+          if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+            console.warn('Storage quota exceeded when saving last user ID');
+          }
+        }
     }
   }, [user]);
 
@@ -67,7 +84,13 @@ export const UserProvider = ({ children }) => {
     
     // 4. Store the ID so we can recover this specific session on refresh
     if (userData && userData.id) {
-        localStorage.setItem('ehub_last_user_id', userData.id);
+        try {
+          localStorage.setItem('ehub_last_user_id', userData.id);
+        } catch (e) {
+          if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+            console.warn('Storage quota exceeded when saving last user ID');
+          }
+        }
         // Explicitly set the isolated storage immediately to avoid race conditions
         secureStorage.setItem('user', userData, userData.id);
     }
@@ -75,20 +98,32 @@ export const UserProvider = ({ children }) => {
 
   const logout = async () => {
     const currentId = user?.id;
-    
+
     // 1. Clear State
     setUser(null);
-    localStorage.removeItem('ehub_last_user_id');
-    
+    try {
+      localStorage.removeItem('ehub_last_user_id');
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when removing last user ID');
+      }
+    }
+
     // 2. Deep Cleanup of storage
     if (currentId) {
         secureStorage.removeItem('user', currentId);
     }
     secureStorage.removeItem('user', 'shared');
     secureStorage.removeItem('token', 'shared');
-    
+
     // 3. System Cleanup
-    localStorage.setItem('site_theme', 'blue');
+    try {
+      localStorage.setItem('site_theme', 'blue');
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when saving theme');
+      }
+    }
     window.dispatchEvent(new Event('themeChange'));
 
     try {

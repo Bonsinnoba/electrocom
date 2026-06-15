@@ -73,8 +73,10 @@ export const rememberSearch = (q) => {
     const list = Array.isArray(prev) ? prev : [];
     const next = [trimmed, ...list.filter((x) => x.toLowerCase() !== trimmed.toLowerCase())].slice(0, MAX_RECENT);
     localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-  } catch {
-    /* ignore */
+  } catch (e) {
+    if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+      console.warn('Storage quota exceeded when saving recent searches');
+    }
   }
 };
 

@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, Settings, Tag,
   LogOut, MapPin, ShieldAlert, Database, Globe, Zap, Activity, ShieldCheck,
   Star, Bell, ShoppingBag, RotateCcw, ClipboardList, MessageSquare, Truck, Megaphone,
-  BookOpen, Mail, Layout, Layers
+  BookOpen, Mail, Layout, Layers, Images, Send, BarChart3
 } from 'lucide-react';
 import { useAdminSettings } from '../context/AdminSettingsContext';
 import { useConfirm } from '../context/ConfirmContext';
@@ -30,6 +30,8 @@ export default function Sidebar() {
     { icon: <Zap size={20} />, label: 'POS Checkout', path: '/pos', visible: !isMarketing && !isAccountant && !isPicker },
     { icon: <Users size={20} />, label: isAccountant ? 'Billing List' : 'Customers', path: '/customers', visible: !isMarketing && !isPicker },
     { icon: <Megaphone size={20} />, label: 'Marketing & Growth', path: '/marketing', visible: isMarketing },
+    { icon: <Images size={20} />, label: 'Hero Sliders', path: '/sliders', visible: isManager && !isPicker },
+    { icon: <Send size={20} />, label: 'Broadcast Hub', path: '/broadcast', visible: isManager && !isPicker },
     { icon: <MessageSquare size={20} />, label: 'Staff Hub', path: '/staff-chat', visible: !isAccountant },
     { icon: <Bell size={20} />, label: 'System Alerts', path: '/notifications', visible: true },
     { icon: <BookOpen size={20} />, label: 'Help & guides', path: '/help', visible: true },

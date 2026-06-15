@@ -4,7 +4,7 @@ import {
   Save, RefreshCw, AlertTriangle, CheckCircle,
   Lock, Server, Instagram, Twitter, Facebook, Youtube,
   Image, Clock, MapPin, Link, Percent, Package, Mail,
-  Type, Smartphone, Eye
+  Type, Smartphone, Eye, ToggleLeft
 } from 'lucide-react';
 import { 
   fetchSuperSettings as getSettings, 
@@ -104,84 +104,6 @@ function FileUploadField({ label, description, icon, value, type, onChange, oldP
     </Field>
   );
 }
-
-// ── Default settings ──────────────────────────────────────────────────────────
-const DEFAULTS = {
-  // Identity
-  siteName:    'My Store',
-  siteEmail:   'hello@example.com',
-  phone1:      '',
-  phone2:      '',
-  whatsapp:    '',
-  // General
-  siteLogoUrl:  '',
-  faviconUrl:   '',
-  storeAddress: '',
-  businessHours:'Mon–Fri, 9am–5pm',
-  socialInstagram: '',
-  socialTwitter:   '',
-  socialFacebook:  '',
-  socialTikTok:    '',
-  socialYoutube:   '',
-  // Branding
-  primaryColor:      '#3b82f6',
-  accentColor:       '#f59e0b',
-  headerBg:          '#0f172a',
-  fontFamily:        'Inter',
-  // Hover colors
-  buttonPrimaryHover:   '#2563eb',
-  buttonSecondaryHover: '#475569',
-  buttonAccentHover:    '#d97706',
-  linkHover:            '#60a5fa',
-  cardHover:            '#1e293b',
-  heroBannerTagline: '',
-  heroBannerSubtext: '',
-  heroCTAText:       'Shop Now',
-  heroCTAUrl:        '/products',
-  siteTagline:       'Shop online',
-  metaDescription:   'Shop quality products online with secure checkout and support.',
-  // Security
-  maintenanceMode:          false,
-  allowRegistration:        true,
-  allowDoorToDoorDelivery:  false,
-  doorToDoorThreshold:      0,
-  allowCardPayment:         true,
-  maxLoginAttempts:         5,
-  sessionTimeout:           60,
-  twoFactorAdmin:           false,
-  lockoutDuration:          30,
-  passwordMinLength:        8,
-  requireEmailVerification: false,
-  requireNumberInPassword:  false,
-  // Notifications
-  emailNotify:        true,
-  securityAlerts:     true,
-  lowStockThreshold:  5,
-  lowStockAlertEmail: 'hello@example.com',
-  // System
-  apiRateLimit:             60,
-  debugMode:                false,
-  backupFrequency:          'daily',
-  // Strategic insights model
-  insightsShipWarnHours:        24,
-  insightsShipCriticalHours:    48,
-  insightsLowStockWarnCount:    5,
-  insightsLowStockCriticalCount:12,
-  insightsOnlineRevenueMinPct:  35,
-  insightsRepeatOrderMin:       1.2,
-  insightsWeightShip:           35,
-  insightsWeightStock:          25,
-  insightsWeightOnline:         20,
-  insightsWeightRepeat:         20,
-  defaultItemsPerPage:      9,
-  orderReceiptFooterNote:   '',
-  homepageSectionTitle:     'Product Catalog',
-  homepageFeaturedCategory: '',
-  vatRate:                  0,
-  // Loyalty
-  integrityDiscountThreshold: 500,
-  integrityDiscountPct:       10,
-};
 
 // ── Reusable UI components ────────────────────────────────────────────────────
 function Toggle({ value, onChange, label, description }) {
@@ -299,28 +221,126 @@ function SocialField({ label, icon, value, onChange, placeholder }) {
   );
 }
 
+// ── Theme selector component ───────────────────────────────────────────────────
+function ThemeSelector({ value, onChange, presets }) {
+  const displayPresets = presets;
+  const displayKeys = Object.keys(displayPresets);
+  
+  return (
+    <Field label="Theme Preset" description="Choose a pre-designed color scheme or customize colors individually below." icon={<Palette size={14} />}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+        {displayKeys.map((key) => {
+          const theme = displayPresets[key];
+          return (
+            <div
+              key={key}
+              onClick={() => onChange(key)}
+              style={{
+                padding: '16px',
+                borderRadius: '12px',
+                border: `2px solid ${value === key ? 'var(--primary-gold)' : 'var(--border-light)'}`,
+                background: 'var(--bg-surface-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                position: 'relative'
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '10px' }}>{theme.name}</div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: theme.primaryColor, border: '1px solid rgba(255,255,255,0.2)' }} />
+                <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: theme.accentColor, border: '1px solid rgba(255,255,255,0.2)' }} />
+                <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: theme.headerBg, border: '1px solid rgba(255,255,255,0.2)' }} />
+              </div>
+              {value === key && (
+                <div style={{ position: 'absolute', top: '8px', right: '8px', color: 'var(--primary-gold)' }}>
+                  <CheckCircle size={16} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div
+          onClick={() => onChange('custom')}
+          style={{
+            padding: '16px',
+            borderRadius: '12px',
+            border: `2px solid ${value === 'custom' ? 'var(--primary-gold)' : 'var(--border-light)'}`,
+            background: 'var(--bg-surface-secondary)',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '70px'
+          }}
+        >
+          <Palette size={24} style={{ color: 'var(--text-muted)', marginBottom: '8px' }} />
+          <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-muted)' }}>Custom</div>
+          {value === 'custom' && (
+            <div style={{ position: 'absolute', top: '8px', right: '8px', color: 'var(--primary-gold)' }}>
+              <CheckCircle size={16} />
+            </div>
+          )}
+        </div>
+      </div>
+    </Field>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function GlobalSettings() {
   const { refreshSettings } = useAdminSettings();
   const { confirm } = useConfirm();
-  const [settings, setSettings] = useState(DEFAULTS);
+  const [settings, setSettings] = useState({});
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
   const [loading, setLoading]   = useState(true);
   const [lastSynced, setLastSynced] = useState(null);
   const [tab, setTab]           = useState('general');
+  const [themePresets, setThemePresets] = useState({});
+  const [selectedPreset, setSelectedPreset] = useState('iconic_blue');
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await fetchBatch(['settings']);
-        if (data.settings) {
-          setSettings({ ...DEFAULTS, ...data.settings });
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        
+        // Try to load settings via batch endpoint first
+        let settingsData = null;
+        try {
+          settingsData = await fetchBatch(['settings']);
+        } catch (batchError) {
+          // Fallback to direct API call if batch fails
+          const response = await fetch(`${apiUrl}/get_site_settings.php?_t=${Date.now()}`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const result = await response.json();
+          settingsData = { settings: result.data };
+        }
+        
+        // Load theme presets
+        const presetsResponse = await fetch(`${apiUrl}/get_theme_presets.php`);
+        
+        if (!presetsResponse.ok) {
+          throw new Error(`HTTP ${presetsResponse.status}: ${presetsResponse.statusText}`);
+        }
+        
+        const presetsData = await presetsResponse.json();
+        
+        if (settingsData?.settings) {
+          setSettings(settingsData.settings);
           setLastSynced(new Date());
+        }
+        if (presetsData.success && presetsData.data) {
+          setThemePresets(presetsData.data);
         }
       } catch (e) {
         console.error('Failed to load settings:', e);
-        setSettings(DEFAULTS);
+        setSettings({});
       } finally {
         setLoading(false);
       }
@@ -346,12 +366,47 @@ export default function GlobalSettings() {
   const setColor = (key) => async (val) => {
     const updated = { ...settings, [key]: val };
     setSettings(updated);
+    setSelectedPreset('custom'); // Switch to custom when manually changing colors
     try {
       await saveSettings(updated);
       setLastSynced(new Date());
       await refreshSettings(); // Sync global UI state (colors, name, etc.)
     } catch (e) {
       console.error('Color save failed:', e);
+    }
+  };
+
+  const applyThemePreset = async (presetKey) => {
+    if (presetKey === 'custom') {
+      setSelectedPreset('custom');
+      return;
+    }
+    
+    const preset = themePresets[presetKey];
+    
+    if (!preset) {
+      return;
+    }
+    
+    const updated = {
+      ...settings,
+      primaryColor: preset.primaryColor,
+      accentColor: preset.accentColor,
+      headerBg: preset.headerBg,
+      buttonPrimaryHover: preset.buttonPrimaryHover,
+      buttonSecondaryHover: preset.buttonSecondaryHover,
+      buttonAccentHover: preset.buttonAccentHover,
+      linkHover: preset.linkHover,
+      cardHover: preset.cardHover,
+    };
+    setSettings(updated);
+    setSelectedPreset(presetKey);
+    try {
+      await saveSettings(updated);
+      setLastSynced(new Date());
+      await refreshSettings();
+    } catch (e) {
+      console.error('Theme preset application failed:', e);
     }
   };
 
@@ -552,7 +607,13 @@ export default function GlobalSettings() {
         {/* ── BRANDING ────────────────────────────────────────────────────── */}
         {tab === 'branding' && (
           <>
-            <SectionHeader title="Colours" />
+            <SectionHeader title="Theme Presets" />
+            <ThemeSelector 
+              value={selectedPreset} 
+              onChange={applyThemePreset} 
+              presets={themePresets} 
+            />
+            <SectionHeader title="Custom Colours" />
             <ColorField
               label="Primary Colour"
               description="Main brand colour used for buttons, links, and highlights across the storefront."
@@ -630,6 +691,28 @@ export default function GlobalSettings() {
             </Field>
             <Field label="CTA Button URL" description="Where the hero button links to (relative path or full URL)." icon={<Link size={14} />}>
               <input style={inputStyle} value={settings.heroCTAUrl || ''} onChange={setVal('heroCTAUrl')} placeholder="/products" />
+            </Field>
+
+            <SectionHeader title="Flash Sale Banner" />
+            <Field label="Enable Flash Sale Banner" description="Show or hide the flash sale banner on the homepage." icon={<ToggleLeft size={14} />}>
+              <Toggle
+                checked={!!settings.flashSaleBannerEnabled}
+                onChange={set('flashSaleBannerEnabled')}
+              />
+            </Field>
+
+            <SectionHeader title="Typography" />
+            <Field label="Font Family" description="Primary typeface applied site-wide. Google Fonts are loaded automatically." icon={<Type size={14} />}>
+              <select style={{ ...selectStyle, maxWidth: '280px' }} value={settings.fontFamily || 'Inter'} onChange={setVal('fontFamily')}>
+                {['Inter', 'Poppins', 'Roboto', 'Outfit', 'Nunito', 'Lato', 'Montserrat', 'Raleway', 'DM Sans'].map(f => (
+                  <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+                ))}
+              </select>
+              <div style={{ marginTop: '10px', padding: '12px 16px', borderRadius: '10px', background: 'var(--bg-surface-secondary)', border: '1px solid var(--border-light)', maxWidth: '420px' }}>
+                <span style={{ fontFamily: settings.fontFamily || 'Inter', fontSize: '16px' }}>
+                  The quick brown fox jumps over the lazy dog.
+                </span>
+              </div>
             </Field>
           </>
         )}

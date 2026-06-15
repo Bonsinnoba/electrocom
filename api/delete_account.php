@@ -19,6 +19,30 @@ try {
         exit;
     }
 
+    // Validate CSRF token
+    $csrfToken = getCSRFTokenFromRequest();
+    if (!validateCSRFToken($csrfToken)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Invalid or expired CSRF token. Please refresh the page and try again.']);
+        exit;
+    }
+
+    // Require password confirmation for critical action
+    $data = json_decode(file_get_contents('php://input'), true);
+    $password = validateString($data['password'] ?? '');
+    
+    if (empty($password)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Password confirmation is required to delete your account.']);
+        exit;
+    }
+    
+    if (!verifyReauthentication($pdo, $userId, $password)) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Invalid password. Account deletion requires password confirmation.']);
+        exit;
+    }
+
     $pdo->beginTransaction();
 
     // Delete related data first (optional, depending on schema CASCADE rules)

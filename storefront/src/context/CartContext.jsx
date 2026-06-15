@@ -25,6 +25,8 @@ export const CartProvider = ({ children }) => {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState('');
   const lastUserId = useRef(null);
+  const lastCartItemsRef = useRef(null);
+  const isInitialLoadRef = useRef(true);
 
   // ── Load from DB whenever the user changes (login / switch account) ──
   useEffect(() => {
@@ -33,34 +35,56 @@ export const CartProvider = ({ children }) => {
       setCartItems([]);
       setAppliedCoupon(null);
       lastUserId.current = null;
+      lastCartItemsRef.current = null;
+      isInitialLoadRef.current = true;
       return;
     }
 
     if (lastUserId.current === user.id) return; // Same session, skip
     lastUserId.current = user.id;
+    isInitialLoadRef.current = true;
 
     const loadFromServer = async () => {
       try {
         const serverCart = await fetchServerCart();
         setCartItems(serverCart || []);
+        lastCartItemsRef.current = serverCart || [];
       } catch {
         setCartItems([]);
+        lastCartItemsRef.current = [];
       }
     };
 
     loadFromServer();
-  }, [user?.id]);
+  }, [user]);
 
-  // ── Sync to DB on every cart change ──
+  // ── Sync to DB on every cart change (debounced) ──
   useEffect(() => {
     if (!user) return;
+    
+    // Skip sync during initial load to prevent unnecessary API call
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      return;
+    }
+
+    // Only sync if cart items actually changed (compare with previous state)
+    const currentCartString = JSON.stringify(cartItems);
+    const previousCartString = JSON.stringify(lastCartItemsRef.current);
+    
+    if (currentCartString === previousCartString) {
+      return; // No actual change, skip sync
+    }
+
     const performCartSync = async () => {
       try {
         await syncCart(cartItems);
+        lastCartItemsRef.current = cartItems;
       } catch {
         // Silently fail
       }
     };
+    
     const timeoutId = setTimeout(performCartSync, 1000);
     return () => clearTimeout(timeoutId);
   }, [cartItems, user]);
@@ -129,7 +153,7 @@ export const CartProvider = ({ children }) => {
         setCouponError(result.error || 'Invalid coupon code');
         return false;
       }
-    } catch (err) {
+    } catch {
       setCouponError('Error validating coupon. Please try again.');
       return false;
     } finally {

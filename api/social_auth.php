@@ -92,10 +92,10 @@ if (!$code) {
         unset($queryParams['approval_prompt']);
         $queryParams['prompt'] = 'select_account';
     } elseif ($provider === 'github') {
-        // GitHub supports 'prompt=select_account' to force the account chooser
-        $queryParams['prompt'] = 'select_account';
-        // Also clear any cached login hint
-        unset($queryParams['login']);
+        // GitHub does not support 'prompt' parameter
+        // Add 'login' parameter to force re-authentication and consent
+        // This ensures GitHub asks for consent even if previously authorized
+        $queryParams['login'] = ''; // Empty value forces login prompt
     }
 
     $authorizationUrl = $parsed['scheme'] . '://' . $parsed['host'] . $parsed['path'] . '?' . http_build_query($queryParams);
@@ -122,10 +122,12 @@ try {
         case 'google':
             $email = $userInfo['email'] ?? null;
             $name = $userInfo['name'] ?? null;
+            $picture = $userInfo['picture'] ?? null;
             break;
         case 'github':
             $email = $userInfo['email'] ?? null;
             $name = $userInfo['name'] ?? $userInfo['login'] ?? null;
+            $picture = $userInfo['avatar_url'] ?? null;
             // GitHub users can set their email to private; fetch from /user/emails API as fallback
             if (!$email) {
                 $emailsResponse = @file_get_contents(
@@ -203,7 +205,22 @@ try {
     }
 
     // issue token
-    $token = generateToken($user['id']);
+    $token = generateToken($user['id'], $user['role'] ?? 'customer');
+
+    // Store device fingerprint for admin/staff users
+    if (in_array($user['role'] ?? 'customer', ['admin', 'staff']) && function_exists('generateDeviceFingerprint')) {
+        $deviceFingerprint = generateDeviceFingerprint();
+        $ipAddress = getClientIP();
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        $userAgent = $headers['User-Agent'] ?? $_SERVER['HTTP_USER_AGENT'] ?? '';
+        
+        try {
+            $stmt = $pdo->prepare("INSERT INTO user_sessions (user_id, device_fingerprint, ip_address, user_agent) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$user['id'], $deviceFingerprint, $ipAddress, $userAgent]);
+        } catch (Exception $e) {
+            error_log("Failed to store device fingerprint: " . $e->getMessage());
+        }
+    }
 
     require_once __DIR__ . '/auth_login_log.php';
     logSuccessfulAuthLogin($pdo, (int) $user['id'], $provider);
@@ -229,7 +246,7 @@ try {
             'level'              => (int)($user['level'] ?? 1),
             'level_name'         => $user['level_name'] ?? 'Starter',
             'avatar_text'        => ($user['avatar_text'] && $user['avatar_text'] !== 'U') ? $user['avatar_text'] : generateInitials($user['name'] ?? 'U'),
-            'profile_image'      => null,
+            'profile_image'      => $picture ?? $user['profile_image'] ?? null,
             'role'               => $user['role'] ?? 'customer',
             'email_notif'        => (bool)($user['email_notif'] ?? true),
             'push_notif'         => (bool)($user['push_notif'] ?? true),
@@ -254,9 +271,12 @@ try {
         $codes[$opaqueCode] = [
             'token'      => $token,
             'user'       => $minimalUser,
-            'expires_at' => $now + 300 // 5 minutes
+            'expires_at' => $now + 600 // 10 minutes (increased from 5)
         ];
-        file_put_contents($codeFile, json_encode($codes, JSON_PRETTY_PRINT), LOCK_EX);
+        $writeResult = @file_put_contents($codeFile, json_encode($codes, JSON_PRETTY_PRINT), LOCK_EX);
+        if ($writeResult === false) {
+            error_log("Failed to write to social_auth_codes.json in social_auth.php");
+        }
         
         // Redirect with opaque code instead of actual token
         $location = rtrim($frontend, '/') . '/?social_auth=' . urlencode($opaqueCode);

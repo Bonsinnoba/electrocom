@@ -5,6 +5,7 @@ import { fetchProducts, createProduct, updateProduct, deleteProduct, formatImage
 import { useNotifications } from '../context/NotificationContext';
 import { useConfirm } from '../context/ConfirmContext';
 import { formatPrice } from '../utils/formatPrice';
+import { compressImageAuto } from '../utils/imageCompression';
 
 
 const colorsToString = (colors) => Array.isArray(colors) ? colors.join(', ') : '';
@@ -227,35 +228,57 @@ export default function ProductManager() {
     setShowModal(true);
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         addToast('Image is too large. Max 5MB', 'error');
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image: reader.result });
-      };
-      reader.readAsDataURL(file);
+      try {
+        addToast('Compressing image...', 'info');
+        const compressedImage = await compressImageAuto(file);
+        setFormData({ ...formData, image: compressedImage });
+        addToast('Image compressed successfully', 'success');
+      } catch (error) {
+        console.error('Image compression failed:', error);
+        addToast('Failed to compress image, using original', 'warning');
+        // Fallback to original
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData({ ...formData, image: reader.result });
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
-  const handleGalleryUpload = (index, e) => {
+  const handleGalleryUpload = async (index, e) => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         addToast('Image is too large. Max 5MB', 'error');
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
+      try {
+        addToast('Compressing gallery image...', 'info');
+        const compressedImage = await compressImageAuto(file);
         const newGallery = [...formData.gallery];
-        newGallery[index] = reader.result;
+        newGallery[index] = compressedImage;
         setFormData({ ...formData, gallery: newGallery });
-      };
-      reader.readAsDataURL(file);
+        addToast('Gallery image compressed successfully', 'success');
+      } catch (error) {
+        console.error('Image compression failed:', error);
+        addToast('Failed to compress image, using original', 'warning');
+        // Fallback to original
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const newGallery = [...formData.gallery];
+          newGallery[index] = reader.result;
+          setFormData({ ...formData, gallery: newGallery });
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -900,7 +923,7 @@ export default function ProductManager() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'var(--bg-surface-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                         {p.image ? (
-                          <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={p.image} alt={p.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
                           <ImageIcon size={16} opacity={0.3} />
                         )}

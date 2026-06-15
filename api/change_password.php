@@ -42,7 +42,14 @@ if (strlen($newPassword) < 8) {
 }
 
 try {
-    // Fetch stored hash
+    // Verify current password using re-authentication function
+    if (!verifyReauthentication($pdo, $userId, $currentPassword, false)) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Current password is incorrect.']);
+        exit;
+    }
+
+    // Fetch stored hash for reuse check
     $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -50,13 +57,6 @@ try {
     if (!$row) {
         http_response_code(404);
         echo json_encode(['success' => false, 'message' => 'User not found.']);
-        exit;
-    }
-
-    // Verify current password (supports legacy non-peppered hashes too)
-    if (!verifyPassword($currentPassword, $row['password_hash'])) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Current password is incorrect.']);
         exit;
     }
 

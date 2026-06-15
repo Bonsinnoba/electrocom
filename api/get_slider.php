@@ -36,15 +36,6 @@ try {
     // Ensure image_url can handle large base64 strings
     $pdo->exec("ALTER TABLE slider_images MODIFY COLUMN image_url LONGTEXT NOT NULL");
 
-    // Check if table is empty
-    $count = $pdo->query("SELECT COUNT(*) FROM slider_images")->fetchColumn();
-    if ($count == 0) {
-        $stmt = $pdo->prepare("INSERT INTO slider_images (image_url, title, subtitle, button_text, button_link, display_order) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute(['https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=1600&h=600&auto=format&fit=crop', 'Next Gen Electronics', 'Experience the future of technology today.', 'Shop Now', '/shop', 1]);
-        $stmt->execute(['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1600&h=600&auto=format&fit=crop', 'Premium Accessories', 'Elevate your daily carry with our curated collection.', 'Explore', '/shop', 2]);
-        $stmt->execute(['https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=1600&h=600&auto=format&fit=crop', 'Smart Home Setup', 'Automate your life with smart home essentials.', 'View Collection', '/shop', 3]);
-    }
-
     $stmt = $pdo->prepare("SELECT * FROM slider_images WHERE is_active = TRUE ORDER BY display_order ASC, created_at ASC");
     $stmt->execute();
     $slides = $stmt->fetchAll(PDO::FETCH_ASSOC);

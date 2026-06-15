@@ -53,12 +53,13 @@ export default function POSInterface() {
   });
 
   const syncOfflineOrders = async () => {
-    if (offlineOrders.length === 0) return;
+    const currentOfflineOrders = JSON.parse(localStorage.getItem('ehub_offline_orders') || '[]');
+    if (currentOfflineOrders.length === 0) return;
     const token = localStorage.getItem('ehub_token');
-    let remaining = [...offlineOrders];
+    let remaining = [...currentOfflineOrders];
     let syncedCount = 0;
     
-    for (const order of offlineOrders) {
+    for (const order of currentOfflineOrders) {
       try {
         const response = await fetch(`${API_BASE_URL}/pos_checkout.php`, {
           method: 'POST',
@@ -88,9 +89,14 @@ export default function POSInterface() {
   useEffect(() => {
     window.addEventListener('online', syncOfflineOrders);
     return () => window.removeEventListener('online', syncOfflineOrders);
-  }, [offlineOrders]);
+  }, []);
 
   // --- Phase 2: Global Barcode Listener ---
+  const productsRef = useRef(products);
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
+
   useEffect(() => {
     let barcodeString = '';
     let barcodeTimeout = null;
@@ -103,7 +109,7 @@ export default function POSInterface() {
       if (e.key === 'Enter' && barcodeString.length > 2) {
         const query = barcodeString.toLowerCase();
         barcodeString = '';
-        const exactMatch = products.find(p => p.product_code?.toLowerCase() === query);
+        const exactMatch = productsRef.current.find(p => p.product_code?.toLowerCase() === query);
         if (exactMatch) {
           setCart(prev => {
              const existing = prev.find(item => item.id === exactMatch.id);
@@ -134,7 +140,7 @@ export default function POSInterface() {
       window.removeEventListener('keydown', handleKeyDown);
       clearTimeout(barcodeTimeout);
     };
-  }, [isSearchFocused, posMode, showSuccess, refundStep, returnOrderData, products, addToast]);
+  }, [isSearchFocused, posMode, showSuccess, refundStep, returnOrderData, addToast]);
 
   useEffect(() => {
     fetchProducts();

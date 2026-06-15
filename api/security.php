@@ -250,18 +250,25 @@ if (!function_exists('decryptData')) {
 
 /**
  * Generate JWT Token
+ * Minimal payload: only user_id and role to reduce token size
+ * Role-based expiration: admin=4h, storefront=2h
  */
 if (!function_exists('generateToken')) {
-    function generateToken(int $userId)
+    function generateToken(int $userId, string $role = 'customer')
     {
         $config = $GLOBALS['config'] ?? require_once 'config.php';
         $secret = $config['JWT_SECRET'];
         $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
+        
+        // Role-based expiration: admin/staff get 4h, customers get 2h
+        $isAdmin = in_array($role, ['admin', 'staff']);
+        $expirationHours = $isAdmin ? 4 : 2;
+        
         $payload = json_encode([
-            'user_id' => $userId, 
-            'exp' => time() + (60 * 60 * 24), 
-            'iat' => time(),
-            'ip'  => getClientIP()
+            'user_id' => $userId,
+            'role' => $role,
+            'exp' => time() + (60 * 60 * $expirationHours),
+            'iat' => time()
         ]);
         $b64Header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
         $b64Payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
@@ -283,6 +290,145 @@ if (!function_exists('getallheaders')) {
             }
         }
         return $headers;
+    }
+}
+
+/**
+ * Generate Device Fingerprint from Request Headers
+ * Used for admin panel security only (not storefront)
+ */
+if (!function_exists('generateDeviceFingerprint')) {
+    function generateDeviceFingerprint()
+    {
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        
+        // Collect stable device characteristics
+        $fingerprintData = [
+            'user-agent' => $headers['User-Agent'] ?? $_SERVER['HTTP_USER_AGENT'] ?? '',
+            'accept-language' => $headers['Accept-Language'] ?? $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '',
+            'accept-encoding' => $headers['Accept-Encoding'] ?? $_SERVER['HTTP_ACCEPT_ENCODING'] ?? '',
+            'sec-ch-ua' => $headers['Sec-Ch-Ua'] ?? '',
+            'sec-ch-ua-platform' => $headers['Sec-Ch-Ua-Platform'] ?? '',
+            'sec-ch-ua-mobile' => $headers['Sec-Ch-Ua-Mobile'] ?? '',
+        ];
+        
+        // Hash the fingerprint data
+        return hash('sha256', json_encode($fingerprintData));
+    }
+}
+
+/**
+ * Log Suspicious Activity
+ * Records security events for monitoring and analysis
+ */
+if (!function_exists('logSuspiciousActivity')) {
+    function logSuspiciousActivity(?PDO $pdo, ?int $userId, string $activityType, string $description, string $severity = 'medium')
+    {
+        if (!$pdo) return;
+        
+        try {
+            $ipAddress = getClientIP();
+            $stmt = $pdo->prepare("INSERT INTO suspicious_activity (user_id, ip_address, activity_type, description, severity) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$userId, $ipAddress, $activityType, $description, $severity]);
+            
+            if (function_exists('logApp')) {
+                logApp('warn', 'SUSPICIOUS', "$activityType: $description | User: $userId | IP: $ipAddress | Severity: $severity");
+            }
+        } catch (Exception $e) {
+            error_log("Failed to log suspicious activity: " . $e->getMessage());
+        }
+    }
+}
+
+/**
+ * Check for Suspicious Activity
+ * Returns true if activity threshold is exceeded
+ */
+if (!function_exists('checkSuspiciousActivity')) {
+    function checkSuspiciousActivity(?PDO $pdo, string $ipAddress, ?int $userId = null, int $threshold = 5, int $timeWindowMinutes = 15)
+    {
+        if (!$pdo) return false;
+        
+        try {
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) as count 
+                FROM suspicious_activity 
+                WHERE ip_address = ? 
+                AND created_at > DATE_SUB(NOW(), INTERVAL ? MINUTE)
+                " . ($userId ? "AND user_id = ?" : "")
+            );
+            
+            if ($userId) {
+                $stmt->execute([$ipAddress, $timeWindowMinutes, $userId]);
+            } else {
+                $stmt->execute([$ipAddress, $timeWindowMinutes]);
+            }
+            
+            $result = $stmt->fetch();
+            return ($result['count'] ?? 0) >= $threshold;
+        } catch (Exception $e) {
+            error_log("Failed to check suspicious activity: " . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+/**
+ * Verify Re-authentication for Critical Actions
+ * Requires password confirmation for sensitive operations
+ */
+if (!function_exists('verifyReauthentication')) {
+    function verifyReauthentication(?PDO $pdo, int $userId, string $password, bool $dieOnError = true)
+    {
+        if (!$pdo) {
+            if ($dieOnError) {
+                header('Content-Type: application/json');
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Database connection required for re-authentication.']);
+                exit;
+            }
+            return false;
+        }
+        
+        try {
+            $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE id = ?");
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch();
+            
+            if (!$user) {
+                if ($dieOnError) {
+                    header('Content-Type: application/json');
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'message' => 'User not found.']);
+                    exit;
+                }
+                return false;
+            }
+            
+            $isValid = verifyPassword($password, $user['password_hash']);
+            
+            if (!$isValid) {
+                logSuspiciousActivity($pdo, $userId, 'reauth_failed', 'Failed re-authentication for critical action', 'medium');
+                if ($dieOnError) {
+                    header('Content-Type: application/json');
+                    http_response_code(401);
+                    echo json_encode(['success' => false, 'message' => 'Invalid password. Please confirm your identity.']);
+                    exit;
+                }
+                return false;
+            }
+            
+            return true;
+        } catch (Exception $e) {
+            error_log("Re-authentication verification error: " . $e->getMessage());
+            if ($dieOnError) {
+                header('Content-Type: application/json');
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Authentication verification failed.']);
+                exit;
+            }
+            return false;
+        }
     }
 }
 
@@ -406,55 +552,6 @@ if (!function_exists('authenticate')) {
 
         $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
 
-        // Security: Verify IP Pinning (Hijack Prevention)
-        $tokenIp = $payload['ip'] ?? '';
-        $currentIp = getClientIP();
-        $isDev = ($config['APP_ENV'] ?? 'production') === 'development';
-
-        // 1. Skip IP pinning entirely for storefront (Customer convenience)
-        if ($appId === 'storefront') {
-            $isIpValid = true;
-        } else {
-            // 2. Lenient Subnet Pinning for Admin/Staff
-            $normalizedTokenIp = $tokenIp;
-            $normalizedCurrentIp = $currentIp;
-
-            // Loopback Normalization (Development Only)
-            if ($isDev) {
-                if ($tokenIp === '::1') $normalizedTokenIp = '127.0.0.1';
-                if ($currentIp === '::1') $normalizedCurrentIp = '127.0.0.1';
-            }
-
-            // Extract Subnets (First 3 octets for IPv4, First 4 segments for IPv6)
-            $extractSubnet = function($ip) {
-                if (strpos($ip, ':') !== false) {
-                    $parts = explode(':', $ip);
-                    return implode(':', array_slice($parts, 0, 4));
-                }
-                $parts = explode('.', $ip);
-                return implode('.', array_slice($parts, 0, 3));
-            };
-
-            $tokenSubnet = $extractSubnet($normalizedTokenIp);
-            $currentSubnet = $extractSubnet($normalizedCurrentIp);
-
-            $isIpValid = (empty($tokenIp) || $tokenIp === 'unknown' || $tokenSubnet === $currentSubnet);
-        }
-
-        if (!$isIpValid) {
-            if (function_exists('logApp')) {
-                logApp('warn', 'AUTH_HIJACK', "Session Hijack Blocked: App-ID: $appId | Token IP: $tokenIp | Request IP: $currentIp");
-            }
-            clearSession();
-            if ($dieOnError) {
-                header('Content-Type: application/json');
-                http_response_code(401);
-                echo json_encode(['success' => false, 'message' => 'Security Error: Network change detected. Please log in again.']);
-                exit;
-            }
-            return null;
-        }
-
         if (isset($payload['exp']) && $payload['exp'] < time()) {
             if (function_exists('logApp')) logApp('error', 'AUTH', "AUTH FAIL: Token expired.");
             clearSession();
@@ -468,10 +565,40 @@ if (!function_exists('authenticate')) {
         }
 
         $userId = $payload['user_id'] ?? null;
+        $role = $payload['role'] ?? 'customer';
+
+        // Device fingerprint validation for admin panel only (not storefront)
+        if ($appId === 'admin' && $pdo && in_array($role, ['admin', 'staff'])) {
+            $currentFingerprint = generateDeviceFingerprint();
+            
+            try {
+                $stmt = $pdo->prepare("SELECT device_fingerprint FROM user_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
+                $stmt->execute([$userId]);
+                $session = $stmt->fetch();
+                
+                if ($session && $session['device_fingerprint'] && $session['device_fingerprint'] !== $currentFingerprint) {
+                    if (function_exists('logApp')) {
+                        logApp('warn', 'AUTH_DEVICE', "Device fingerprint mismatch for admin user $userId. Possible session hijack.");
+                    }
+                    logSuspiciousActivity($pdo, $userId, 'device_fingerprint_mismatch', 'Device fingerprint mismatch detected during authentication', 'high');
+                    clearSession();
+                    if ($dieOnError) {
+                        header('Content-Type: application/json');
+                        http_response_code(401);
+                        echo json_encode(['success' => false, 'message' => 'Security Alert: Device change detected. Please log in again.']);
+                        exit;
+                    }
+                    return null;
+                }
+            } catch (Exception $e) {
+                // Log error but don't block auth if fingerprint check fails
+                error_log("Device fingerprint check error: " . $e->getMessage());
+            }
+        }
 
         // If PDO is available, verify the user actually exists and is not suspended
         if ($userId && $pdo) {
-            $stmt = $pdo->prepare("SELECT id, status FROM users WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT id, status, role FROM users WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
 

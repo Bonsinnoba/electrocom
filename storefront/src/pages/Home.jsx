@@ -30,7 +30,11 @@ export default function Home({ products, onProductClick, searchQuery, loading })
         setCategoryAffinity(JSON.parse(affinityStr));
       }
     } catch (e) {
-      console.warn("Failed to parse view history:", e);
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when loading view history');
+      } else {
+        console.warn("Failed to parse view history:", e);
+      }
     }
   }, []);
 

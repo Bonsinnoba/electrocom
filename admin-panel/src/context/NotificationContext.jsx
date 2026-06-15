@@ -79,6 +79,11 @@ export const NotificationProvider = ({ children }) => {
              return false;
         }
 
+        if (response.status === 429) {
+            console.warn('Rate limited on notifications, backing off');
+            return true; // Continue polling but let interval handle timing
+        }
+
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
             const formatted = result.data.map(n => ({
@@ -148,13 +153,13 @@ export const NotificationProvider = ({ children }) => {
     // Initial fetch
     fetchServerNotifications();
     
-    // Polling setup — check every 10 seconds for real-time responsiveness
+    // Polling setup — check every 30 seconds to avoid rate limiting
     const interval = setInterval(async () => {
         const shouldContinue = await fetchServerNotifications();
         if (shouldContinue === false) {
             clearInterval(interval);
         }
-    }, 10000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [isAuthenticated]);

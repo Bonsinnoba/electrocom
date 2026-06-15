@@ -108,7 +108,14 @@ function AppContent() {
   const [activeDrawer, setActiveDrawer] = useState(null); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
+    try {
+      return localStorage.getItem('theme') === 'dark';
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when loading theme');
+      }
+      return false;
+    }
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -206,7 +213,13 @@ function AppContent() {
   }, [isMaintenanceMode]);
 
   useEffect(() => {
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    try {
+      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when saving theme');
+      }
+    }
     document.documentElement.classList.toggle('dark-mode', isDarkMode);
     document.body.classList.toggle('dark-mode', isDarkMode);
   }, [isDarkMode]);
@@ -342,14 +355,19 @@ function AppContent() {
     };
   }, []);
 
+  const selectedProductRef = useRef(selectedProduct);
   useEffect(() => {
-    if (selectedProduct) {
-      const latest = products.find(p => p.id === selectedProduct.id);
-      if (latest && JSON.stringify(latest) !== JSON.stringify(selectedProduct)) {
+    selectedProductRef.current = selectedProduct;
+  }, [selectedProduct]);
+
+  useEffect(() => {
+    if (selectedProductRef.current) {
+      const latest = products.find(p => p.id === selectedProductRef.current.id);
+      if (latest && JSON.stringify(latest) !== JSON.stringify(selectedProductRef.current)) {
         setSelectedProduct(latest);
       }
     }
-  }, [products, selectedProduct]);
+  }, [products]);
 
   // Listen for global 401 Unauthorized events from apiFetch
   useEffect(() => {
@@ -650,23 +668,20 @@ function AppContent() {
 }
 
 const AppProviders = ({ children }) => {
-  const { user } = useUser();
   return (
-    <div key={user?.id} style={{ display: 'contents' }}>
-      <ConfirmProvider>
-        <NotificationProvider>
-          <SettingsProvider>
-            <WishlistProvider>
-              <CartProvider>
-                <ComparisonProvider>
-                  {children}
-                </ComparisonProvider>
-              </CartProvider>
-            </WishlistProvider>
-          </SettingsProvider>
-        </NotificationProvider>
-      </ConfirmProvider>
-    </div>
+    <ConfirmProvider>
+      <NotificationProvider>
+        <SettingsProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <ComparisonProvider>
+                {children}
+              </ComparisonProvider>
+            </CartProvider>
+          </WishlistProvider>
+        </SettingsProvider>
+      </NotificationProvider>
+    </ConfirmProvider>
   );
 };
 

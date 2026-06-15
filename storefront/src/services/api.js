@@ -18,6 +18,15 @@ const decodeHtml = (html) => {
 export const formatImageUrl = (url) => {
     if (!url) return url;
     if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+
+    // Check if it's an external URL (not localhost/127.0.0.1/electrocom.local)
+    const isExternal = url.startsWith('http') &&
+                      !url.includes('localhost') &&
+                      !url.includes('127.0.0.1') &&
+                      !url.includes('electrocom.local');
+
+    if (isExternal) return url;
+
     // Fix hardcoded dev URLs from DB
     const cleaningBases = [
         'http://localhost:8000/api/',
@@ -30,10 +39,10 @@ export const formatImageUrl = (url) => {
         'https://electrocom.local/'
     ];
     cleaningBases.forEach(base => {
-        url = url.replace(base, '');
+        url = url.replaceAll(base, '');
     });
-    
-    if (url.startsWith('http')) return url;
+
+    // Prepend the API base URL
     return `${API_BASE_URL}/${url.startsWith('/') ? url.slice(1) : url}`;
 };
 
@@ -275,20 +284,39 @@ export const fetchOrderDetails = async (orderId) => {
     }
 };
 
+// Promise deduplication cache for in-flight requests
+const pendingRequests = new Map();
+
 export const checkUserStatus = async () => {
-    try {
-        const response = await apiFetch(`${API_BASE_URL}/check_user_status.php`, getFetchOptions());
-        if (response.status === 503) return { success: false, maintenance: true };
-        if (!response.ok) {
-            // If 401, token might be invalid
-            if (response.status === 401) return { success: false, unauthorized: true };
-            return { success: false };
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Error checking user status:', error);
-        return { success: false };
+    const requestKey = 'checkUserStatus';
+    
+    // Return existing in-flight promise if available
+    if (pendingRequests.has(requestKey)) {
+        return pendingRequests.get(requestKey);
     }
+    
+    // Create new promise and cache it
+    const promise = (async () => {
+        try {
+            const response = await apiFetch(`${API_BASE_URL}/check_user_status.php`, getFetchOptions());
+            if (response.status === 503) return { success: false, maintenance: true };
+            if (!response.ok) {
+                // If 401, token might be invalid
+                if (response.status === 401) return { success: false, unauthorized: true };
+                return { success: false };
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error checking user status:', error);
+            return { success: false };
+        } finally {
+            // Remove from cache when complete (success or failure)
+            pendingRequests.delete(requestKey);
+        }
+    })();
+    
+    pendingRequests.set(requestKey, promise);
+    return promise;
 };
 
 export const deleteMyAccount = async () => {
@@ -542,9 +570,13 @@ export const socialAuthExchange = async (code) => {
             method: 'POST',
             body: JSON.stringify({ code }),
         }));
-        return await response.json();
+        const result = await response.json();
+        console.log('Social auth exchange response:', result);
+        return result;
     } catch (error) {
         console.error('Error during social auth exchange:', error);
+        console.error('API_BASE_URL:', API_BASE_URL);
+        console.error('Code being sent:', code ? code.substring(0, 8) + '...' : 'none');
         return { success: false, message: 'Network error during social exchange.' };
     }
 };

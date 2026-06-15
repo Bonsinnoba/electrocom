@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useUser } from './UserContext';
 import { secureStorage } from '../utils/secureStorage';
 
@@ -33,7 +33,7 @@ export const NotificationProvider = ({ children }) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  const fetchServerNotifications = async () => {
+  const fetchServerNotifications = useCallback(async () => {
     if (!user) return;
     try {
       const token = secureStorage.getItem('token', 'shared');
@@ -60,7 +60,7 @@ export const NotificationProvider = ({ children }) => {
     } catch (error) {
       console.error("Failed to fetch notifications", error);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -70,7 +70,7 @@ export const NotificationProvider = ({ children }) => {
     } else {
       setNotifications([]);
     }
-  }, [user]);
+  }, [user, fetchServerNotifications]);
 
   const addNotification = (text, type = 'info') => {
     // This adds a temporary local notification, usually for UI actions

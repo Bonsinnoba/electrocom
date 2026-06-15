@@ -54,7 +54,7 @@ export default function CompareModal() {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
             <div style={{ width: '90px', height: '90px', borderRadius: '14px', overflow: 'hidden', background: '#fff', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <img src={product.image} alt={product.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', textAlign: 'center', lineHeight: 1.3 }}>{product.name}</p>
             <button

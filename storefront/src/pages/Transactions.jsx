@@ -28,24 +28,23 @@ export default function Transactions() {
   const [filterType, setFilterType] = useState('all'); // all, successful, pending, cancelled
 
   useEffect(() => {
+    const loadTransactions = async () => {
+      setLoading(true);
+      try {
+        const response = await fetchTransactions();
+        if (response.success) {
+          setTransactions(response.data || []);
+        } else {
+          addToast(response.message || 'Failed to load transaction history', 'error');
+        }
+      } catch (error) {
+        addToast('A connection error occurred while fetching transactions', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
     loadTransactions();
   }, []);
-
-  const loadTransactions = async () => {
-    setLoading(true);
-    try {
-      const response = await fetchTransactions();
-      if (response.success) {
-        setTransactions(response.data || []);
-      } else {
-        addToast(response.message || 'Failed to load transaction history', 'error');
-      }
-    } catch (error) {
-      addToast('A connection error occurred while fetching transactions', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {

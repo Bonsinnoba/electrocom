@@ -60,16 +60,31 @@ export const SettingsProvider = ({ children }) => {
   });
 
   const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('ehub_settings_v2');
-    return saved ? JSON.parse(saved) : {
-      email_notif: true,
-      push_notif: true,
-      sms_tracking: true,
-      currency: 'GHS',
-      language: 'English (UK)',
-      currencySymbol: '₵',
-      currencyRate: 1
-    };
+    try {
+      const saved = localStorage.getItem('ehub_settings_v2');
+      return saved ? JSON.parse(saved) : {
+        email_notif: true,
+        push_notif: true,
+        sms_tracking: true,
+        currency: 'GHS',
+        language: 'English (UK)',
+        currencySymbol: '₵',
+        currencyRate: 1
+      };
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when loading settings');
+      }
+      return {
+        email_notif: true,
+        push_notif: true,
+        sms_tracking: true,
+        currency: 'GHS',
+        language: 'English (UK)',
+        currencySymbol: '₵',
+        currencyRate: 1
+      };
+    }
   });
 
   // Fetch site settings from backend
@@ -107,6 +122,44 @@ export const SettingsProvider = ({ children }) => {
     loadSiteSettings();
   }, []);
 
+  // Apply theme colors to CSS variables
+  useEffect(() => {
+    const root = document.documentElement;
+    if (siteSettings.primaryColor) {
+      root.style.setProperty('--primary-blue', siteSettings.primaryColor);
+      // Calculate RGB value for rgba usage
+      const hex = siteSettings.primaryColor.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      root.style.setProperty('--primary-blue-rgb', `${r}, ${g}, ${b}`);
+    }
+    if (siteSettings.accentColor) {
+      root.style.setProperty('--accent-blue', siteSettings.accentColor);
+    }
+    if (siteSettings.headerBg) {
+      root.style.setProperty('--header-bg', siteSettings.headerBg);
+    }
+    if (siteSettings.buttonPrimaryHover) {
+      root.style.setProperty('--button-primary-hover', siteSettings.buttonPrimaryHover);
+    }
+    if (siteSettings.buttonSecondaryHover) {
+      root.style.setProperty('--button-secondary-hover', siteSettings.buttonSecondaryHover);
+    }
+    if (siteSettings.buttonAccentHover) {
+      root.style.setProperty('--button-accent-hover', siteSettings.buttonAccentHover);
+    }
+    if (siteSettings.linkHover) {
+      root.style.setProperty('--link-hover', siteSettings.linkHover);
+    }
+    if (siteSettings.cardHover) {
+      root.style.setProperty('--card-hover', siteSettings.cardHover);
+    }
+    if (siteSettings.fontFamily) {
+      root.style.setProperty('--font-family', siteSettings.fontFamily);
+    }
+  }, [siteSettings]);
+
   // Sync with user object on load/change
   useEffect(() => {
     if (user) {
@@ -120,7 +173,13 @@ export const SettingsProvider = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
-    localStorage.setItem('ehub_settings_v2', JSON.stringify(settings));
+    try {
+      localStorage.setItem('ehub_settings_v2', JSON.stringify(settings));
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when saving settings');
+      }
+    }
   }, [settings]);
 
   const updateSetting = async (key, value) => {

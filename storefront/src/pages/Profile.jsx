@@ -6,6 +6,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { updateProfile } from '../services/api';
 import { useConfirm } from '../context/ConfirmContext';
 import AlertModal from '../components/AlertModal';
+import { compressImageAuto } from '../utils/imageCompression';
 
 
 export default function Profile() {
@@ -30,6 +31,7 @@ export default function Profile() {
   });
 
   // Keep form in sync if user state changes externally (like on reset)
+  // This is intentional - we need to sync the form when user context changes
   useEffect(() => {
     if (user) {
       setFormData({
@@ -77,7 +79,7 @@ export default function Profile() {
                 type: 'error'
             });
         }
-    } catch (err) {
+    } catch {
         setAlert({
             isOpen: true,
             title: 'Network Error',
@@ -114,7 +116,7 @@ export default function Profile() {
                     type: 'error'
                 });
             }
-        } catch (err) {
+        } catch {
             setAlert({
                 isOpen: true,
                 title: 'Network Error',
@@ -182,32 +184,50 @@ export default function Profile() {
                 type="file" 
                 id="profile-image-input" 
                 accept="image/*" 
-                onChange={(e) => {
+                onChange={async (e) => {
                   const file = e.target.files[0];
                   if (file) {
                     if (file.size > 5242880) { // 5MB limit
                         addToast('Image size too large. Please use an image under 5MB.', 'error');
                         return;
                     }
-                    const reader = new FileReader();
-                    reader.onloadend = async () => {
-                      const base64String = reader.result;
+                    try {
+                      addToast('Compressing profile image...', 'info');
+                      const compressedImage = await compressImageAuto(file, { isProfile: true });
                       // Optimistically update context immediately for snappy UI
-                      updateUser({ profileImage: base64String });
+                      updateUser({ profileImage: compressedImage });
                       
-                      try {
-                          const response = await updateProfile({ profileImage: base64String });
+                      const response = await updateProfile({ profileImage: compressedImage });
+                      if (response.success) {
+                        addToast('Profile image updated successfully', 'success');
+                      } else {
+                        addToast(response.message || 'Failed to update profile image', 'error');
+                        // Revert on failure
+                        updateUser({ profileImage: user.profileImage });
+                      }
+                    } catch (error) {
+                      console.error('Image compression failed:', error);
+                      addToast('Failed to compress image, using original', 'warning');
+                      // Fallback to original
+                      const reader = new FileReader();
+                      reader.onloadend = async () => {
+                        const base64String = reader.result;
+                        updateUser({ profileImage: base64String });
+                        
+                        try {
+                            const response = await updateProfile({ profileImage: base64String });
                           if (response.success) {
                               addToast('Profile image uploaded successfully', 'success');
                           } else {
                               addToast(response.message || 'Failed to save image to server', 'error');
                               // Revert if failed? (Leaving optimistic for now)
                           }
-                      } catch (err) {
+                        } catch {
                           addToast('Network error while saving image', 'error');
-                      }
-                    };
-                    reader.readAsDataURL(file);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
                   }
                 }} 
                 style={{ display: 'none' }} 
@@ -330,19 +350,19 @@ export default function Profile() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    disabled={!!user.email}
+                    disabled={user.email}
                     placeholder="Add your email"
                     style={{ 
                       width: '100%', 
                       padding: '14px 16px', 
                       borderRadius: '12px', 
                       border: '1px solid var(--border-light)', 
-                      background: !!user.email ? 'var(--bg-surface-secondary)' : 'var(--bg-main)', 
-                      color: !!user.email ? 'var(--text-muted)' : 'var(--text-main)',
+                      background: user.email ? 'var(--bg-surface-secondary)' : 'var(--bg-main)', 
+                      color: user.email ? 'var(--text-muted)' : 'var(--text-main)',
                       fontSize: '15px',
                       outline: 'none',
-                      cursor: !!user.email ? 'not-allowed' : 'text',
-                      opacity: !!user.email ? 0.7 : 1
+                      cursor: user.email ? 'not-allowed' : 'text',
+                      opacity: user.email ? 0.7 : 1
                     }} 
                   />
                   {user.email && <Lock size={14} style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />}

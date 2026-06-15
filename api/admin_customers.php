@@ -19,19 +19,25 @@ try {
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Granular Role Access
-if ($method === 'GET') {
-    // Basic audit: Store Managers, Accountants, Super
-    requireRole(RBAC_ALL_ADMINS, $pdo);
-} elseif ($method === 'POST') {
-    // Moderation: Store Managers only
-    requireRole(['super', 'store_manager'], $pdo);
+try {
+    if ($method === 'GET') {
+        // Basic audit: Store Managers, Accountants, Super
+        requireRole(RBAC_ALL_ADMINS, $pdo);
+    } elseif ($method === 'POST') {
+        // Moderation: Store Managers only
+        requireRole(['super', 'store_manager'], $pdo);
+    }
+} catch (Exception $e) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    exit;
 }
 
 if ($method === 'GET') {
     try {
         $filterSql = "";
         $params = [];
-        
+
         // Restriction: managers only see 'customer' role users for data privacy
         if ($role === 'store_manager') {
             $filterSql = " WHERE u.role = 'customer' ";
@@ -39,11 +45,11 @@ if ($method === 'GET') {
 
         // Fetch all users with basic order summary and branch name
         $stmt = $pdo->prepare("
-            SELECT 
+            SELECT
                 u.id, u.name, u.email, u.phone, u.address, u.role, u.level, u.level_name, u.avatar_text, u.status, u.created_at,
                 (SELECT COUNT(*) FROM orders WHERE user_id = u.id) as orders_count,
                 (SELECT SUM(total_amount) FROM orders WHERE user_id = u.id) as total_spent
-            FROM users u 
+            FROM users u
             $filterSql
             ORDER BY u.created_at DESC
         ");
@@ -56,7 +62,7 @@ if ($method === 'GET') {
         }
 
         echo json_encode(['success' => true, 'data' => $users]);
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
@@ -102,10 +108,16 @@ if ($method === 'GET') {
             $stmt->execute([$id]);
 
             logger('warn', 'STAFF', "User ID: {$id} was immediately anonymized (PII erased) by {$userName}");
-            logAdminAudit($pdo, $userId, 'user.anonymize', 'user', (string)$id, []);
+
+            // Log audit with error handling
+            try {
+                logAdminAudit($pdo, $userId, 'user.anonymize', 'user', (string)$id, []);
+            } catch (Exception $auditError) {
+                error_log('Audit log failed: ' . $auditError->getMessage());
+            }
 
             echo json_encode(['success' => true]);
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -139,12 +151,18 @@ if ($method === 'GET') {
             $stmt->execute([$newStatus, $id]);
 
             logger('info', 'STAFF', "User ID: {$id} status updated to {$newStatus} by {$userName}");
-            logAdminAudit($pdo, $userId, 'user.status.update', 'user', (string)$id, ['status' => $newStatus]);
-            
+
+            // Log audit with error handling
+            try {
+                logAdminAudit($pdo, $userId, 'user.status.update', 'user', (string)$id, ['status' => $newStatus]);
+            } catch (Exception $auditError) {
+                error_log('Audit log failed: ' . $auditError->getMessage());
+            }
+
             $pdo->commit();
 
             echo json_encode(['success' => true, 'status' => $newStatus]);
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
@@ -191,12 +209,19 @@ if ($method === 'GET') {
             $stmt->execute([$newRole, $id]);
 
             logger('info', 'STAFF', "User ID: {$id} role updated to " . strtoupper($newRole) . " by {$userName}");
-            logAdminAudit($pdo, $userId, 'user.role.update', 'user', (string)$id, ['role' => $newRole]);
-            
+
+            // Log audit with error handling
+            try {
+                logAdminAudit($pdo, $userId, 'user.role.update', 'user', (string)$id, ['role' => $newRole]);
+            } catch (Exception $auditError) {
+                error_log('Audit log failed: ' . $auditError->getMessage());
+                // Continue with commit even if audit fails
+            }
+
             $pdo->commit();
 
             echo json_encode(['success' => true, 'role' => $newRole]);
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }

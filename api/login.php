@@ -126,6 +126,11 @@ try {
                 $lockout = date('Y-m-d H:i:s', time() + ($lockoutMins * 60)); 
                 logger('warn', 'SECURITY', "Account locked for {$user['email']} after $maxAttempts failed attempts.");
                 
+                // Log suspicious activity
+                if (function_exists('logSuspiciousActivity')) {
+                    logSuspiciousActivity($pdo, $user['id'], 'failed_login_lockout', "Account locked after $maxAttempts failed login attempts", 'high');
+                }
+                
                 // Real-time Admin Alert
                 try {
                     $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) 
@@ -233,12 +238,26 @@ try {
     }
 
     // Generate token
-    $token = generateToken($user['id']);
+    $token = generateToken($user['id'], $user['role']);
 
     // Identify target application for cookie naming
     $headers = function_exists('getallheaders') ? getallheaders() : [];
     $appId = $headers['X-App-ID'] ?? $headers['x-app-id'] ?? ($data['app_source'] ?? 'storefront');
     $cookieName = ($appId === 'admin') ? 'ehub_admin_session' : 'ehub_store_session';
+
+    // Store device fingerprint for admin/staff users
+    if (in_array($user['role'], ['admin', 'staff']) && function_exists('generateDeviceFingerprint')) {
+        $deviceFingerprint = generateDeviceFingerprint();
+        $ipAddress = getClientIP();
+        $userAgent = $headers['User-Agent'] ?? $_SERVER['HTTP_USER_AGENT'] ?? '';
+        
+        try {
+            $stmt = $pdo->prepare("INSERT INTO user_sessions (user_id, device_fingerprint, ip_address, user_agent) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$user['id'], $deviceFingerprint, $ipAddress, $userAgent]);
+        } catch (Exception $e) {
+            error_log("Failed to store device fingerprint: " . $e->getMessage());
+        }
+    }
 
     // Set HttpOnly Cookie for security
     $isProd = ($config['APP_ENV'] ?? 'production') === 'production';

@@ -137,11 +137,19 @@ export default function Orders() {
 
     setIsCancelling(true);
     try {
+      let token;
+      try {
+        token = localStorage.getItem('token');
+      } catch (e) {
+        if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+          console.warn('Storage quota exceeded when getting token');
+        }
+      }
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/orders.php?order_id=${cancelModalOrder.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
 

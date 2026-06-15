@@ -52,6 +52,19 @@ try {
             echo json_encode(['success' => false, 'message' => 'Invalid email format.']);
             exit;
         }
+        
+        // Require password confirmation for email changes (critical action)
+        $password = validateString($data['password'] ?? '');
+        if (empty($password)) {
+            echo json_encode(['success' => false, 'message' => 'Password confirmation is required to change your email.']);
+            exit;
+        }
+        
+        if (!verifyReauthentication($pdo, $userId, $password, false)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid password. Email change requires password confirmation.']);
+            exit;
+        }
+        
         $updates[] = "email = ?";
         $params[] = $email;
     }

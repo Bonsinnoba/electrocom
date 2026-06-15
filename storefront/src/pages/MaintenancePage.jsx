@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Sparkles, Mail, Clock, Wrench } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { formatImageUrl } from '../services/api';
 
 function GearsIllustration({ primary, accent }) {
   return (
@@ -193,8 +194,10 @@ export default function MaintenancePage() {
       >
         {siteSettings.siteLogoUrl ? (
           <img
-            src={siteSettings.siteLogoUrl}
+            src={formatImageUrl(siteSettings.siteLogoUrl)}
             alt=""
+            width="220"
+            height="48"
             style={{
               height: '48px',
               width: 'auto',
@@ -202,6 +205,7 @@ export default function MaintenancePage() {
               objectFit: 'contain',
               marginBottom: '24px',
               filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.35))',
+              aspectRatio: '220/48'
             }}
           />
         ) : null}

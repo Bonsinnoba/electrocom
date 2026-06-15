@@ -5,7 +5,7 @@
  */
 require_once 'db.php';
 
-$report = ['abandoned_carts_marked' => 0, 'queue_archived' => 0, 'idempotency_pruned' => 0];
+$report = ['abandoned_carts_marked' => 0, 'abandoned_carts_deleted' => 0, 'queue_archived' => 0, 'idempotency_pruned' => 0];
 
 try {
     // Mark very old active abandoned carts as abandoned
@@ -18,6 +18,19 @@ try {
     $report['abandoned_carts_marked'] = (int)$u;
 } catch (Exception $e) {
     error_log('hygiene abandoned_carts: ' . $e->getMessage());
+}
+
+try {
+    // Delete abandoned carts older than 30 days to prevent data growth
+    $d = $pdo->exec("
+        DELETE FROM abandoned_carts
+        WHERE status = 'abandoned'
+          AND last_updated < DATE_SUB(NOW(), INTERVAL 30 DAY)
+        LIMIT 5000
+    ");
+    $report['abandoned_carts_deleted'] = (int)$d;
+} catch (Exception $e) {
+    error_log('hygiene abandoned_carts_delete: ' . $e->getMessage());
 }
 
 try {

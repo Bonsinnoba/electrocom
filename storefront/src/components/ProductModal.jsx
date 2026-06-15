@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { X, Plus, Minus, ShoppingCart, Heart, FileText, Info, List, Settings, Star, MessageSquare, Send, ShoppingBag, CheckCircle } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
@@ -6,7 +6,7 @@ import { useUser } from '../context/UserContext';
 import { fetchProductReviews, submitReview, formatImageUrl } from '../services/api';
 
 
-export default function ProductModal({ product, products = [], isOpen, onClose, onAddToCart, onAddToWishlist, onProductClick }) {
+function ProductModal({ product, products = [], isOpen, onClose, onAddToCart, onAddToWishlist, onProductClick }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || 'Default');
   const [selectedVariant, setSelectedVariant] = useState(product?.variants?.[0] || null);
@@ -78,8 +78,25 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
   // Smarter recommendations based on category, price proximity, ratings, popularity, and user behavior.
   let related = [];
   try {
-    const history = JSON.parse(localStorage.getItem('ehub_view_history') || '{}');
-    const recentViews = JSON.parse(localStorage.getItem('ehub_recent_views') || '[]');
+    let historyStr, recentViewsStr;
+    try {
+      historyStr = localStorage.getItem('ehub_view_history') || '{}';
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when loading view history');
+      }
+      historyStr = '{}';
+    }
+    try {
+      recentViewsStr = localStorage.getItem('ehub_recent_views') || '[]';
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when loading recent views');
+      }
+      recentViewsStr = '[]';
+    }
+    const history = JSON.parse(historyStr);
+    const recentViews = JSON.parse(recentViewsStr);
     const recentSet = new Set(Array.isArray(recentViews) ? recentViews : []);
     const currentPrice = parseFloat(product.price) || 0;
     const categoryKey = String(product.category || '').toLowerCase();
@@ -163,11 +180,19 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
     setNotifyMessage('');
 
     try {
+      let token;
+      try {
+        token = localStorage.getItem('token');
+      } catch (e) {
+        if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+          console.warn('Storage quota exceeded when getting token');
+        }
+      }
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/stock_notifications.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           product_id: product.id,
@@ -234,15 +259,16 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
                       className={`thumbnail-item ${activeImage === img ? 'active' : ''}`}
                       onClick={() => setActiveImage(img)}
                     >
-                      <img 
-                        src={img} 
-                        alt={`View ${idx + 1}`} 
-                        style={{ 
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'cover', 
-                          borderRadius: '8px' 
-                        }} 
+                      <img
+                        src={img}
+                        alt={`View ${idx + 1}`}
+                        loading="lazy"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '8px'
+                        }}
                       />
                     </div>
                   ))}
@@ -810,3 +836,5 @@ export default function ProductModal({ product, products = [], isOpen, onClose, 
     </div>
   );
 }
+
+export default memo(ProductModal);

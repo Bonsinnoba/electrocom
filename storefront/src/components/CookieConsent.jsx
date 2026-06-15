@@ -5,18 +5,37 @@ const COOKIE_CONSENT_KEY = 'ehub_cookie_consent';
 
 const CookieConsent = () => {
   const [showBanner, setShowBanner] = useState(() => {
-    const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
-    return !consent;
+    try {
+      const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
+      return !consent;
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when loading cookie consent');
+      }
+      return true;
+    }
   });
   const [showSettings, setShowSettings] = useState(false);
   const [preferences, setPreferences] = useState(() => {
-    const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
-    return consent ? JSON.parse(consent) : {
-      necessary: true,
-      analytics: false,
-      marketing: false,
-      functional: false
-    };
+    try {
+      const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
+      return consent ? JSON.parse(consent) : {
+        necessary: true,
+        analytics: false,
+        marketing: false,
+        functional: false
+      };
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when loading cookie preferences');
+      }
+      return {
+        necessary: true,
+        analytics: false,
+        marketing: false,
+        functional: false
+      };
+    }
   });
 
   const handleAcceptAll = () => {
@@ -27,7 +46,13 @@ const CookieConsent = () => {
       functional: true
     };
     setPreferences(newPreferences);
-    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(newPreferences));
+    try {
+      localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(newPreferences));
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when saving cookie consent');
+      }
+    }
     setShowBanner(false);
     applyConsent(newPreferences);
   };
@@ -40,13 +65,25 @@ const CookieConsent = () => {
       functional: false
     };
     setPreferences(newPreferences);
-    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(newPreferences));
+    try {
+      localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(newPreferences));
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when saving cookie consent');
+      }
+    }
     setShowBanner(false);
     applyConsent(newPreferences);
   };
 
   const handleSavePreferences = () => {
-    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(preferences));
+    try {
+      localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(preferences));
+    } catch (e) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        console.warn('Storage quota exceeded when saving cookie preferences');
+      }
+    }
     setShowBanner(false);
     setShowSettings(false);
     applyConsent(preferences);

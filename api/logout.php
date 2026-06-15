@@ -1,6 +1,16 @@
 require_once 'security.php';
 require_once 'db.php';
 
+// Simple CORS headers for development
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-App-ID, X-Session-Token');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 // Get the current token before clearing session
 $token = null;
 $headers = function_exists('getallheaders') ? getallheaders() : [];

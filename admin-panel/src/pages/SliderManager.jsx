@@ -5,6 +5,7 @@ import {
 } from '../services/api';
 import { useNotifications } from '../context/NotificationContext';
 import { useConfirm } from '../context/ConfirmContext';
+import { compressImageAuto } from '../utils/imageCompression';
 
 const isVideo = (url) => url && (url.match(/\.(mp4|webm)$/i) || url.startsWith('data:video'));
 
@@ -97,7 +98,7 @@ export default function SliderManager() {
     );
   }
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
       const isVideoFile = file.type.startsWith('video/');
@@ -107,26 +108,57 @@ export default function SliderManager() {
         alert(`${isVideoFile ? 'Video' : 'Image'} is too large. Max ${maxSizeMB}MB allowed.`);
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image_url: reader.result });
-      };
-      reader.readAsDataURL(file);
+      
+      if (isVideoFile) {
+        // Don't compress videos
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData({ ...formData, image_url: reader.result });
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Compress images
+        try {
+          addToast('Compressing image...', 'info');
+          const compressedImage = await compressImageAuto(file);
+          setFormData({ ...formData, image_url: compressedImage });
+          addToast('Image compressed successfully', 'success');
+        } catch (error) {
+          console.error('Image compression failed:', error);
+          addToast('Failed to compress image, using original', 'warning');
+          // Fallback to original
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setFormData({ ...formData, image_url: reader.result });
+          };
+          reader.readAsDataURL(file);
+        }
+      }
     }
   };
 
-  const handlePartnerLogoUpload = (e) => {
+  const handlePartnerLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         alert('Logo is too large. Max 5MB');
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPartnerFormData({ ...partnerFormData, logo_url: reader.result });
-      };
-      reader.readAsDataURL(file);
+      try {
+        addToast('Compressing logo...', 'info');
+        const compressedImage = await compressImageAuto(file);
+        setPartnerFormData({ ...partnerFormData, logo_url: compressedImage });
+        addToast('Logo compressed successfully', 'success');
+      } catch (error) {
+        console.error('Image compression failed:', error);
+        alert('Failed to compress image, using original');
+        // Fallback to original
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPartnerFormData({ ...partnerFormData, logo_url: reader.result });
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -364,7 +396,7 @@ export default function SliderManager() {
                   {isVideo(slide.image_url) ? (
                     <video src={formatImageUrl(slide.image_url)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted loop autoPlay playsInline />
                   ) : (
-                    <img src={formatImageUrl(slide.image_url)} alt={slide.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={formatImageUrl(slide.image_url)} alt={slide.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   )}
                   <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
                     Order: {slide.display_order}
@@ -406,7 +438,7 @@ export default function SliderManager() {
                   padding: '20px', 
                   position: 'relative' 
                }}>
-                  <img src={formatImageUrl(partner.logo_url)} alt={partner.name} style={{ maxHTMLWidth: '100%', maxHeight: '60px', objectFit: 'contain' }} />
+                  <img src={formatImageUrl(partner.logo_url)} alt={partner.name} loading="lazy" style={{ maxHTMLWidth: '100%', maxHeight: '60px', objectFit: 'contain' }} />
                   <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
                     Order: {partner.display_order}
                   </div>

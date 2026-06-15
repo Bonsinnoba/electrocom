@@ -18,6 +18,22 @@ if (!function_exists('eh_critical_db_settings_keys')) {
     function eh_critical_db_settings_keys(): array
     {
         return [
+            // Identity (branding)
+            'siteName', 'siteEmail', 'phone1', 'phone2', 'whatsapp', 'siteTagline', 'metaDescription',
+            // Assets (branding)
+            'siteLogoUrl', 'faviconUrl',
+            // Location (branding)
+            'storeAddress', 'businessHours',
+            // Social (branding)
+            'socialInstagram', 'socialTwitter', 'socialFacebook', 'socialTikTok', 'socialYoutube',
+            // Branding colors
+            'primaryColor', 'accentColor', 'headerBg', 'fontFamily', 'selectedTheme',
+            // Hover colors
+            'buttonPrimaryHover', 'buttonSecondaryHover', 'buttonAccentHover', 'linkHover', 'cardHover',
+            // Hero banner
+            'heroBannerTagline', 'heroBannerSubtext', 'heroCTAText', 'heroCTAUrl',
+            // Flash sale banner
+            'flashSaleBannerEnabled',
             // Security settings
             'maxLoginAttempts', 'sessionTimeout', 'twoFactorAdmin', 'lockoutDuration',
             'passwordMinLength', 'requireEmailVerification', 'requireNumberInPassword',
@@ -33,7 +49,11 @@ if (!function_exists('eh_critical_db_settings_keys')) {
             // Insights settings
             'insightsShipWarnHours', 'insightsShipCriticalHours', 'insightsLowStockWarnCount',
             'insightsLowStockCriticalCount', 'insightsOnlineRevenueMinPct', 'insightsRepeatOrderMin',
-            'insightsWeightShip', 'insightsWeightStock', 'insightsWeightOnline', 'insightsWeightRepeat'
+            'insightsWeightShip', 'insightsWeightStock', 'insightsWeightOnline', 'insightsWeightRepeat',
+            // Email providers
+            'emailProvider', 'emailProviderSmtpEnabled', 'emailProviderMailgunEnabled', 'emailProviderSendgridEnabled',
+            // Availability
+            'maintenanceMode',
         ];
     }
 }
@@ -51,6 +71,8 @@ if (!function_exists('eh_always_load_settings_keys')) {
             'socialInstagram', 'socialTwitter', 'socialFacebook', 'socialTikTok', 'socialYoutube',
             // Hero (homepage)
             'heroBannerTagline', 'heroBannerSubtext', 'heroCTAText', 'heroCTAUrl',
+            // Flash sale banner (homepage)
+            'flashSaleBannerEnabled',
             // SEO (every page)
             'siteTagline', 'metaDescription',
             // Availability (every page)
@@ -207,83 +229,46 @@ if (!function_exists('eh_get_occasional_settings')) {
     }
 }
 
-if (!function_exists('eh_super_settings_defaults_full')) {
+if (!function_exists('eh_theme_presets')) {
     /**
-     * Full defaults for super_settings (admin + API merge). Keep in sync with admin GlobalSettings.jsx.
+     * Pre-defined theme presets for the super admin to choose from
      */
-    function eh_super_settings_defaults_full(): array
+    function eh_theme_presets(): array
     {
         return [
-            'siteName'          => 'My Store',
-            'siteEmail'         => 'hello@example.com',
-            'phone1'            => '',
-            'phone2'            => '',
-            'whatsapp'          => '',
-            'siteLogoUrl'       => '',
-            'faviconUrl'        => '',
-            'storeAddress'      => '',
-            'businessHours'     => 'Mon–Fri, 9am–5pm',
-            'socialInstagram'   => '',
-            'socialTwitter'     => '',
-            'socialFacebook'    => '',
-            'socialTikTok'      => '',
-            'socialYoutube'     => '',
-            'primaryColor'            => '#3b82f6',
-            'accentColor'             => '#f59e0b',
-            'headerBg'                => '#0f172a',
-            'fontFamily'              => 'Inter',
-            // Hover colors
-            'buttonPrimaryHover'      => '#2563eb',
-            'buttonSecondaryHover'    => '#475569',
-            'buttonAccentHover'       => '#d97706',
-            'linkHover'               => '#60a5fa',
-            'cardHover'               => '#1e293b',
-            'heroBannerTagline'       => '',
-            'heroBannerSubtext'       => '',
-            'heroCTAText'             => 'Shop Now',
-            'heroCTAUrl'              => '/products',
-            'siteTagline'             => 'Shop online',
-            'metaDescription'         => 'Shop quality products online with secure checkout and support.',
-            'emailProvider'           => 'smtp',
-            'emailProviderSmtpEnabled' => true,
-            'emailProviderMailgunEnabled' => false,
-            'emailProviderSendgridEnabled' => false,
-            'maintenanceMode'          => false,
-            'allowRegistration'        => true,
-            'allowDoorToDoorDelivery'  => false,
-            'doorToDoorThreshold'      => 0,
-            'allowCardPayment'         => true,
-            'maxLoginAttempts'         => 5,
-            'sessionTimeout'           => 60,
-            'twoFactorAdmin'           => false,
-            'lockoutDuration'          => 30,
-            'passwordMinLength'        => 8,
-            'requireEmailVerification' => false,
-            'requireNumberInPassword'  => false,
-            'emailNotify'       => true,
-            'securityAlerts'    => true,
-            'lowStockThreshold' => 5,
-            'lowStockAlertEmail'=> 'hello@example.com',
-            'apiRateLimit'             => 100,
-            'debugMode'                => false,
-            'backupFrequency'          => 'daily',
-            'insightsShipWarnHours'       => 24,
-            'insightsShipCriticalHours'   => 48,
-            'insightsLowStockWarnCount'   => 5,
-            'insightsLowStockCriticalCount'=> 12,
-            'insightsOnlineRevenueMinPct' => 35,
-            'insightsRepeatOrderMin'      => 1.2,
-            'insightsWeightShip'          => 35,
-            'insightsWeightStock'         => 25,
-            'insightsWeightOnline'        => 20,
-            'insightsWeightRepeat'        => 20,
-            'defaultItemsPerPage'      => 12,
-            'orderReceiptFooterNote'   => '',
-            'homepageSectionTitle'     => 'New Arrivals',
-            'homepageFeaturedCategory' => '',
-            'vatRate'                  => 0,
-            'integrityDiscountThreshold'=> 500,
-            'integrityDiscountPct'      => 10,
+            'iconic_blue' => [
+                'name' => 'Iconic Blue',
+                'primaryColor' => '#3b82f6',
+                'accentColor' => '#f59e0b',
+                'headerBg' => '#0f172a',
+                'buttonPrimaryHover' => '#2563eb',
+                'buttonSecondaryHover' => '#475569',
+                'buttonAccentHover' => '#d97706',
+                'linkHover' => '#60a5fa',
+                'cardHover' => '#1e293b',
+            ],
+            'emerald_green' => [
+                'name' => 'Emerald Green',
+                'primaryColor' => '#10b981',
+                'accentColor' => '#059669',
+                'headerBg' => '#064e3b',
+                'buttonPrimaryHover' => '#059669',
+                'buttonSecondaryHover' => '#475569',
+                'buttonAccentHover' => '#047857',
+                'linkHover' => '#34d399',
+                'cardHover' => '#064e3b',
+            ],
+            'royal_purple' => [
+                'name' => 'Royal Purple',
+                'primaryColor' => '#8b5cf6',
+                'accentColor' => '#7c3aed',
+                'headerBg' => '#4c1d95',
+                'buttonPrimaryHover' => '#7c3aed',
+                'buttonSecondaryHover' => '#475569',
+                'buttonAccentHover' => '#6d28d9',
+                'linkHover' => '#a78bfa',
+                'cardHover' => '#4c1d95',
+            ],
         ];
     }
 }
@@ -297,7 +282,9 @@ if (!function_exists('eh_storefront_public_setting_keys')) {
             'siteLogoUrl', 'faviconUrl', 'storeAddress', 'businessHours',
             'socialInstagram', 'socialTwitter', 'socialFacebook', 'socialTikTok', 'socialYoutube',
             'primaryColor', 'accentColor', 'headerBg', 'fontFamily',
+            'buttonPrimaryHover', 'buttonSecondaryHover', 'buttonAccentHover', 'linkHover', 'cardHover',
             'heroBannerTagline', 'heroBannerSubtext', 'heroCTAText', 'heroCTAUrl',
+            'flashSaleBannerEnabled',
             'siteTagline', 'metaDescription',
             'defaultItemsPerPage', 'homepageSectionTitle', 'homepageFeaturedCategory',
             'vatRate', 'allowRegistration', 'allowDoorToDoorDelivery', 'doorToDoorThreshold', 'allowCardPayment', 'orderReceiptFooterNote',
@@ -307,7 +294,7 @@ if (!function_exists('eh_storefront_public_setting_keys')) {
 }
 
 if (!function_exists('eh_merged_super_settings')) {
-    /** Merge all settings with caching - defaults only used as fallback when DB fails */
+    /** Merge all settings with caching - all settings stored in database */
     function eh_merged_super_settings(bool $forceRefresh = false): array
     {
         $cacheKey = 'merged_settings';
@@ -316,29 +303,24 @@ if (!function_exists('eh_merged_super_settings')) {
         // Try to get from cache first
         if (!$forceRefresh) {
             $cached = eh_cache_get($cacheKey, $cacheGroup);
-            if ($cached !== false) {
+            if ($cached !== false && $cached !== null) {
                 return $cached;
             }
         }
 
-        $defaults = eh_super_settings_defaults_full();
-        $path = eh_super_settings_path();
-        $jsonStored = file_exists($path) ? json_decode(file_get_contents($path), true) : [];
         $dbStored = eh_get_db_settings($forceRefresh);
 
-        // Merge logic: defaults only used as fallback when database fails
-        // null = DB failure (use fallback defaults + JSON)
-        // [] or [data] = DB succeeded (use JSON + DB only, no defaults)
-        if ($dbStored === null) {
-            // Database failed completely - use defaults + JSON as fallback
-            $merged = array_merge($defaults, is_array($jsonStored) ? $jsonStored : []);
+        // Only use database settings - no defaults
+        if ($dbStored === null || empty($dbStored)) {
+            // Database failed or has no data - return empty array
+            $merged = [];
         } else {
-            // Database succeeded (even if empty) - use JSON + DB only, no defaults
-            $merged = array_merge(is_array($jsonStored) ? $jsonStored : [], is_array($dbStored) ? $dbStored : []);
+            // Database succeeded - use only DB values
+            $merged = $dbStored;
         }
 
-        // Cache for 5 minutes (300 seconds)
-        eh_cache_set($cacheKey, $merged, $cacheGroup, 300);
+        // Cache for 10 minutes (600 seconds)
+        eh_cache_set($cacheKey, $merged, $cacheGroup, 600);
 
         return $merged;
     }

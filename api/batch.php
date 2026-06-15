@@ -8,6 +8,7 @@
  */
 
 require 'db.php';
+require 'cache.php';
 require 'cors_middleware.php';
 require 'security.php';
 header('Content-Type: application/json');
@@ -23,7 +24,7 @@ if (!is_array($requestedResources)) {
 }
 
 // Validate each resource name
-$validResources = ['products', 'categories', 'settings', 'notifications', 'branding'];
+$validResources = ['products', 'categories', 'settings', 'notifications', 'branding', 'orders', 'users', 'logs', 'reviews', 'admin_messages', 'staff_users', 'backups'];
 $requestedResources = array_filter($requestedResources, function($resource) use ($validResources) {
     return in_array($resource, $validResources, true);
 });
@@ -118,6 +119,7 @@ if (in_array('settings', $requestedResources)) {
     } catch (Exception $e) {
         $response['data']['settings'] = [];
         $response['errors']['settings'] = $e->getMessage();
+        error_log('Batch settings error: ' . $e->getMessage());
     }
 }
 
@@ -160,13 +162,14 @@ if (in_array('orders', $requestedResources)) {
 // Users (admin only)
 if (in_array('users', $requestedResources)) {
     try {
-        $userId = authenticate($pdo, true);
+        $userId = authenticate($pdo, false);
         if ($userId) {
             $stmt = $pdo->query("SELECT id, name, email, phone, role, level, level_name, created_at FROM users ORDER BY created_at DESC");
             $users = $stmt->fetchAll();
             $response['data']['users'] = $users;
         } else {
             $response['data']['users'] = [];
+            $response['errors']['users'] = 'Unauthorized';
         }
     } catch (Exception $e) {
         $response['data']['users'] = [];
@@ -177,13 +180,14 @@ if (in_array('users', $requestedResources)) {
 // System Logs (admin only)
 if (in_array('logs', $requestedResources)) {
     try {
-        $userId = authenticate($pdo, true);
+        $userId = authenticate($pdo, false);
         if ($userId) {
             $stmt = $pdo->query("SELECT * FROM admin_audit_logs ORDER BY created_at DESC LIMIT 100");
             $logs = $stmt->fetchAll();
             $response['data']['logs'] = $logs;
         } else {
             $response['data']['logs'] = [];
+            $response['errors']['logs'] = 'Unauthorized';
         }
     } catch (Exception $e) {
         $response['data']['logs'] = [];
@@ -206,7 +210,7 @@ if (in_array('reviews', $requestedResources)) {
 // Admin Messages (admin only)
 if (in_array('admin_messages', $requestedResources)) {
     try {
-        $userId = authenticate($pdo, true);
+        $userId = authenticate($pdo, false);
         if ($userId) {
             // Get global messages
             $stmt = $pdo->prepare("
@@ -226,6 +230,7 @@ if (in_array('admin_messages', $requestedResources)) {
             $response['data']['admin_messages'] = $messages;
         } else {
             $response['data']['admin_messages'] = [];
+            $response['errors']['admin_messages'] = 'Unauthorized';
         }
     } catch (Exception $e) {
         $response['data']['admin_messages'] = [];
@@ -236,13 +241,14 @@ if (in_array('admin_messages', $requestedResources)) {
 // Staff Users (admin only)
 if (in_array('staff_users', $requestedResources)) {
     try {
-        $userId = authenticate($pdo, true);
+        $userId = authenticate($pdo, false);
         if ($userId) {
             $stmt = $pdo->query("SELECT id, name, email, phone, role, level, level_name, avatar_text, profile_image, created_at FROM users WHERE role IN ('admin', 'staff', 'picker', 'store_manager', 'super') ORDER BY name ASC");
             $staff = $stmt->fetchAll();
             $response['data']['staff_users'] = $staff;
         } else {
             $response['data']['staff_users'] = [];
+            $response['errors']['staff_users'] = 'Unauthorized';
         }
     } catch (Exception $e) {
         $response['data']['staff_users'] = [];
@@ -253,7 +259,7 @@ if (in_array('staff_users', $requestedResources)) {
 // Backups (admin only)
 if (in_array('backups', $requestedResources)) {
     try {
-        $userId = authenticate($pdo, true);
+        $userId = authenticate($pdo, false);
         if ($userId) {
             $backupDir = __DIR__ . '/backups';
             $backups = [];
@@ -274,6 +280,7 @@ if (in_array('backups', $requestedResources)) {
             $response['data']['backups'] = $backups;
         } else {
             $response['data']['backups'] = [];
+            $response['errors']['backups'] = 'Unauthorized';
         }
     } catch (Exception $e) {
         $response['data']['backups'] = [];

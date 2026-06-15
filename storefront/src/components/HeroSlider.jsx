@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { fetchSlides } from '../services/api';
@@ -6,12 +6,12 @@ import { useSettings } from '../context/SettingsContext';
 
 const isVideo = (url) => url && (url.match(/\.(mp4|webm)$/i) || url.startsWith('data:video'));
 
-export default function HeroSlider() {
+function HeroSlider() {
   const { siteSettings } = useSettings();
   const [slides, setSlides] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const loadSlides = async () => {
+  const loadSlides = useCallback(async () => {
       try {
           const data = await fetchSlides();
           // Only update if data actually changed to avoid resetting the slider position unnecessarily
@@ -22,7 +22,7 @@ export default function HeroSlider() {
       } catch (err) {
           // Silent error handling to avoid console clutter
       }
-  };
+  }, []);
 
   useEffect(() => {
     loadSlides();
@@ -35,7 +35,7 @@ export default function HeroSlider() {
     return () => {
         window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, [loadSlides]);
 
   useEffect(() => {
     if (slides.length <= 1) return;
@@ -260,3 +260,5 @@ export default function HeroSlider() {
     </div>
   );
 }
+
+export default memo(HeroSlider);

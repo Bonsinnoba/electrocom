@@ -93,8 +93,23 @@ try {
     }
 
     // Generate token and set session
-    $token = generateToken($user['id']);
+    $token = generateToken($user['id'], $user['role']);
     $cookieName = 'ehub_store_session';
+
+    // Store device fingerprint for admin/staff users
+    if (in_array($user['role'], ['admin', 'staff']) && function_exists('generateDeviceFingerprint')) {
+        $deviceFingerprint = generateDeviceFingerprint();
+        $ipAddress = getClientIP();
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        $userAgent = $headers['User-Agent'] ?? $_SERVER['HTTP_USER_AGENT'] ?? '';
+        
+        try {
+            $stmt = $pdo->prepare("INSERT INTO user_sessions (user_id, device_fingerprint, ip_address, user_agent) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$user['id'], $deviceFingerprint, $ipAddress, $userAgent]);
+        } catch (Exception $e) {
+            error_log("Failed to store device fingerprint: " . $e->getMessage());
+        }
+    }
 
     $isProd = ($config['APP_ENV'] ?? 'production') === 'production';
     setcookie($cookieName, $token, [
