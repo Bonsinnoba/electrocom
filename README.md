@@ -20,6 +20,7 @@
 ### 1. Backend API Setup
 - Ensure **PHP 8.1+** and **MySQL 8.0+** are available.
 - Create a `.env` file in `/api` using the provided `.env.example`.
+- Configure required environment variables for store identity, assets, and email provider.
 - Run: `php -S localhost:8000` (for local development).
 
 ### 2. Frontend Applications

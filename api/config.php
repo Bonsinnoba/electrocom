@@ -24,6 +24,17 @@ $config = [
     'APP_URL'             => $_ENV['APP_URL'] ?? '',
     'FRONTEND_URL'        => $_ENV['FRONTEND_URL'] ?? '',
     
+    // Site Identity
+    'SITE_NAME'           => $_ENV['SITE_NAME'] ?? 'My Store',
+    'SITE_EMAIL'          => $_ENV['SITE_EMAIL'] ?? 'hello@example.com',
+    'PHONE1'              => $_ENV['PHONE1'] ?? '',
+    'PHONE2'              => $_ENV['PHONE2'] ?? '',
+    'WHATSAPP'            => $_ENV['WHATSAPP'] ?? '',
+    
+    // Site Assets
+    'SITE_LOGO_URL'       => $_ENV['SITE_LOGO_URL'] ?? '',
+    'FAVICON_URL'         => $_ENV['FAVICON_URL'] ?? '',
+    
     // Database
     'DB_HOST'             => $_ENV['DB_HOST'] ?? 'localhost',
     'DB_USER'             => $_ENV['DB_USER'] ?? '',
